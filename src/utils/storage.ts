@@ -4,6 +4,8 @@ import { INITIAL_TEAMS } from '../data/missions';
 const STORAGE_KEY_ROOMS = 'rali_sql_rooms_v2';
 const STORAGE_KEY_ACTIVE_ROOM_ID = 'rali_sql_active_room_id_v2';
 const STORAGE_KEY_APPS_SCRIPT_URL = 'rali_sql_apps_script_url_v1';
+const STORAGE_KEY_TEACHER_PIN = 'rali_sql_teacher_pin_v1';
+const STORAGE_KEY_TEACHER_AUTH = 'rali_sql_teacher_auth_v1';
 
 export const DEFAULT_SESSION_STATE: ClassSessionState = {
   totalSeconds: 100 * 60, // 100 minutos total
@@ -51,13 +53,19 @@ export function subscribeToSync(callback: () => void): () => void {
     callback();
   };
 
+  const handleLocalSync = () => {
+    callback();
+  };
+
   window.addEventListener('storage', handleStorage);
+  window.addEventListener('rali_sql_local_sync', handleLocalSync);
   if (channel) {
     channel.addEventListener('message', handleBroadcast);
   }
 
   return () => {
     window.removeEventListener('storage', handleStorage);
+    window.removeEventListener('rali_sql_local_sync', handleLocalSync);
     if (channel) {
       channel.removeEventListener('message', handleBroadcast);
     }
@@ -65,6 +73,13 @@ export function subscribeToSync(callback: () => void): () => void {
 }
 
 export function notifySync() {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('rali_sql_local_sync'));
+    } catch {
+      // ignore
+    }
+  }
   if (channel) {
     try {
       channel.postMessage({ type: 'SYNC_UPDATE', timestamp: Date.now() });
@@ -231,4 +246,90 @@ export function getPhaseFromElapsedSeconds(elapsedSeconds: number): ClassPhase {
   if (elapsedMinutes < 85) return 'sprint';
   if (elapsedMinutes < 90) return 'hard_stop';
   return 'debriefing';
+}
+
+// --- GESTÃO AVANÇADA DE SALAS E EQUIPES ---
+
+export function updateRoom(roomId: string, partial: Partial<RallyRoom>): RallyRoom[] {
+  const rooms = getRooms();
+  const updated = rooms.map((r) => {
+    if (r.id === roomId) {
+      return { ...r, ...partial };
+    }
+    return r;
+  });
+  saveRooms(updated);
+  return updated;
+}
+
+export function deleteRoom(roomId: string): RallyRoom[] {
+  const rooms = getRooms();
+  const filtered = rooms.filter((r) => r.id !== roomId);
+  const safeRooms = filtered.length > 0 ? filtered : [createDefaultInitialRoom()];
+  saveRooms(safeRooms);
+  const currentActive = getActiveRoomId();
+  if (currentActive === roomId) {
+    setActiveRoomId(safeRooms[0].id);
+  }
+  return safeRooms;
+}
+
+export function updateTeamInRoom(roomId: string, teamId: string, partial: Partial<Team>): RallyRoom[] {
+  const rooms = getRooms();
+  const updated = rooms.map((r) => {
+    if (r.id === roomId) {
+      const updatedTeams = r.teams.map((t) => {
+        if (t.id === teamId) {
+          return { ...t, ...partial };
+        }
+        return t;
+      });
+      return { ...r, teams: updatedTeams };
+    }
+    return r;
+  });
+  saveRooms(updated);
+  return updated;
+}
+
+// --- AUTENTICAÇÃO DO PROFESSOR (MODO PROFESSOR / PROTEÇÃO PIN) ---
+
+export const DEFAULT_TEACHER_PIN = 'ifs2026';
+
+export function getTeacherPin(): string {
+  if (typeof window === 'undefined') return DEFAULT_TEACHER_PIN;
+  return localStorage.getItem(STORAGE_KEY_TEACHER_PIN) || DEFAULT_TEACHER_PIN;
+}
+
+export function saveTeacherPin(pin: string): void {
+  if (typeof window === 'undefined') return;
+  const clean = pin.trim() || DEFAULT_TEACHER_PIN;
+  localStorage.setItem(STORAGE_KEY_TEACHER_PIN, clean);
+}
+
+export function isTeacherAuthenticated(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    sessionStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true' ||
+    localStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true'
+  );
+}
+
+export function setTeacherAuthenticated(authenticated: boolean, remember: boolean = true): void {
+  if (typeof window === 'undefined') return;
+  if (authenticated) {
+    sessionStorage.setItem(STORAGE_KEY_TEACHER_AUTH, 'true');
+    if (remember) {
+      localStorage.setItem(STORAGE_KEY_TEACHER_AUTH, 'true');
+    }
+  } else {
+    sessionStorage.removeItem(STORAGE_KEY_TEACHER_AUTH);
+    localStorage.removeItem(STORAGE_KEY_TEACHER_AUTH);
+  }
+  notifySync();
+}
+
+export function verifyTeacherPin(inputPin: string): boolean {
+  const currentPin = getTeacherPin();
+  return inputPin.trim() === currentPin.trim();
 }

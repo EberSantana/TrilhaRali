@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
 import { 
   Users, 
+  FolderPlus, 
+  Archive, 
+  Check, 
+  X, 
   Plus, 
   Trash2, 
-  Check, 
-  FileText, 
-  FolderPlus, 
-  Calendar, 
-  Smartphone, 
   Download, 
-  CheckCircle2, 
-  X,
-  Sparkles,
-  Archive,
-  BookOpen,
-  GraduationCap
+  Smartphone, 
+  Calendar,
+  GraduationCap,
+  Pencil,
+  AlertTriangle
 } from 'lucide-react';
-import { Team, RallyRoom } from '../types';
+import { RallyRoom, Team } from '../types';
 import { IfsLogo } from './IfsLogo';
 
 interface RoomsAndTeamsModalProps {
@@ -24,6 +22,8 @@ interface RoomsAndTeamsModalProps {
   activeRoomId: string;
   onSelectRoom: (roomId: string) => void;
   onCreateRoom: (nome: string, disciplina: string, anotacoes: string) => void;
+  onEditRoom: (roomId: string, updated: Partial<RallyRoom>) => void;
+  onDeleteRoom: (roomId: string) => void;
   onUpdateTeam: (teamId: string, updated: Partial<Team>) => void;
   onToggleRoomStatus: (roomId: string) => void;
   onClose: () => void;
@@ -34,23 +34,43 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
   activeRoomId,
   onSelectRoom,
   onCreateRoom,
+  onEditRoom,
+  onDeleteRoom,
   onUpdateTeam,
   onToggleRoomStatus,
   onClose,
 }) => {
   const [tab, setTab] = useState<'rooms' | 'members'>('members');
+  
+  // Room creation state
   const [newRoomNome, setNewRoomNome] = useState('');
   const [newRoomDisciplina, setNewRoomDisciplina] = useState('Banco de Dados - IFS Campus Tobias Barreto');
   const [newRoomAnotacoes, setNewRoomAnotacoes] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
+  // Room editing state
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editRoomNome, setEditRoomNome] = useState('');
+  const [editRoomDisciplina, setEditRoomDisciplina] = useState('');
+  const [editRoomAnotacoes, setEditRoomAnotacoes] = useState('');
+
+  // Room delete confirmation state
+  const [confirmDeleteRoomId, setConfirmDeleteRoomId] = useState<string | null>(null);
+
   // Member editing state
   const [selectedTeamId, setSelectedTeamId] = useState<string>('equipe_a');
   const [newStudentName, setNewStudentName] = useState('');
+  const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [editedStudentName, setEditedStudentName] = useState<string>('');
+
+  // Team renaming state
+  const [isEditingTeamName, setIsEditingTeamName] = useState(false);
+  const [editedTeamName, setEditedTeamName] = useState('');
 
   const activeRoom = rooms.find((r) => r.id === activeRoomId) || rooms[0];
   const activeTeam = activeRoom?.teams.find((t) => t.id === selectedTeamId) || activeRoom?.teams[0];
 
+  // Room creation
   const handleCreateRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoomNome.trim()) return;
@@ -59,6 +79,33 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
     setShowCreateForm(false);
   };
 
+  // Start editing a room
+  const handleStartEditRoom = (room: RallyRoom) => {
+    setEditingRoomId(room.id);
+    setEditRoomNome(room.nome);
+    setEditRoomDisciplina(room.disciplina);
+    setEditRoomAnotacoes(room.anotacoes || '');
+  };
+
+  // Save edited room
+  const handleSaveEditRoom = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRoomId || !editRoomNome.trim()) return;
+    onEditRoom(editingRoomId, {
+      nome: editRoomNome.trim(),
+      disciplina: editRoomDisciplina.trim() || 'Banco de Dados - IFS Campus Tobias Barreto',
+      anotacoes: editRoomAnotacoes.trim(),
+    });
+    setEditingRoomId(null);
+  };
+
+  // Delete room
+  const handleConfirmDelete = (roomId: string) => {
+    onDeleteRoom(roomId);
+    setConfirmDeleteRoomId(null);
+  };
+
+  // Add student
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTeam || !newStudentName.trim()) return;
@@ -72,6 +119,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
     setNewStudentName('');
   };
 
+  // Remove student
   const handleRemoveStudent = (studentName: string) => {
     if (!activeTeam) return;
     const updatedAlunos = activeTeam.alunos.filter((a) => a !== studentName);
@@ -82,11 +130,58 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
     });
   };
 
+  // Start editing student name
+  const handleStartEditStudent = (studentName: string) => {
+    setEditingStudent(studentName);
+    setEditedStudentName(studentName);
+  };
+
+  // Save edited student name
+  const handleSaveEditStudent = (oldStudentName: string) => {
+    if (!activeTeam || !editedStudentName.trim()) {
+      setEditingStudent(null);
+      return;
+    }
+    const cleanNewName = editedStudentName.trim();
+    const updatedAlunos = activeTeam.alunos.map((name) =>
+      name === oldStudentName ? cleanNewName : name
+    );
+    const updatedScanner =
+      activeTeam.scanner_aluno === oldStudentName ? cleanNewName : activeTeam.scanner_aluno;
+
+    onUpdateTeam(activeTeam.id, {
+      alunos: updatedAlunos,
+      scanner_aluno: updatedScanner,
+    });
+    setEditingStudent(null);
+  };
+
+  // Start editing team name
+  const handleStartEditTeamName = () => {
+    if (!activeTeam) return;
+    setEditedTeamName(activeTeam.nome);
+    setIsEditingTeamName(true);
+  };
+
+  // Save edited team name
+  const handleSaveTeamName = () => {
+    if (!activeTeam || !editedTeamName.trim()) {
+      setIsEditingTeamName(false);
+      return;
+    }
+    onUpdateTeam(activeTeam.id, {
+      nome: editedTeamName.trim(),
+    });
+    setIsEditingTeamName(false);
+  };
+
+  // Set official scanner student
   const handleSetScannerStudent = (studentName: string) => {
     if (!activeTeam) return;
     onUpdateTeam(activeTeam.id, { scanner_aluno: studentName });
   };
 
+  // Export report
   const handleExportRoomReport = () => {
     if (!activeRoom) return;
     let report = `========================================================================\n`;
@@ -148,7 +243,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
               <span>Salas do Rali & Alunos por Equipe</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Crie salas para registrar cada aula/turma e cadastre os nomes dos alunos que compõem cada equipe.
+              Gerencie as turmas, edite ou exclua salas, e configure os alunos e equipes participantes do rali.
             </p>
           </div>
         </div>
@@ -213,7 +308,10 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                   {activeRoom.teams.map((t) => (
                     <button
                       key={t.id}
-                      onClick={() => setSelectedTeamId(t.id)}
+                      onClick={() => {
+                        setSelectedTeamId(t.id);
+                        setIsEditingTeamName(false);
+                      }}
                       className={`w-full p-2.5 rounded-xl text-left text-xs font-semibold flex items-center justify-between transition border ${
                         selectedTeamId === t.id
                           ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200'
@@ -236,15 +334,54 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
               <div className="md:col-span-2 bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-4">
                 {activeTeam ? (
                   <>
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                      <div>
-                        <span className="text-xs uppercase font-bold text-emerald-400">Equipe Selecionada</span>
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                          <span className={`w-3 h-3 rounded-full ${activeTeam.cor}`} />
-                          {activeTeam.nome}
-                        </h3>
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs uppercase font-bold text-emerald-400 block mb-0.5">Equipe Selecionada</span>
+                        {isEditingTeamName ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <input
+                              type="text"
+                              value={editedTeamName}
+                              onChange={(e) => setEditedTeamName(e.target.value)}
+                              autoFocus
+                              className="bg-slate-900 border border-emerald-500 rounded-lg px-2.5 py-1 text-sm font-bold text-white outline-none focus:ring-1 focus:ring-emerald-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveTeamName}
+                              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition"
+                              title="Salvar Nome da Equipe"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingTeamName(false)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 transition"
+                              title="Cancelar"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2 truncate">
+                              <span className={`w-3 h-3 rounded-full ${activeTeam.cor}`} />
+                              <span className="truncate">{activeTeam.nome}</span>
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={handleStartEditTeamName}
+                              className="p-1 text-slate-400 hover:text-emerald-400 transition rounded"
+                              title="Editar Nome da Equipe"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
+
+                      <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20 shrink-0">
                         {activeTeam.xp_total} XP
                       </span>
                     </div>
@@ -282,42 +419,89 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                         <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                           {activeTeam.alunos.map((student) => {
                             const isScanner = activeTeam.scanner_aluno === student;
+                            const isEditing = editingStudent === student;
+
                             return (
                               <div
                                 key={student}
-                                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs gap-2"
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white font-medium">{student}</span>
-                                  {isScanner && (
-                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
-                                      <Smartphone className="w-3 h-3" />
-                                      Scanner Oficial
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  {!isScanner && (
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <input
+                                      type="text"
+                                      value={editedStudentName}
+                                      onChange={(e) => setEditedStudentName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveEditStudent(student);
+                                        if (e.key === 'Escape') setEditingStudent(null);
+                                      }}
+                                      autoFocus
+                                      className="flex-1 bg-slate-950 border border-emerald-500 rounded-lg px-2.5 py-1 text-xs text-white outline-none"
+                                    />
                                     <button
                                       type="button"
-                                      onClick={() => handleSetScannerStudent(student)}
-                                      className="text-[11px] text-slate-400 hover:text-emerald-400 transition underline"
-                                      title="Definir como o aluno que carrega o celular"
+                                      onClick={() => handleSaveEditStudent(student)}
+                                      className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white transition"
+                                      title="Salvar Nome"
                                     >
-                                      Tornar Scanner
+                                      <Check className="w-3.5 h-3.5" />
                                     </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveStudent(student)}
-                                    className="p-1 text-slate-500 hover:text-rose-400 transition rounded"
-                                    title="Remover aluno da equipe"
-                                    aria-label={`Remover ${student}`}
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingStudent(null)}
+                                      className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 transition"
+                                      title="Cancelar"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-2 truncate">
+                                      <span className="text-white font-medium truncate">{student}</span>
+                                      {isScanner && (
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 shrink-0">
+                                          <Smartphone className="w-3 h-3" />
+                                          Scanner Oficial
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {!isScanner && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetScannerStudent(student)}
+                                          className="text-[11px] text-slate-400 hover:text-emerald-400 transition underline mr-1"
+                                          title="Definir como o aluno que carrega o celular"
+                                        >
+                                          Tornar Scanner
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleStartEditStudent(student)}
+                                        className="p-1.5 text-slate-400 hover:text-amber-400 transition rounded hover:bg-slate-800"
+                                        title="Editar nome do aluno"
+                                        aria-label={`Editar ${student}`}
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveStudent(student)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-slate-800"
+                                        title="Remover aluno da equipe"
+                                        aria-label={`Remover ${student}`}
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             );
                           })}
@@ -333,16 +517,19 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
           </div>
         )}
 
-        {/* TAB 2: GESTÃO DE SALAS (REGISTRO & ARQUIVO) */}
+        {/* TAB 2: GESTÃO DE SALAS (REGISTRO, ARQUIVO, EDIÇÃO & EXCLUSÃO) */}
         {tab === 'rooms' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">
-                Histórico de turmas e dias de rali para arquivo pedagógico.
+                Histórico de turmas e dias de rali para arquivo pedagógico do IFS.
               </span>
 
               <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
+                onClick={() => {
+                  setShowCreateForm(!showCreateForm);
+                  setEditingRoomId(null);
+                }}
                 className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/20"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -352,7 +539,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
 
             {/* Create Room Form */}
             {showCreateForm && (
-              <form onSubmit={handleCreateRoomSubmit} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+              <form onSubmit={handleCreateRoomSubmit} className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/30 space-y-3">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2">
                   <FolderPlus className="w-4 h-4 text-emerald-400" />
                   Criar Nova Sala para Nova Turma / Semestre
@@ -416,6 +603,99 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
               </form>
             )}
 
+            {/* Edit Room Form */}
+            {editingRoomId && (
+              <form onSubmit={handleSaveEditRoom} className="bg-slate-950 p-5 rounded-2xl border border-amber-500/40 space-y-3">
+                <h4 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                  <Pencil className="w-4 h-4 text-amber-400" />
+                  Editar Dados da Sala
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">
+                      Nome da Turma / Sala:
+                    </label>
+                    <input
+                      type="text"
+                      value={editRoomNome}
+                      onChange={(e) => setEditRoomNome(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">
+                      Disciplina / Campus:
+                    </label>
+                    <input
+                      type="text"
+                      value={editRoomDisciplina}
+                      onChange={(e) => setEditRoomDisciplina(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">
+                    Anotações:
+                  </label>
+                  <input
+                    type="text"
+                    value={editRoomAnotacoes}
+                    onChange={(e) => setEditRoomAnotacoes(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingRoomId(null)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
+                  >
+                    Atualizar Sala
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Delete Room Confirmation Modal / Card */}
+            {confirmDeleteRoomId && (
+              <div className="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-200 text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                  <span>
+                    <strong>Confirmar exclusão definitiva?</strong> Todos os dados, equipes e histórico de pontos desta sala serão removidos.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteRoomId(null)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmDelete(confirmDeleteRoomId)}
+                    className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Sim, Excluir</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Rooms Cards */}
             <div className="space-y-3">
               {rooms.map((room) => {
@@ -433,7 +713,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                     }`}
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {isActive && (
                           <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase">
                             Sala Atual
@@ -445,13 +725,19 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-400 flex items-center gap-2">
+                      <p className="text-xs text-slate-400 flex items-center gap-2 flex-wrap">
                         <span>{room.disciplina}</span>
                         <span>•</span>
                         <span className="flex items-center gap-1 font-mono text-[11px]">
                           <Calendar className="w-3 h-3 text-emerald-400" />
                           {new Date(room.dataCriacao).toLocaleDateString('pt-BR')}
                         </span>
+                        {room.anotacoes && (
+                          <>
+                            <span>•</span>
+                            <span className="italic text-slate-400">{room.anotacoes}</span>
+                          </>
+                        )}
                       </p>
 
                       <div className="flex items-center gap-3 pt-1 text-xs text-slate-300">
@@ -463,7 +749,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       {!isActive && (
                         <button
                           onClick={() => onSelectRoom(room.id)}
@@ -473,12 +759,31 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                         </button>
                       )}
 
+                      {/* Edit room button */}
+                      <button
+                        onClick={() => handleStartEditRoom(room)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-400 transition"
+                        title="Editar nome e informações da sala"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+
+                      {/* Archive/reactivate button */}
                       <button
                         onClick={() => onToggleRoomStatus(room.id)}
                         className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
                         title={room.status === 'ativa' ? 'Finalizar e Arquivar Sala' : 'Reativar Sala'}
                       >
                         <Archive className="w-4 h-4" />
+                      </button>
+
+                      {/* Delete room button */}
+                      <button
+                        onClick={() => setConfirmDeleteRoomId(room.id)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 transition"
+                        title="Excluir Sala Definitivamente"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
