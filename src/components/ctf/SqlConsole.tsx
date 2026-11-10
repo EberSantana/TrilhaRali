@@ -35,16 +35,6 @@ interface TableInfo {
   columns: Array<{ name: string; type: string; pk: boolean }>;
 }
 
-const EXAMPLES: Array<{ label: string; sql: string }> = [
-  { label: 'Listar tabelas', sql: "SELECT name FROM sqlite_master WHERE type = 'table';" },
-  {
-    label: 'Criar tabela',
-    sql: 'CREATE TABLE teste (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  nome TEXT NOT NULL,\n  nota REAL\n);',
-  },
-  { label: 'Inserir', sql: "INSERT INTO teste (nome, nota) VALUES ('Ana', 9.5), ('Bia', 8.0);" },
-  { label: 'Consultar', sql: 'SELECT * FROM teste;' },
-];
-
 function cellText(v: unknown): React.ReactNode {
   if (v === null || v === undefined) return <span className="italic text-slate-500">NULL</span>;
   if (v instanceof Uint8Array) return <span className="italic text-slate-500">[BLOB {v.length} bytes]</span>;
@@ -59,9 +49,9 @@ export const SqlConsole: React.FC = () => {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [sql, setSql] = useState(() => {
     try {
-      return localStorage.getItem(KEY_DRAFT) || 'SELECT COUNT(*) FROM Funcionarios;';
+      return localStorage.getItem(KEY_DRAFT) || '';
     } catch {
-      return 'SELECT COUNT(*) FROM Funcionarios;';
+      return '';
     }
   });
   const [results, setResults] = useState<ResultSet[]>([]);
@@ -98,7 +88,7 @@ export const SqlConsole: React.FC = () => {
       dbRef.current = db;
       setOrigin(kind);
       setResults([]);
-      setMessage(kind === 'rali' ? 'Banco do Rali carregado. Explore as tabelas ao lado.' : 'Banco vazio criado. Use CREATE TABLE para começar.');
+      setMessage(kind === 'rali' ? 'Banco do Rali carregado.' : 'Banco vazio criado.');
       if (kind === 'rali') setError('');
       refreshSchema();
     },
@@ -237,7 +227,7 @@ export const SqlConsole: React.FC = () => {
               <Table2 className="w-3.5 h-3.5" /> Tabelas ({tables.length})
             </div>
             {tables.length === 0 ? (
-              <p className="text-xs text-slate-500">Nenhuma tabela ainda. Crie uma com CREATE TABLE.</p>
+              <p className="text-xs text-slate-500">Nenhuma tabela.</p>
             ) : (
               <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                 {tables.map((t) => (
@@ -277,18 +267,6 @@ export const SqlConsole: React.FC = () => {
 
           {/* Editor e resultados */}
           <div className="space-y-3 min-w-0">
-            <div className="flex flex-wrap gap-1.5">
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex.label}
-                  onClick={() => updateSql(ex.sql)}
-                  className="text-[11px] px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold"
-                >
-                  {ex.label}
-                </button>
-              ))}
-            </div>
-
             <textarea
               ref={editorRef}
               value={sql}
@@ -328,7 +306,7 @@ export const SqlConsole: React.FC = () => {
               >
                 <Eraser className="w-4 h-4" /> Limpar
               </button>
-              <span className="text-[11px] text-slate-500 hidden sm:inline">Ctrl + Enter executa. Vários comandos separados por ; rodam em sequência.</span>
+              <span className="text-[11px] text-slate-500 hidden sm:inline">Ctrl + Enter executa.</span>
             </div>
 
             {error && (
