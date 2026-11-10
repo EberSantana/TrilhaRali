@@ -17,8 +17,7 @@ import {
   verifyTeacherPin, 
   setTeacherAuthenticated, 
   getTeacherPin, 
-  saveTeacherPin, 
-  DEFAULT_TEACHER_PIN 
+  saveTeacherPin 
 } from '../utils/storage';
 
 interface TeacherAuthModalProps {
@@ -274,18 +273,15 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
           /* Login Form with PIN */
           <form onSubmit={handleAuthSubmit} className="space-y-4 pt-1">
             <div>
-              <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5 flex items-center justify-between">
-                <span>Digite o PIN do Professor:</span>
-                <span className="text-[10px] text-slate-500 font-normal">
-                  Padrão: <code className="text-emerald-400 font-mono font-bold">{DEFAULT_TEACHER_PIN}</code>
-                </span>
+              <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5">
+                Digite o PIN do Professor:
               </label>
               <div className="relative">
                 <input
                   type={showPin ? 'text' : 'password'}
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder="Ex: ifs2026"
+                  placeholder=""
                   autoFocus
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-sm font-mono text-white placeholder-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
