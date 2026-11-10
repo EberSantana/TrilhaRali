@@ -132,13 +132,38 @@ function adicionarXP(sheetEquipes, nomeEquipe, xp) {
   }
 }
 
-// Endpoint GET para leitura do ranking em tempo real
-function doGet() {
+// Endpoint GET: Retorna dados em tempo real (Pergunta da Tag ou Ranking das Equipes)
+function doGet(e) {
+  var params = (e && e.parameter) ? e.parameter : {};
+  
+  // Se o celular consultar a pergunta da tag (?tag=tag_01):
+  if (params.tag) {
+    var sheetMissoes = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Missoes");
+    if (sheetMissoes) {
+      var missoes = sheetMissoes.getDataRange().getValues();
+      for (var i = 1; i < missoes.length; i++) {
+        if (missoes[i][0] == params.tag) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: "sucesso",
+            tag_id: missoes[i][0],
+            pergunta: missoes[i][1],
+            xp_valor: missoes[i][3] || 10
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "erro",
+      mensagem: "Tag não encontrada na planilha"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Padrão: Retorna o ranking consolidado das equipes
   var sheetEquipes = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Equipes");
-  var dados = sheetEquipes.getDataRange().getValues();
+  var dados = sheetEquipes ? sheetEquipes.getDataRange().getValues() : [];
   var ranking = [];
-  for (var i = 1; i < dados.length; i++) {
-    ranking.push({ nome: dados[i][0], xp: dados[i][1] });
+  for (var j = 1; j < dados.length; j++) {
+    ranking.push({ nome: dados[j][0], xp: dados[j][1] });
   }
   return ContentService.createTextOutput(JSON.stringify(ranking))
     .setMimeType(ContentService.MimeType.JSON);

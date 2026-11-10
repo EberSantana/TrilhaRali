@@ -42,6 +42,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const hasWebNfc = typeof window !== 'undefined' && 'NDEFReader' in window;
 
   const [activeTagId, setActiveTagId] = useState<string>('tag_01');
+  const [customMission, setCustomMission] = useState<Mission | null>(null);
   const [studentAnswer, setStudentAnswer] = useState<string>('');
   const [isNfcScanning, setIsNfcScanning] = useState<boolean>(false);
   const [nfcStatusMessage, setNfcStatusMessage] = useState<string>(
@@ -57,8 +58,64 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const currentTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
-  const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId);
+  const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId) || customMission;
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
+
+  const loadTag = async (rawPayload: string) => {
+    let payload = rawPayload.trim();
+    if (payload.length > 3 && payload.includes('tag_')) {
+      const match = payload.match(/tag_[a-z0-9_]+/i);
+      if (match) payload = match[0];
+    }
+
+    const found = ALL_MISSIONS.find((m) => m.tag_id.toLowerCase() === payload.toLowerCase());
+    if (found) {
+      setActiveTagId(found.tag_id);
+      setCustomMission(null);
+      setNfcStatusMessage(`Tag detectada com sucesso: ${found.tag_id}!`);
+      playSound('scan', sessionState.soundEnabled);
+      setFeedback({ type: 'info', text: `Missão carregada: ${found.tag_id}` });
+      setStudentAnswer('');
+      inputRef.current?.focus();
+      return;
+    }
+
+    // Tenta consultar a pergunta diretamente na planilha via Google Apps Script se configurada
+    const appsScriptUrl = getAppsScriptUrl();
+    if (appsScriptUrl) {
+      try {
+        setNfcStatusMessage(`Consultando Google Sheets para a tag ${payload}...`);
+        const res = await fetch(`${appsScriptUrl}?tag=${encodeURIComponent(payload)}`);
+        const data = await res.json();
+        if (data && data.status === 'sucesso' && data.pergunta) {
+          const dynamicMission: Mission = {
+            id: Date.now(),
+            tag_id: data.tag_id || payload,
+            package: 'mvp',
+            packageName: 'Planilha Google Sheets',
+            category: 'DQL',
+            pergunta: data.pergunta,
+            resposta_curta: '',
+            xp_valor: data.xp_valor || 10,
+            location_suggestion: 'Bancada do Laboratório',
+            explanation: 'Pergunta carregada da planilha Google Sheets em tempo real.',
+          };
+          setActiveTagId(payload);
+          setCustomMission(dynamicMission);
+          setNfcStatusMessage(`Missão "${payload}" carregada da planilha Google Sheets!`);
+          playSound('scan', sessionState.soundEnabled);
+          setFeedback({ type: 'info', text: `Missão carregada da Planilha: ${payload}` });
+          setStudentAnswer('');
+          inputRef.current?.focus();
+          return;
+        }
+      } catch {
+        // segue para mensagem padrão
+      }
+    }
+
+    setNfcStatusMessage(`Tag lida ("${payload}"), mas não encontrada no banco de 50 missões nem na planilha.`);
+  };
 
   const startNfcScan = async () => {
     if (!hasWebNfc) {
@@ -82,26 +139,8 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
       ndef.onreading = (event: { message: { records: Array<{ data: BufferSource }> } }) => {
         const decoder = new TextDecoder();
         for (const record of event.message.records) {
-          let payload = decoder.decode(record.data);
-          // O payload gravado via NFC Tools pode ter header de idioma (ex: 'en' ou 'pt')
-          // Se começar com caracteres de controle ou idioma, normalizamos
-          if (payload.length > 3 && payload.includes('tag_')) {
-            const match = payload.match(/tag_[a-z0-9_]+/i);
-            if (match) payload = match[0];
-          }
-          payload = payload.trim();
-
-          const found = ALL_MISSIONS.find((m) => m.tag_id.toLowerCase() === payload.toLowerCase());
-          if (found) {
-            setActiveTagId(found.tag_id);
-            setNfcStatusMessage(`Tag detectada com sucesso: ${found.tag_id}!`);
-            playSound('scan', sessionState.soundEnabled);
-            setFeedback({ type: 'info', text: `Missão carregada: ${found.tag_id}` });
-            setStudentAnswer('');
-            inputRef.current?.focus();
-          } else {
-            setNfcStatusMessage(`Tag lida ("${payload}"), mas não encontrada no banco de 30 missões.`);
-          }
+          const payload = decoder.decode(record.data);
+          loadTag(payload);
         }
       };
 
@@ -117,11 +156,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   };
 
   const handleSelectSimulatedTag = (tagId: string) => {
-    setActiveTagId(tagId);
-    setNfcStatusMessage(`Missão simulada: ${tagId}`);
-    playSound('scan', sessionState.soundEnabled);
-    setFeedback(null);
-    setStudentAnswer('');
+    loadTag(tagId);
     setShowManualPicker(false);
     setTimeout(() => {
       inputRef.current?.focus();

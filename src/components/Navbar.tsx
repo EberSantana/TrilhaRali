@@ -10,7 +10,9 @@ import {
   Sheet,
   GraduationCap,
   MapPin,
-  Info
+  Info,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import { ClassSessionState } from '../types';
 import { IfsLogo } from './IfsLogo';
@@ -24,7 +26,16 @@ interface NavbarProps {
   onToggleSound: () => void;
   activeRoomName?: string;
   onOpenRoomsModal: () => void;
+  isTeacher: boolean;
+  onOpenTeacherAuth: (featureName?: string) => void;
 }
+
+const RESTRICTED_TABS: Partial<Record<ActiveTab, string>> = {
+  debriefing: 'Debriefing & Gabarito Oficial',
+  missions: 'Banco Completo de 50 Missões',
+  sql: 'Playground SQLite',
+  sheets: 'Integração Google Sheets & Apps Script',
+};
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
@@ -33,7 +44,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSound,
   activeRoomName,
   onOpenRoomsModal,
+  isTeacher,
+  onOpenTeacherAuth,
 }) => {
+  const handleTabClick = (tab: ActiveTab) => {
+    const restrictedLabel = RESTRICTED_TABS[tab];
+    if (!isTeacher && restrictedLabel) {
+      onOpenTeacherAuth(restrictedLabel);
+      return;
+    }
+    setActiveTab(tab);
+  };
+
+  const handleRoomsClick = () => {
+    if (!isTeacher) {
+      onOpenTeacherAuth('Gestão de Salas do Rali e Equipes');
+      return;
+    }
+    onOpenRoomsModal();
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-emerald-900/40 shadow-xl text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
@@ -62,10 +92,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Navigation Tabs - Clean, unified and responsive */}
+          {/* Navigation Tabs - Role-Aware (Student vs Professor) */}
           <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1">
+            {/* Telão */}
             <button
-              onClick={() => setActiveTab('projector')}
+              onClick={() => handleTabClick('projector')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'projector'
                   ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-700/30 ring-1 ring-emerald-400/50'
@@ -76,8 +107,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Telão</span>
             </button>
 
+            {/* Scanner Aluno */}
             <button
-              onClick={() => setActiveTab('scanner')}
+              onClick={() => handleTabClick('scanner')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'scanner'
                   ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
@@ -88,58 +120,69 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Scanner Aluno</span>
             </button>
 
+            {/* Debriefing (Restrito ao Professor) */}
             <button
-              onClick={() => setActiveTab('debriefing')}
+              onClick={() => handleTabClick('debriefing')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'debriefing'
                   ? 'bg-purple-700 text-white shadow-lg shadow-purple-700/30 ring-1 ring-purple-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
+              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Debriefing e Gabaritos Oficiais'}
             >
               <HelpCircle className="w-4 h-4 text-purple-300" />
               <span>Debriefing</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
             </button>
 
+            {/* 50 Missões (Restrito ao Professor) */}
             <button
-              onClick={() => setActiveTab('missions')}
+              onClick={() => handleTabClick('missions')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'missions'
                   ? 'bg-amber-700 text-white shadow-lg shadow-amber-700/30 ring-1 ring-amber-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
+              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Banco das 50 Missões SQL'}
             >
               <Tag className="w-4 h-4 text-amber-300" />
               <span>50 Missões</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
             </button>
 
+            {/* SQLite (Restrito ao Professor) */}
             <button
-              onClick={() => setActiveTab('sql')}
+              onClick={() => handleTabClick('sql')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'sql'
                   ? 'bg-sky-700 text-white shadow-lg shadow-sky-700/30 ring-1 ring-sky-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
+              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Console SQLite Pedagógico'}
             >
               <Database className="w-4 h-4 text-sky-300" />
               <span className="hidden sm:inline">SQLite</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
             </button>
 
+            {/* Sheets (Restrito ao Professor) */}
             <button
-              onClick={() => setActiveTab('sheets')}
+              onClick={() => handleTabClick('sheets')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'sheets'
                   ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/30 ring-1 ring-teal-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title="Configuração Google Sheets e Apps Script"
+              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Configuração Google Sheets e Apps Script'}
             >
               <Sheet className="w-4 h-4 text-teal-300" />
               <span className="hidden sm:inline">Sheets</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
             </button>
 
-            {/* Nova Aba Sobre */}
+            {/* Aba Sobre */}
             <button
-              onClick={() => setActiveTab('about')}
+              onClick={() => handleTabClick('about')}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'about'
                   ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-1 ring-emerald-400/50'
@@ -152,16 +195,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Quick Actions: Room Selector & Audio Toggle */}
+          {/* Quick Actions: Professor Mode Indicator, Room Selector & Audio Toggle */}
           <div className="flex items-center space-x-2 shrink-0">
-            {/* Room Button */}
+            {/* Teacher Auth Indicator Button */}
             <button
-              onClick={onOpenRoomsModal}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/40 text-xs font-bold transition truncate max-w-[170px] sm:max-w-[220px] shadow-sm"
-              title="Gerenciar Salas do Rali e Integrantes das Equipes"
+              onClick={() => onOpenTeacherAuth()}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm border ${
+                isTeacher
+                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900'
+                  : 'bg-amber-950/40 text-amber-300 border-amber-500/40 hover:bg-amber-950/70'
+              }`}
+              title={isTeacher ? 'Modo Professor Ativo (Clique para gerenciar ou bloquear)' : 'Clique para entrar no Modo Professor'}
+            >
+              {isTeacher ? (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="hidden md:inline">Prof. Eber</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
+                    Ativo
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="hidden sm:inline">Acesso Prof</span>
+                </>
+              )}
+            </button>
+
+            {/* Room Button (Restricted to Teacher) */}
+            <button
+              onClick={handleRoomsClick}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition truncate max-w-[150px] sm:max-w-[200px] shadow-sm"
+              title={!isTeacher ? 'Salas do Rali (Restrito ao Professor)' : 'Gerenciar Salas do Rali e Integrantes das Equipes'}
             >
               <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
               <span className="truncate">{activeRoomName || 'Sala do Rali'}</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5 shrink-0" />}
             </button>
 
             {/* Sound Toggle */}

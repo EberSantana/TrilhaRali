@@ -12,6 +12,7 @@ import { MissionsCatalog } from './components/MissionsCatalog';
 import { SqlPlayground } from './components/SqlPlayground';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { RoomsAndTeamsModal } from './components/RoomsAndTeamsModal';
+import { TeacherAuthModal } from './components/TeacherAuthModal';
 import { AboutView } from './components/AboutView';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
 import { IfsLogo } from './components/IfsLogo';
@@ -29,7 +30,11 @@ import {
   getActiveRoomId,
   setActiveRoomId,
   getActiveRoom,
-  createNewRoom
+  createNewRoom,
+  updateRoom,
+  deleteRoom,
+  isTeacherAuthenticated,
+  setTeacherAuthenticated
 } from './utils/storage';
 import { ALL_MISSIONS, INITIAL_TEAMS } from './data/missions';
 
@@ -43,6 +48,12 @@ export default function App() {
   const [sessionState, setSessionState] = useState<ClassSessionState>(getSessionState);
   const [isRoomsModalOpen, setIsRoomsModalOpen] = useState(false);
 
+  // Professor Mode & Access Control State
+  const [isTeacher, setIsTeacher] = useState<boolean>(() => isTeacherAuthenticated());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authTargetFeature, setAuthTargetFeature] = useState<string | undefined>(undefined);
+  const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
+
   // Sync state across multiple tabs or browser windows (Projector on PC + Scanner on phone)
   const refreshFromStorage = useCallback(() => {
     const allRooms = getRooms();
@@ -52,6 +63,7 @@ export default function App() {
     setTeams(getTeams());
     setLogs(getLogs());
     setSessionState(getSessionState());
+    setIsTeacher(isTeacherAuthenticated());
   }, []);
 
   useEffect(() => {
@@ -77,6 +89,18 @@ export default function App() {
     setSelectedTeamId(created.teams[0]?.id || 'equipe_a');
   };
 
+  // Edit room
+  const handleEditRoom = (roomId: string, updated: Partial<RallyRoom>) => {
+    updateRoom(roomId, updated);
+    refreshFromStorage();
+  };
+
+  // Delete room
+  const handleDeleteRoom = (roomId: string) => {
+    deleteRoom(roomId);
+    refreshFromStorage();
+  };
+
   // Toggle room status (ativa <-> finalizada)
   const handleToggleRoomStatus = (roomId: string) => {
     const updated = rooms.map((r) => {
@@ -90,6 +114,7 @@ export default function App() {
     });
     setRooms(updated);
     saveRooms(updated);
+    refreshFromStorage();
   };
 
   // Update team members (alunos, scanner_aluno, nome)
@@ -102,6 +127,32 @@ export default function App() {
     });
     setTeams(updatedTeams);
     saveTeams(updatedTeams);
+    refreshFromStorage();
+  };
+
+  // Teacher Authentication Flow
+  const handleOpenTeacherAuth = (featureName?: string, targetTab?: ActiveTab) => {
+    setAuthTargetFeature(featureName);
+    if (targetTab) {
+      setPendingTab(targetTab);
+    }
+    setIsAuthModalOpen(true);
+  };
+
+  const handleAuthenticated = () => {
+    setIsTeacher(true);
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      setPendingTab(null);
+    }
+  };
+
+  const handleDeauthenticated = () => {
+    setIsTeacher(false);
+    // If on a teacher-only tab, switch back to projector or scanner
+    if (['debriefing', 'missions', 'sql', 'sheets'].includes(activeTab)) {
+      setActiveTab('scanner');
+    }
   };
 
   // Handle valid submission from student scanner
@@ -143,8 +194,8 @@ export default function App() {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  // Handle failed submission from student scanner
-  const handleFailedSubmission = (teamId: string, tagId: string, answer: string) => {
+  // Handle invalid submission
+  const handleInvalidSubmission = (teamId: string, tagId: string, answer: string) => {
     const mission = ALL_MISSIONS.find((m) => m.tag_id === tagId);
     const updatedTeams = teams.map((team) => {
       if (team.id === teamId) {
@@ -178,56 +229,53 @@ export default function App() {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  // Adjust team XP manually by professor
-  const handleAdjustTeamXp = (teamId: string, deltaXp: number) => {
-    const updatedTeams = teams.map((team) => {
-      if (team.id === teamId) {
-        return {
-          ...team,
-          xp_total: Math.max(0, team.xp_total + deltaXp),
-        };
-      }
-      return team;
-    });
-
-    setTeams(updatedTeams);
-    saveTeams(updatedTeams);
+  // Sound toggle
+  const handleToggleSound = () => {
+    const newSound = !sessionState.soundEnabled;
+    const newState = { ...sessionState, soundEnabled: newSound };
+    setSessionState(newState);
+    saveSessionState({ soundEnabled: newSound });
   };
 
-  // Update session state
-  const handleUpdateSession = (newState: Partial<ClassSessionState>) => {
-    setSessionState((prev) => {
-      const merged = { ...prev, ...newState };
-      saveSessionState(merged);
-      return merged;
-    });
-  };
-
-  // Reset current room session
+  // Reset session
   const handleResetSession = () => {
-    if (window.confirm(`Tem certeza que deseja zerar os pontos e o cronômetro da sala "${activeRoom?.nome}"?`)) {
+    if (window.confirm('Atenção: Isso irá zerar todas as pontuações e histórico desta sala. Deseja continuar?')) {
       resetActiveRoomData();
       refreshFromStorage();
     }
   };
 
-  const handleToggleSound = () => {
-    handleUpdateSession({ soundEnabled: !sessionState.soundEnabled });
+  // Tab switching with role protection
+  const handleTabSwitch = (tab: ActiveTab) => {
+    const teacherOnlyTabs: ActiveTab[] = ['debriefing', 'missions', 'sql', 'sheets'];
+    if (teacherOnlyTabs.includes(tab) && !isTeacher) {
+      handleOpenTeacherAuth(`Acesso a ${tab.toUpperCase()}`, tab);
+      return;
+    }
+    setActiveTab(tab);
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
-      {/* Top Navigation */}
+      {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabSwitch}
         sessionState={sessionState}
         onToggleSound={handleToggleSound}
         activeRoomName={activeRoom?.nome}
-        onOpenRoomsModal={() => setIsRoomsModalOpen(true)}
+        onOpenRoomsModal={() => {
+          if (!isTeacher) {
+            handleOpenTeacherAuth('Gestão de Salas e Turmas');
+          } else {
+            setIsRoomsModalOpen(true);
+          }
+        }}
+        isTeacher={isTeacher}
+        onOpenTeacherAuth={handleOpenTeacherAuth}
       />
 
-      {/* Main Container */}
+      {/* Main Content Area */}
       <main className="flex-1 pb-16">
         {activeTab === 'scanner' && (
           <StudentScanner
@@ -235,7 +283,7 @@ export default function App() {
             selectedTeamId={selectedTeamId}
             onSelectTeam={setSelectedTeamId}
             onValidSubmission={handleValidSubmission}
-            onFailedSubmission={handleFailedSubmission}
+            onFailedSubmission={handleInvalidSubmission}
             sessionState={sessionState}
           />
         )}
@@ -245,11 +293,31 @@ export default function App() {
             teams={teams}
             logs={logs}
             sessionState={sessionState}
-            onUpdateSession={handleUpdateSession}
-            onAdjustTeamXp={handleAdjustTeamXp}
+            onUpdateSession={(partial: Partial<ClassSessionState>) => {
+              const updated = { ...sessionState, ...partial };
+              setSessionState(updated);
+              saveSessionState(partial);
+            }}
+            onAdjustTeamXp={(teamId: string, deltaXp: number) => {
+              const updated = teams.map((t) => {
+                if (t.id === teamId) {
+                  return { ...t, xp_total: Math.max(0, t.xp_total + deltaXp) };
+                }
+                return t;
+              });
+              setTeams(updated);
+              saveTeams(updated);
+              refreshFromStorage();
+            }}
             onResetSession={handleResetSession}
             activeRoomName={activeRoom?.nome}
-            onOpenRoomsModal={() => setIsRoomsModalOpen(true)}
+            onOpenRoomsModal={() => {
+              if (!isTeacher) {
+                handleOpenTeacherAuth('Gestão de Salas e Turmas');
+              } else {
+                setIsRoomsModalOpen(true);
+              }
+            }}
           />
         )}
 
@@ -270,7 +338,7 @@ export default function App() {
         )}
 
         {activeTab === 'about' && (
-          <AboutView onNavigateToTab={setActiveTab} />
+          <AboutView onNavigateToTab={handleTabSwitch} />
         )}
       </main>
 
@@ -281,11 +349,26 @@ export default function App() {
           activeRoomId={activeRoomId}
           onSelectRoom={handleSelectRoom}
           onCreateRoom={handleCreateRoom}
+          onEditRoom={handleEditRoom}
+          onDeleteRoom={handleDeleteRoom}
           onUpdateTeam={handleUpdateTeam}
           onToggleRoomStatus={handleToggleRoomStatus}
           onClose={() => setIsRoomsModalOpen(false)}
         />
       )}
+
+      {/* Modal de Autenticação do Professor (PIN) */}
+      <TeacherAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setPendingTab(null);
+        }}
+        isTeacher={isTeacher}
+        onAuthenticated={handleAuthenticated}
+        onDeauthenticated={handleDeauthenticated}
+        targetFeatureName={authTargetFeature}
+      />
 
       {/* Footer Institucional IFS */}
       <footer className="border-t border-emerald-950/80 bg-slate-950 py-6 text-xs text-slate-400">
