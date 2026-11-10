@@ -10,7 +10,9 @@ import {
   Sparkles, 
   ExternalLink,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Mission, MissionPackage } from '../types';
 import { ALL_MISSIONS } from '../data/missions';
@@ -21,6 +23,7 @@ export const MissionsCatalog: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
   const [isPrintMode, setIsPrintMode] = useState<boolean>(false);
+  const [showGabarito, setShowGabarito] = useState<boolean>(false);
 
   const packages: { id: string; label: string; count: number }[] = [
     { id: 'all', label: 'Todas as 50 Missões', count: ALL_MISSIONS.length },
@@ -80,10 +83,31 @@ export const MissionsCatalog: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={() => setShowGabarito(!showGabarito)}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition border ${
+                showGabarito
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="Ocultar respostas durante a dinâmica para não vazar spoiler aos alunos"
+            >
+              {showGabarito ? (
+                <>
+                  <EyeOff className="w-4 h-4 text-amber-400" />
+                  <span>Ocultar Gabarito</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 text-slate-400" />
+                  <span>Gabarito (Professor)</span>
+                </>
+              )}
+            </button>
             <button
               onClick={() => setIsPrintMode(!isPrintMode)}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm flex items-center gap-2 transition"
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
             >
               <Printer className="w-4 h-4" />
               <span>{isPrintMode ? 'Modo Normal' : 'Cartões para Impressão'}</span>
@@ -91,7 +115,7 @@ export const MissionsCatalog: React.FC = () => {
             {isPrintMode && (
               <button
                 onClick={handlePrint}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimir Agora</span>
@@ -190,7 +214,7 @@ export const MissionsCatalog: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar tag, pergunta, gabarito..."
+                placeholder="Buscar tag, pergunta ou categoria..."
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
@@ -233,9 +257,15 @@ export const MissionsCatalog: React.FC = () => {
                 <div className="space-y-2 pt-3 border-t border-slate-800/80">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-400">Gabarito:</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      "{mission.resposta_curta}"
-                    </span>
+                    {showGabarito ? (
+                      <span className="font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
+                        "{mission.resposta_curta}"
+                      </span>
+                    ) : (
+                      <span className="font-mono text-slate-500 italic text-[11px] bg-slate-800/80 px-2 py-0.5 rounded">
+                        🔒 Oculto durante o Rali
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-slate-400">

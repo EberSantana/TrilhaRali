@@ -24,6 +24,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({ teams }) =
   const [copiedScript, setCopiedScript] = useState(false);
   const [savedUrl, setSavedUrl] = useState(false);
 
+  const [testFeedback, setTestFeedback] = useState<{ type: 'success' | 'error' | 'loading'; message: string } | null>(null);
+
   useEffect(() => {
     setAppsScriptUrl(getAppsScriptUrl());
   }, []);
@@ -32,7 +34,33 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({ teams }) =
     e.preventDefault();
     saveAppsScriptUrl(appsScriptUrl);
     setSavedUrl(true);
+    setTestFeedback(null);
     setTimeout(() => setSavedUrl(false), 2000);
+  };
+
+  const handleTestSend = async () => {
+    if (!appsScriptUrl) {
+      setTestFeedback({ type: 'error', message: 'Insira a URL do Google Apps Script antes de testar.' });
+      return;
+    }
+    setTestFeedback({ type: 'loading', message: 'Enviando disparo de teste para o Google Sheets...' });
+    try {
+      await fetch(appsScriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag_id: 'tag_01', resposta: 'teste', equipe: 'Equipe A (Alpha)' }),
+      });
+      setTestFeedback({
+        type: 'success',
+        message: '✔ Webhook alcançado com sucesso! A requisição foi entregue ao seu Google Apps Script.',
+      });
+    } catch (err) {
+      setTestFeedback({
+        type: 'error',
+        message: `Erro ao enviar para o Apps Script: ${String(err)}`,
+      });
+    }
   };
 
   const appsScriptCode = `// ==========================================================
@@ -233,46 +261,46 @@ function doGet() {
           Se configurada, cada resposta correta no celular enviará um POST para a sua planilha Google em tempo real.
         </p>
 
-        <form onSubmit={handleSaveUrl} className="flex flex-col sm:flex-row items-center gap-3">
-          <input
-            type="url"
-            value={appsScriptUrl}
-            onChange={(e) => setAppsScriptUrl(e.target.value)}
-            placeholder="https://script.google.com/macros/s/.../exec"
-            className="w-full bg-slate-950 font-mono text-xs sm:text-sm text-teal-300 border border-slate-800 rounded-xl px-4 py-3 focus:ring-2 focus:ring-teal-500 outline-none"
-          />
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition shrink-0"
-            >
-              {savedUrl ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-              <span>{savedUrl ? 'Salvo!' : 'Salvar URL'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!appsScriptUrl) {
-                  alert('Insira a URL do Apps Script primeiro.');
-                  return;
-                }
-                try {
-                  await fetch(appsScriptUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tag_id: 'tag_01', resposta: 'teste', equipe: 'Equipe A (Alpha)' }),
-                  });
-                  alert('Webhook alcançado com sucesso! O Google Apps Script recebeu a solicitação.');
-                } catch (err) {
-                  alert('Erro ao enviar para o Apps Script: ' + String(err));
-                }
-              }}
-              className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shrink-0"
-            >
-              <span>🧪 Testar Envio</span>
-            </button>
+        <form onSubmit={handleSaveUrl} className="space-y-3">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 w-full">
+            <input
+              type="url"
+              value={appsScriptUrl}
+              onChange={(e) => setAppsScriptUrl(e.target.value)}
+              placeholder="https://script.google.com/macros/s/.../exec"
+              className="flex-1 min-w-0 w-full bg-slate-950 font-mono text-xs sm:text-sm text-teal-300 border border-slate-800 rounded-xl px-4 py-3 focus:ring-2 focus:ring-teal-500 outline-none"
+            />
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+              <button
+                type="submit"
+                className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition whitespace-nowrap"
+              >
+                {savedUrl ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                <span>{savedUrl ? 'Salvo!' : 'Salvar URL'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleTestSend}
+                className="flex-1 sm:flex-initial px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition whitespace-nowrap shadow-sm"
+              >
+                <span>🧪 Testar Envio</span>
+              </button>
+            </div>
           </div>
+
+          {testFeedback && (
+            <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+              testFeedback.type === 'success' 
+                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40' 
+                : testFeedback.type === 'error'
+                ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40'
+                : 'bg-slate-800 text-slate-300 border border-slate-700'
+            }`}>
+              {testFeedback.type === 'success' && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+              {testFeedback.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+              <span>{testFeedback.message}</span>
+            </div>
+          )}
         </form>
       </div>
 

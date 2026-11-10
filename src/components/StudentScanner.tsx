@@ -442,7 +442,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
                   type="text"
                   value={studentAnswer}
                   onChange={(e) => setStudentAnswer(e.target.value)}
-                  placeholder="Ex: drop table, 145, where, notebook..."
+                  placeholder=""
                   disabled={sessionState.isSubmissionsLocked || isSubmitting}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition font-medium"
                 />
