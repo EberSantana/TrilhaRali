@@ -132,6 +132,28 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   const top1 = sortedTeams[0];
   const top2 = sortedTeams[1];
   const top3 = sortedTeams[2];
+  const getPhaseBadge = () => {
+    if (sessionState.isSubmissionsLocked) {
+      return {
+        label: 'MÃOS PARA CIMA (BLOQUEADO)',
+        color: 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse',
+      };
+    }
+    switch (sessionState.activePhase) {
+      case 'briefing':
+        return { label: 'Fase 1: Briefing (0-15m)', color: 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
+      case 'sprint':
+        return { label: 'Fase 2: Sprint SQL (15-85m)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+      case 'hard_stop':
+        return { label: 'Fase 3: Hard Stop (85-90m)', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+      case 'debriefing':
+        return { label: 'Fase 4: Debriefing (90-100m)', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+      default:
+        return { label: 'Em Andamento', color: 'bg-slate-700 text-slate-300 border-slate-600' };
+    }
+  };
+
+  const phase = getPhaseBadge();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -178,14 +200,17 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
           </div>
 
           {/* Big Projector Countdown Clock */}
-          <div className="flex flex-col items-center">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0.5 flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-emerald-400" />
               <span>Cronômetro da Aula</span>
             </div>
             <div className="font-mono text-5xl sm:text-6xl font-black tracking-tight text-white bg-slate-950 px-8 py-3 rounded-2xl border-2 border-emerald-500/30 shadow-inner shadow-emerald-500/10">
               {formatTimer(sessionState.timerSecondsRemaining)}
             </div>
+            <span className={`text-[11px] sm:text-xs px-3 py-0.5 rounded-full border font-bold ${phase.color}`}>
+              {phase.label}
+            </span>
           </div>
 
           {/* Instructor Quick Controls */}

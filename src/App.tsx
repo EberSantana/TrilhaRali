@@ -12,6 +12,7 @@ import { MissionsCatalog } from './components/MissionsCatalog';
 import { SqlPlayground } from './components/SqlPlayground';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { RoomsAndTeamsModal } from './components/RoomsAndTeamsModal';
+import { AboutView } from './components/AboutView';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
 import { IfsLogo } from './components/IfsLogo';
 import { 
@@ -266,6 +267,10 @@ export default function App() {
 
         {activeTab === 'sheets' && (
           <GoogleSheetsModal teams={teams} />
+        )}
+
+        {activeTab === 'about' && (
+          <AboutView onNavigateToTab={setActiveTab} />
         )}
       </main>
 
