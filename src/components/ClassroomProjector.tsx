@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -20,9 +20,10 @@ import {
   GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Team, SubmissionLog, ClassSessionState, ClassPhase } from '../types';
+import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from '../types';
 import { playSound } from '../utils/audio';
 import { IfsLogo } from './IfsLogo';
+import { normalizeScoringMode } from '../utils/scoring';
 
 interface ClassroomProjectorProps {
   teams: Team[];
@@ -33,6 +34,8 @@ interface ClassroomProjectorProps {
   onResetSession: () => void;
   activeRoomName?: string;
   onOpenRoomsModal: () => void;
+  isTeacher: boolean;
+  onRequireTeacher: () => void;
 }
 
 export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
@@ -44,8 +47,40 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   onResetSession,
   activeRoomName,
   onOpenRoomsModal,
+  isTeacher,
+  onRequireTeacher,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const scoringMode = normalizeScoringMode(sessionState.scoringMode);
+  const lastFogoLogId = useRef<string | null>(logs.find((l) => l.is_fogo)?.id ?? null);
+
+  // 🔥 Celebra no telão quando uma equipe é a primeira a capturar uma tag
+  useEffect(() => {
+    const latestFogo = logs.find((l) => l.is_fogo);
+    if (!latestFogo || latestFogo.id === lastFogoLogId.current) return;
+    lastFogoLogId.current = latestFogo.id;
+    if (Date.now() - latestFogo.timestamp > 10_000) return;
+    playSound('success', sessionState.soundEnabled);
+    try {
+      confetti({
+        particleCount: 140,
+        spread: 100,
+        origin: { y: 0.4 },
+        colors: ['#f97316', '#ef4444', '#f59e0b', '#fde047'],
+      });
+    } catch {
+      // ignore
+    }
+  }, [logs, sessionState.soundEnabled]);
+
+  const changeScoringMode = (mode: ScoringMode) => {
+    if (!isTeacher) {
+      onRequireTeacher();
+      return;
+    }
+    if (mode === scoringMode) return;
+    onUpdateSession({ scoringMode: mode });
+  };
 
   // Timer Tick
   useEffect(() => {
@@ -282,6 +317,51 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
           </div>
         </div>
 
+        {/* Seletor do modo de pontuação (Painel do Professor) */}
+        <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="text-center md:text-left">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center md:justify-start gap-1.5">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span>Modo de Pontuação</span>
+              {!isTeacher && <Lock className="w-3 h-3 text-slate-500" aria-label="Apenas professor" />}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {scoringMode === 'ctf_dynamic'
+                ? 'CTF Dinâmico: quanto mais equipes capturam a mesma tag, menos ela vale (nunca abaixo de 40%).'
+                : 'Rali Tradicional: cada missão sempre vale o XP original.'}
+            </p>
+          </div>
+
+          <div
+            role="radiogroup"
+            aria-label="Modo de pontuação"
+            className="inline-flex self-center md:self-auto rounded-xl bg-slate-950 border border-slate-800 p-1 gap-1"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={scoringMode === 'fixed'}
+              onClick={() => changeScoringMode('fixed')}
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
+                scoringMode === 'fixed' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Rali Tradicional
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={scoringMode === 'ctf_dynamic'}
+              onClick={() => changeScoringMode('ctf_dynamic')}
+              className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-1.5 ${
+                scoringMode === 'ctf_dynamic' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span aria-hidden>🔥</span> CTF Dinâmico
+            </button>
+          </div>
+        </div>
+
         {/* 100-min Timeline Progress Bar */}
         <div className="mt-6 pt-5 border-t border-slate-800">
           <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
@@ -430,7 +510,14 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                       </div>
 
                       <div className="flex items-center justify-between mt-1 text-xs text-slate-400">
-                        <span>{team.missoes_concluidas.length} desafios superados</span>
+                        <span>
+                          {team.missoes_concluidas.length} desafios superados
+                          {(team.fogos_count || 0) > 0 && (
+                            <span className="ml-2 font-bold text-orange-300" title="Missões capturadas em 1º lugar">
+                              🔥 x{team.fogos_count}
+                            </span>
+                          )}
+                        </span>
                         <span>{team.erros_count} tentativas incorretas</span>
                       </div>
 
@@ -503,14 +590,16 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                   key={log.id}
                   className={`p-3 rounded-xl border text-xs space-y-1 transition ${
                     log.correto
-                      ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+                      ? log.is_fogo
+                        ? 'bg-orange-950/40 border-orange-500/50 text-orange-200'
+                        : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
                       : 'bg-rose-950/30 border-rose-500/20 text-rose-300'
                   }`}
                 >
                   <div className="flex items-center justify-between font-bold">
                     <span className="truncate">{log.equipe_nome}</span>
                     <span className="font-mono text-[11px] shrink-0 ml-2">
-                      {log.correto ? `+${log.xp_ganho} XP` : 'Tentativa'}
+                      {log.correto ? `${log.is_fogo ? '🔥 ' : ''}+${log.xp_ganho} XP` : 'Tentativa'}
                     </span>
                   </div>
 

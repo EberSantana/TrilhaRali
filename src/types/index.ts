@@ -45,6 +45,7 @@ export interface Team {
   ultimo_acerto?: number;
   alunos: string[]; // Lista com nomes dos alunos da equipe
   scanner_aluno?: string; // Nome do aluno que está operando o celular
+  fogos_count?: number; // 🔥 Quantidade de missões capturadas em 1º lugar (modo CTF Dinâmico)
 }
 
 export interface SubmissionLog {
@@ -59,7 +60,16 @@ export interface SubmissionLog {
   xp_ganho: number;
   mensagem: string;
   autor_aluno?: string;
+  posicao_captura?: number; // Ordem de chegada da equipe nesta missão (1 = primeira)
+  is_fogo?: boolean; // 🔥 true quando a equipe foi a 1ª a capturar a tag (modo CTF Dinâmico)
 }
+
+/**
+ * Modo de pontuação do Rali:
+ * - 'fixed': Rali Tradicional — cada missão sempre vale o XP original.
+ * - 'ctf_dynamic': CTF Dinâmico — o valor cai conforme mais equipes capturam a mesma tag.
+ */
+export type ScoringMode = 'fixed' | 'ctf_dynamic';
 
 export type ClassPhase = 'briefing' | 'sprint' | 'hard_stop' | 'debriefing';
 
@@ -70,6 +80,7 @@ export interface ClassSessionState {
   isSubmissionsLocked: boolean;
   activePhase: ClassPhase;
   soundEnabled: boolean;
+  scoringMode?: ScoringMode; // Ausente em salas antigas = 'fixed'
 }
 
 export interface RallyRoom {

@@ -21,12 +21,13 @@ import { validateAnswer } from '../utils/validation';
 import { playSound } from '../utils/audio';
 import { getAppsScriptUrl } from '../utils/storage';
 import { IfsLogo } from './IfsLogo';
+import { CaptureScore, describeCurrentValue, getNextCaptureScore, getPositionBadge } from '../utils/scoring';
 
 interface StudentScannerProps {
   teams: Team[];
   selectedTeamId: string;
   onSelectTeam: (teamId: string) => void;
-  onValidSubmission: (teamId: string, tagId: string, xpGained: number, answer: string) => void;
+  onValidSubmission: (teamId: string, tagId: string, xpGained: number, answer: string) => CaptureScore | null;
   onFailedSubmission: (teamId: string, tagId: string, answer: string) => void;
   sessionState: ClassSessionState;
 }
@@ -60,6 +61,8 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const currentTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
   const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId) || customMission;
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
+  const nextScore = activeMission ? getNextCaptureScore(activeMission, teams, sessionState.scoringMode) : null;
+  const isDynamic = nextScore?.mode === 'ctf_dynamic';
 
   const loadTag = async (rawPayload: string) => {
     let payload = rawPayload.trim();
@@ -202,6 +205,10 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
             tag_id: activeMission.tag_id,
             resposta: studentAnswer,
             timestamp: new Date().toISOString(),
+            modo_pontuacao: nextScore?.mode ?? 'fixed',
+            posicao_captura: nextScore?.posicao ?? 1,
+            xp_estimado: nextScore?.xp ?? activeMission.xp_valor,
+            is_fogo: nextScore?.isFogo ?? false,
           }),
         }).catch(() => {});
       } catch {
@@ -210,22 +217,41 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
     }
 
     if (result.correto) {
+      const award = onValidSubmission(currentTeam.id, activeMission.tag_id, result.xpGanho, studentAnswer);
+
+      if (!award) {
+        // Outra aba/aparelho da mesma equipe já registrou esta missão neste instante
+        playSound('error', sessionState.soundEnabled);
+        setFeedback({
+          type: 'info',
+          text: `Sua equipe (${currentTeam.nome}) já pontuou nesta missão anteriormente!`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       playSound('success', sessionState.soundEnabled);
       try {
         confetti({
-          particleCount: 80,
-          spread: 70,
+          particleCount: award.isFogo ? 160 : 80,
+          spread: award.isFogo ? 100 : 70,
           origin: { y: 0.6 },
-          colors: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
+          colors: award.isFogo
+            ? ['#f97316', '#ef4444', '#f59e0b', '#fde047']
+            : ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
         });
       } catch {
         // ignore
       }
 
-      onValidSubmission(currentTeam.id, activeMission.tag_id, result.xpGanho, studentAnswer);
       setFeedback({
         type: 'success',
-        text: `ACERTOU! +${result.xpGanho} XP para ${currentTeam.nome}!`,
+        text:
+          award.mode === 'ctf_dynamic'
+            ? award.isFogo
+              ? `🔥 PRIMEIRA A CAPTURAR! +${award.xp} XP para ${currentTeam.nome}!`
+              : `${getPositionBadge(award.posicao)} ${award.posicao}º lugar! +${award.xp} XP para ${currentTeam.nome}!`
+            : `ACERTOU! +${award.xp} XP para ${currentTeam.nome}!`,
       });
       setStudentAnswer('');
     } else {
@@ -406,7 +432,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
                     <span className="truncate">{m.pergunta}</span>
                   </div>
                   <span className="text-[11px] font-bold text-slate-400 shrink-0 ml-2">
-                    +{m.xp_valor} XP
+                    +{getNextCaptureScore(m, teams, sessionState.scoringMode).xp} XP
                   </span>
                 </button>
               ))}
@@ -433,9 +459,29 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
             <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-500/30 text-amber-300 px-3 py-1 rounded-lg text-sm font-bold">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>+{activeMission.xp_valor} XP</span>
+              <span>
+                +{nextScore?.xp ?? activeMission.xp_valor} XP
+                {isDynamic && nextScore && nextScore.xp !== nextScore.baseXp && (
+                  <span className="ml-1.5 text-[11px] font-semibold text-amber-300/60 line-through">
+                    {nextScore.baseXp}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
+
+          {/* CTF Dinâmico: valor atual da flag */}
+          {isDynamic && nextScore && !isAlreadySolved && (
+            <div
+              className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${
+                nextScore.isFogo
+                  ? 'bg-orange-950/70 border-orange-500/60 text-orange-200'
+                  : 'bg-amber-950/50 border-amber-500/40 text-amber-200'
+              }`}
+            >
+              {describeCurrentValue(nextScore)}
+            </div>
+          )}
 
           {/* Question Text */}
           <div className="bg-slate-900/90 rounded-xl p-4 border border-slate-800">
@@ -457,7 +503,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               <div>
                 <p className="font-bold text-sm">Missão já conquistada pela sua equipe!</p>
                 <p className="text-xs text-emerald-400/80">
-                  Os +{activeMission.xp_valor} XP já estão no saldo. Encontre outra tag no laboratório!
+                  Os pontos desta missão já estão no saldo. Encontre outra tag no laboratório!
                 </p>
               </div>
             </div>
@@ -535,6 +581,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               Missões Conquistadas ({currentTeam.missoes_concluidas.length})
             </h4>
             <span className="text-xs text-emerald-400 font-mono font-semibold">
+              {(currentTeam.fogos_count || 0) > 0 && <span className="mr-2 text-orange-300">🔥 x{currentTeam.fogos_count}</span>}
               Total: {currentTeam.xp_total} XP
             </span>
           </div>

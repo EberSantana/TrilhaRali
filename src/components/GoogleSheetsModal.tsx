@@ -88,15 +88,28 @@ function doPost(e) {
         var respostaGabarito = missoes[i][2].toString().toLowerCase().trim();
         
         if (respostaGabarito == respostaAluno) {
-          var xpGanho = parseInt(missoes[i][3]);
+          var xpBase = parseInt(missoes[i][3]);
+          var xpGanho = xpBase;
+          var posicao = 1;
+          var isFogo = false;
+
+          // Modo CTF Dinâmico: calcula posição de chegada e decaimento no servidor
+          if (dados.modo_pontuacao == "ctf_dynamic") {
+            var capturas = registrarCaptura(tagLida, nomeEquipe, xpBase);
+            posicao = capturas.posicao;
+            xpGanho = capturas.xp;
+            isFogo = capturas.isFogo;
+          }
           
           // Função interna para adicionar o XP na aba Equipes
           adicionarXP(sheetEquipes, nomeEquipe, xpGanho);
           
           return ContentService.createTextOutput(JSON.stringify({
             "status": "sucesso", 
-            "mensagem": "Correto! +" + xpGanho + " XP",
-            "xp_ganho": xpGanho
+            "mensagem": (isFogo ? "🔥 " : "") + "Correto! +" + xpGanho + " XP",
+            "xp_ganho": xpGanho,
+            "posicao_captura": posicao,
+            "is_fogo": isFogo
           })).setMimeType(ContentService.MimeType.JSON);
         } else {
           return ContentService.createTextOutput(JSON.stringify({
@@ -118,6 +131,35 @@ function doPost(e) {
       "mensagem": "Erro no servidor: " + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// CTF Dinâmico: registra a captura na aba "Capturas" (tag, equipe, posição, XP, 🔥)
+// e devolve a posição de chegada. Crie a aba "Capturas" ou deixe o script criá-la.
+function registrarCaptura(tagId, nomeEquipe, xpBase) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Capturas");
+  if (!sheet) {
+    sheet = ss.insertSheet("Capturas");
+    sheet.appendRow(["timestamp", "tag_id", "equipe", "posicao_captura", "xp", "is_fogo"]);
+  }
+  var linhas = sheet.getDataRange().getValues();
+  var anteriores = 0;
+  for (var k = 1; k < linhas.length; k++) {
+    if (linhas[k][1] == tagId) {
+      if (linhas[k][2] == nomeEquipe) {
+        // Equipe já pontuou esta tag: devolve o registro existente sem duplicar
+        return { posicao: linhas[k][3], xp: 0, isFogo: false };
+      }
+      anteriores++;
+    }
+  }
+  var posicao = anteriores + 1;
+  var decaimento = Math.max(1, Math.round(xpBase * 0.1));
+  var piso = Math.min(xpBase, Math.max(3, Math.round(xpBase * 0.4)));
+  var xp = Math.max(piso, xpBase - (posicao - 1) * decaimento);
+  var isFogo = posicao == 1;
+  sheet.appendRow([new Date(), tagId, nomeEquipe, posicao, xp, isFogo ? "🔥" : ""]);
+  return { posicao: posicao, xp: xp, isFogo: isFogo };
 }
 
 // Função para procurar a equipe na aba e somar a pontuação

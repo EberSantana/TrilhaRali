@@ -26,6 +26,40 @@ Os alunos utilizam celulares Android com **NFC (NTAG213)** para escanear missõe
 
 ---
 
+## 🔥 Modos de Pontuação
+
+No **Telão** (aba Ranking), o professor escolhe o modo de pontuação (exige o PIN do Modo Professor):
+
+| Modo | Regra |
+|---|---|
+| **Rali Tradicional** | Cada missão sempre vale o XP original. |
+| **CTF Dinâmico** | O valor cai conforme mais equipes capturam a mesma tag: perde 10% do XP base por posição (ex.: missão de 10 XP → 10, 9, 8, 7…), com piso de 40% (nunca zera). A 1ª equipe a capturar ganha o 🔥. |
+
+- **Celular:** antes de enviar, o aluno vê o valor atual da flag ("🔥 FLAG INTACTA!" ou "⚠️ 2 equipes já resolveram: vale 8 XP").
+- **Telão:** o feed destaca o 🔥 e o placar mostra quantos 🔥 cada equipe conquistou.
+- **Google Sheets:** o webhook envia `modo_pontuacao`, `posicao_captura`, `xp_estimado` e `is_fogo`; o Apps Script atualizado registra cada captura na aba `Capturas`. Cole o script novamente na aba **Sheets** do app.
+
+---
+
+## 🚩 Dois módulos: Rali NFC e CTF Online
+
+O topo do app alterna entre os módulos (o endereço `#/ctf` abre direto o CTF):
+
+- **Rali NFC** — dinâmica em equipes com tags NTAG213 no laboratório (descrita acima).
+- **CTF Online** — cada aluno joga sozinho no próprio navegador. **Uma missão por fase, em ordem fixa: só avança quem resolve a fase atual.**
+
+**Fluxo do CTF**
+
+1. **Professor** (aba *Professor*, exige PIN): configura uma vez o servidor (Google Apps Script), escolhe os pacotes de missões e o modo de pontuação (🔥 CTF Dinâmico ou XP fixo) e clica em **Criar sala e gerar token**.
+2. **Alunos** abrem o site em `#/ctf`, digitam o **token da sala** e o **nome** e começam na fase 1. Voltar com o mesmo nome retoma de onde pararam.
+3. O professor acompanha em tempo real (progresso, XP, 🔥, erros) e pode **encerrar/reabrir** a sala.
+
+**Servidor do CTF (uma vez)**: crie uma planilha Google **nova**, cole o script copiado do painel do professor em *Extensões > Apps Script* e publique como Web App (*Executar como: Eu* • *Acesso: Qualquer pessoa*). Cole a URL `/exec` no painel. Para os alunos digitarem só o token, coloque a mesma URL em `DEFAULT_CTF_API_URL` (`src/config.ts`); sem isso, use o **link de convite** gerado no painel.
+
+**Segurança:** as respostas ficam na planilha, e a validação e o avanço de fase acontecem no servidor (o aluno só recebe a pergunta da fase atual, com intervalo de 3 s após cada erro). O banco de questões do app é público no código-fonte, então um aluno muito curioso poderia lê-lo nos arquivos do site; para provas valendo nota, use missões inéditas.
+
+---
+
 ## 🚀 Como Publicar no seu GitHub Pages (`EberSantana/ralibd`)
 
 ### 1. Clonar ou Inicializar o Repositório Local

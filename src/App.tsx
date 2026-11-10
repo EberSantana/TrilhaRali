@@ -14,6 +14,8 @@ import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { RoomsAndTeamsModal } from './components/RoomsAndTeamsModal';
 import { TeacherAuthModal } from './components/TeacherAuthModal';
 import { AboutView } from './components/AboutView';
+import { ModuleSwitcher, AppModule } from './components/ModuleSwitcher';
+import { CtfModule } from './components/ctf/CtfModule';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
 import { IfsLogo } from './components/IfsLogo';
 import { 
@@ -37,8 +39,12 @@ import {
   setTeacherAuthenticated
 } from './utils/storage';
 import { ALL_MISSIONS, INITIAL_TEAMS } from './data/missions';
+import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/scoring';
 
 export default function App() {
+  const [appModule, setAppModule] = useState<AppModule>(() =>
+    typeof window !== 'undefined' && window.location.hash.startsWith('#/ctf') ? 'ctf' : 'rali'
+  );
   const [activeTab, setActiveTab] = useState<ActiveTab>('projector');
   const [rooms, setRooms] = useState<RallyRoom[]>(getRooms);
   const [activeRoomId, setActiveRoomIdState] = useState<string>(getActiveRoomId);
@@ -130,6 +136,25 @@ export default function App() {
     refreshFromStorage();
   };
 
+  // Troca de módulo mantém o endereço compartilhável (#/ctf)
+  const handleChangeModule = (next: AppModule) => {
+    setAppModule(next);
+    try {
+      const url = `${window.location.pathname}${window.location.search}${next === 'ctf' ? '#/ctf' : ''}`;
+      window.history.replaceState(null, '', url);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash.startsWith('#/ctf')) setAppModule('ctf');
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   // Teacher Authentication Flow
   const handleOpenTeacherAuth = (featureName?: string, targetTab?: ActiveTab) => {
     setAuthTargetFeature(featureName);
@@ -155,18 +180,29 @@ export default function App() {
     }
   };
 
-  // Handle valid submission from student scanner
-  const handleValidSubmission = (teamId: string, tagId: string, xpGained: number, answer: string) => {
+  // Handle valid submission from student scanner.
+  // A posição de chegada e o XP são recalculados aqui, com o estado mais recente do armazenamento,
+  // para que duas equipes enviando quase ao mesmo tempo não recebam a mesma posição.
+  const handleValidSubmission = (teamId: string, tagId: string, baseXp: number, answer: string): CaptureScore | null => {
     const mission = ALL_MISSIONS.find((m) => m.tag_id === tagId);
-    const updatedTeams = teams.map((team) => {
+    const freshTeams = getTeams();
+    const current = freshTeams.find((t) => t.id === teamId);
+    if (!current || current.missoes_concluidas.includes(tagId)) return null;
+
+    const score = getNextCaptureScore(
+      { tag_id: tagId, xp_valor: mission?.xp_valor ?? baseXp },
+      freshTeams,
+      getSessionState().scoringMode
+    );
+
+    const updatedTeams = freshTeams.map((team) => {
       if (team.id === teamId) {
-        const alreadyDone = team.missoes_concluidas.includes(tagId);
-        if (alreadyDone) return team;
         return {
           ...team,
-          xp_total: team.xp_total + xpGained,
+          xp_total: team.xp_total + score.xp,
           missoes_concluidas: [...team.missoes_concluidas, tagId],
           ultimo_acerto: Date.now(),
+          fogos_count: (team.fogos_count || 0) + (score.isFogo ? 1 : 0),
         };
       }
       return team;
@@ -175,23 +211,29 @@ export default function App() {
     setTeams(updatedTeams);
     saveTeams(updatedTeams);
 
-    const team = teams.find((t) => t.id === teamId);
+    const mensagem =
+      score.mode === 'ctf_dynamic'
+        ? `${getPositionBadge(score.posicao)} ${score.posicao}º a capturar (+${score.xp} XP)!`
+        : `Acertou a missão (+${score.xp} XP)!`;
+
     const newLog: SubmissionLog = {
       id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp: Date.now(),
       equipe_id: teamId,
-      equipe_nome: team?.nome || 'Equipe',
+      equipe_nome: current.nome || 'Equipe',
       tag_id: tagId,
       pergunta_resumo: mission ? mission.pergunta.substring(0, 60) + '...' : '',
       resposta_aluno: answer,
       correto: true,
-      xp_ganho: xpGained,
-      mensagem: `Acertou a missão (+${xpGained} XP)!`,
-      autor_aluno: team?.scanner_aluno,
+      xp_ganho: score.xp,
+      mensagem,
+      autor_aluno: current.scanner_aluno,
+      ...(score.mode === 'ctf_dynamic' ? { posicao_captura: score.posicao, is_fogo: score.isFogo } : {}),
     };
 
     addLog(newLog);
     setLogs((prev) => [newLog, ...prev]);
+    return score;
   };
 
   // Handle invalid submission
@@ -257,6 +299,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+      <ModuleSwitcher module={appModule} onChange={handleChangeModule} />
+
+      {appModule === 'ctf' ? (
+        <main className="flex-1 pb-16">
+          <CtfModule isTeacher={isTeacher} onRequireTeacher={() => handleOpenTeacherAuth('Painel do CTF')} />
+        </main>
+      ) : (
+        <>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -318,6 +368,8 @@ export default function App() {
                 setIsRoomsModalOpen(true);
               }
             }}
+            isTeacher={isTeacher}
+            onRequireTeacher={() => handleOpenTeacherAuth('Modo de Pontuação')}
           />
         )}
 
@@ -341,6 +393,8 @@ export default function App() {
           <AboutView onNavigateToTab={handleTabSwitch} />
         )}
       </main>
+        </>
+      )}
 
       {/* Modal de Salas & Alunos por Equipe */}
       {isRoomsModalOpen && (
