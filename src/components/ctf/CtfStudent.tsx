@@ -12,7 +12,8 @@ import {
   saveStudentSession,
 } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
-import { BANCO_RALI_SQL } from '../../utils/sqlSeed';
+import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
+import { SqlConsole } from './SqlConsole';
 
 const POLL_MS = 20_000;
 
@@ -127,7 +128,7 @@ export const CtfStudent: React.FC = () => {
   };
 
   const downloadSql = () => {
-    const blob = new Blob([BANCO_RALI_SQL], { type: 'text/sql' });
+    const blob = new Blob([BANCO_CTF_SQL], { type: 'text/sql' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -344,13 +345,15 @@ export const CtfStudent: React.FC = () => {
           )}
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
 
+          {sala.banco && <SqlConsole />}
+
           {sala.banco ? (
             <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">
               <Download className="w-3.5 h-3.5" /> Baixar o banco de dados (banco_rali.sql) para rodar no seu SQLite
             </button>
           ) : (
             <p className="text-xs text-slate-500 flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> O banco de dados será liberado pelo professor.
+              <Lock className="w-3.5 h-3.5" /> O banco de dados e o console SQLite serão liberados pelo professor.
             </p>
           )}
         </div>

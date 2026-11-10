@@ -255,8 +255,8 @@ export const CtfTeacher: React.FC = () => {
           <label className="flex items-start gap-2 text-sm text-slate-200 bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2 cursor-pointer">
             <input type="checkbox" checked={bancoLiberado} onChange={(e) => setBancoLiberado(e.target.checked)} className="accent-orange-500 mt-1" />
             <span>
-              Liberar o download do banco de dados já na entrada
-              <span className="block text-[11px] text-slate-500">Desmarcado: os alunos só veem o link quando você liberar.</span>
+              Liberar o banco de dados e o console SQLite já na entrada
+              <span className="block text-[11px] text-slate-500">Desmarcado: os alunos só veem o console e o download quando você liberar.</span>
             </span>
           </label>
 
@@ -339,7 +339,7 @@ export const CtfTeacher: React.FC = () => {
                     className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 border disabled:opacity-50 ${
                       view?.sala.banco ? 'bg-sky-600/20 border-sky-500 text-sky-200 hover:bg-sky-600/30' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                     }`}
-                    title="Mostra ou esconde o link de download do banco_rali.sql para os alunos"
+                    title="Mostra ou esconde o console SQLite e o download do banco para os alunos"
                   >
                     <Database className="w-4 h-4" /> Banco: {view?.sala.banco ? 'liberado' : 'oculto'}
                   </button>

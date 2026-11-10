@@ -188,3 +188,20 @@ INSERT INTO Emprestimos (id_aluno, id_livro) VALUES
 (1, 1),
 (2, 2);
 `;
+
+/**
+ * Versão do banco para os ALUNOS (CTF): sem as tabelas do sistema do Rali (equipes e missoes),
+ * porque `missoes` guarda os gabaritos (resposta_curta). Mantém apenas os dados dos desafios.
+ */
+const SEED_SUPPORT_MARKER = '-- 2. TABELAS DE SUPORTE';
+const SEED_SYSTEM_MARKER = '-- 1. TABELAS DO SISTEMA GAMIFICADO';
+export const BANCO_CTF_SQL = (() => {
+  const start = BANCO_RALI_SQL.indexOf(SEED_SYSTEM_MARKER);
+  const end = BANCO_RALI_SQL.indexOf(SEED_SUPPORT_MARKER);
+  if (start < 0 || end < start) return BANCO_RALI_SQL; // proteção: o teste abaixo falha se isso acontecer
+  return (
+    BANCO_RALI_SQL.slice(0, start) +
+    '-- (Tabelas do sistema do Rali omitidas nesta versão dos alunos)\n\n' +
+    BANCO_RALI_SQL.slice(end)
+  );
+})();
