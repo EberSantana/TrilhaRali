@@ -7,7 +7,7 @@
  * validação (e o avanço de fase) acontece no servidor.
  */
 export const CTF_APPS_SCRIPT = String.raw`// ==========================================================
-// RALI SQL - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
+// RALI IFSTB - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensoes > Apps Script de uma planilha NOVA.
 // Implantar > Nova implantacao > Aplicativo da Web
 //   Executar como: Eu  |  Quem pode acessar: Qualquer pessoa
@@ -35,7 +35,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Rali SQL CTF', versao: 1 });
+  return out({ ok: true, servico: 'Rali IFSTB CTF', versao: 1 });
 }
 
 function doPost(e) {

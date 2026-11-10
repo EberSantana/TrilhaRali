@@ -1,4 +1,4 @@
-# Rali SQL - App Educativo com Tags NFC 🏷️⚡
+# Rali IFSTB - App Educativo com Tags NFC 🏷️⚡
 
 **Instituto Federal de Sergipe (IFS) - Campus Tobias Barreto**  
 **Docente:** Prof. Eber Santana  
@@ -89,7 +89,7 @@ O repositório já inclui o arquivo `.github/workflows/deploy.yml`. Para ativar 
 5. Faça um `git push` para a branch `main`:
    ```bash
    git add .
-   git commit -m "feat: Rali SQL inicial para o IFS Campus Tobias Barreto"
+   git commit -m "feat: Rali IFSTB inicial para o IFS Campus Tobias Barreto"
    git push origin main
    ```
 6. O GitHub irá compilar o projeto e em cerca de 1 minuto seu site estará no ar em:  

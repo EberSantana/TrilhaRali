@@ -56,7 +56,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigateToTab }) => {
             </div>
 
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              O <strong>Rali SQL com Tags NFC</strong> é uma metodologia ativa gamificada concebida para o laboratório de informática do IFS. Em uma dinâmica cronometrada de <strong>100 minutos</strong>, os alunos integram teoria e prática de Banco de Dados Relacional, conectando a exploração física do ambiente por meio de etiquetas de radiofrequência (NTAG213) à resolução de desafios reais no SQLite.
+              O <strong>Rali IFSTB com Tags NFC</strong> é uma metodologia ativa gamificada concebida para o laboratório de informática do IFS. Em uma dinâmica cronometrada de <strong>100 minutos</strong>, os alunos integram teoria e prática de Banco de Dados Relacional, conectando a exploração física do ambiente por meio de etiquetas de radiofrequência (NTAG213) à resolução de desafios reais no SQLite.
             </p>
           </div>
 

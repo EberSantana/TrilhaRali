@@ -64,7 +64,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({ teams }) =
   };
 
   const appsScriptCode = `// ==========================================================
-// BACKEND GOOGLE APPS SCRIPT - RALI SQL (IFS CAMPUS TOBIAS BARRETO)
+// BACKEND GOOGLE APPS SCRIPT - RALI IFSTB (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensões > Apps Script na sua planilha Google Sheets
 // ==========================================================
 
