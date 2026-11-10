@@ -1,0 +1,6 @@
+{
+  "name": "Rali SQL - App Educativo com Tags NFC",
+  "description": "Sistema gamificado para dinâmica de Rali de Banco de Dados de 100 minutos com leitura de Tags NFC (NTAG213), ranking em tempo real no telão, validação de respostas curtas e debriefing pedagógico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
