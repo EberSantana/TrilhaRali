@@ -9,6 +9,7 @@ import {
   ctfCall,
   getCtfApiUrl,
   getTeacherRooms,
+  explainInvalidApiUrl,
   isValidApiUrl,
   saveCtfApiUrl,
   saveTeacherRooms,
@@ -62,7 +63,7 @@ export const CtfTeacher: React.FC = () => {
 
   const handleSaveApi = () => {
     if (!isValidApiUrl(apiUrl)) {
-      setError('Cole a URL do Web App (começa com https://script.google.com/ e termina em /exec).');
+      setError(explainInvalidApiUrl(apiUrl));
       return;
     }
     saveCtfApiUrl(apiUrl);
@@ -73,7 +74,7 @@ export const CtfTeacher: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!apiUrl || !isValidApiUrl(apiUrl)) {
-      setError('Configure primeiro a URL do backend (Google Apps Script).');
+      setError(apiUrl ? explainInvalidApiUrl(apiUrl) : 'Configure primeiro a URL do backend (Google Apps Script).');
       setShowSetup(true);
       return;
     }

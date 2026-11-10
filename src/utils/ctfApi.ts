@@ -21,8 +21,21 @@ export function parseCtfHash(hash: string = typeof window !== 'undefined' ? wind
   return { token: token || undefined, api: isValidApiUrl(api) ? api : undefined };
 }
 
+/** Só aceita a URL do Web App publicado (…/macros/s/ID/exec), não a do editor nem a da planilha. */
 export function isValidApiUrl(url: string): boolean {
-  return /^https:\/\/script\.google(usercontent)?\.com\/.+/i.test(url.trim());
+  return /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec\/?$/i.test(url.trim());
+}
+
+/** Explica por que uma URL colada não serve, para o professor corrigir sozinho. */
+export function explainInvalidApiUrl(url: string): string {
+  const u = url.trim();
+  if (/docs\.google\.com\/spreadsheets/i.test(u)) {
+    return 'Este é o link da planilha. Cole a URL do Web App do Apps Script (termina em /exec).';
+  }
+  if (/script\.google\.com\/.*\/(edit|home)/i.test(u) || /script\.google\.com\/home/i.test(u)) {
+    return 'Este é o link do editor do Apps Script. Em Implantar > Nova implantação > Aplicativo da Web, copie a "URL do app da Web" (termina em /exec).';
+  }
+  return 'Cole a URL do Web App (começa com https://script.google.com/macros/s/ e termina em /exec).';
 }
 
 export function buildStudentLink(token: string, api: string): string {
