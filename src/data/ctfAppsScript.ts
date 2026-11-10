@@ -14,14 +14,15 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp']
 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1 };
+var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
 function out(obj) {
@@ -68,6 +69,7 @@ function route(req) {
     case 'submit': return submit(req);
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
+    case 'setBanco': return setBanco(req);
     default: fail('Acao desconhecida.');
   }
 }
@@ -84,6 +86,15 @@ function getSheet(name) {
       // Evita que respostas como "007" ou "1.0" virem numeros
       sh.getRange(1, 1, sh.getMaxRows(), SHEET_HEADERS[name].length).setNumberFormat('@');
     }
+    HEADERS_OK[name] = true;
+  }
+  if (!HEADERS_OK[name]) {
+    // Planilhas criadas por versoes anteriores do script ganham as colunas novas
+    var head = sh.getDataRange().getValues()[0] || [];
+    if (head.length < SHEET_HEADERS[name].length) {
+      sh.getRange(1, 1, 1, SHEET_HEADERS[name].length).setValues([SHEET_HEADERS[name]]);
+    }
+    HEADERS_OK[name] = true;
   }
   return sh;
 }
@@ -169,7 +180,8 @@ function roomInfo(room) {
     nome: room.nome,
     status: room.status,
     modo: room.modo,
-    total: Number(room.total_fases)
+    total: Number(room.total_fases),
+    banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true'
   };
 }
 
@@ -262,7 +274,8 @@ function createRoom(req) {
 
   appendObj('CtfSalas', {
     token: token, nome: nome, admin_key: adminKey, status: 'aberta',
-    modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length
+    modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
+    banco_liberado: req.bancoLiberado === true
   });
 
   var sh = getSheet('CtfMissoes');
@@ -365,6 +378,14 @@ function teacherRoom(req) {
     };
   });
   return { sala: roomInfo(room), alunos: alunos };
+}
+
+function setBanco(req) {
+  var room = requireAdmin(req);
+  var liberado = req.liberado === true;
+  updateRow('CtfSalas', room._row, { banco_liberado: liberado });
+  room.banco_liberado = liberado;
+  return { sala: roomInfo(room) };
 }
 
 function setStatus(req) {

@@ -142,6 +142,22 @@ test('CTF dinâmico: 🔥 para o 1º a capturar e decaimento igual ao do app', (
   }
 });
 
+test('download do banco: oculto por padrão, só o professor libera e esconde', () => {
+  const { call } = createBackend();
+  const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
+  assert.equal(call({ action: 'join', token: room.token, nome: 'Ana' }).sala.banco, false);
+
+  assert.match(call({ action: 'setBanco', token: room.token, adminKey: 'errada', liberado: true }).error, /invalida/);
+  assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.banco, false);
+
+  assert.equal(call({ action: 'setBanco', token: room.token, adminKey: room.adminKey, liberado: true }).sala.banco, true);
+  assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.banco, true);
+  assert.equal(call({ action: 'setBanco', token: room.token, adminKey: room.adminKey, liberado: false }).sala.banco, false);
+
+  const aberta = call({ action: 'createRoom', nome: 'T2', modo: 'fixed', missions, bancoLiberado: true });
+  assert.equal(call({ action: 'join', token: aberta.token, nome: 'Bia' }).sala.banco, true);
+});
+
 test('ranking, painel do professor, chave de admin e sala encerrada', () => {
   const { call } = createBackend();
   const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });

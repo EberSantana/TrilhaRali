@@ -6,6 +6,7 @@ export interface CtfRoomInfo {
   status: 'aberta' | 'encerrada';
   modo: ScoringMode;
   total: number;
+  banco: boolean; // professor liberou o download do banco de dados para os alunos
 }
 
 export interface CtfPlayer {

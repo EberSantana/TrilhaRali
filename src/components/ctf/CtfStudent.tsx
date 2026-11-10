@@ -344,9 +344,15 @@ export const CtfStudent: React.FC = () => {
           )}
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
 
-          <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">
-            <Download className="w-3.5 h-3.5" /> Baixar o banco de dados (banco_rali.sql) para rodar no seu SQLite
-          </button>
+          {sala.banco ? (
+            <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">
+              <Download className="w-3.5 h-3.5" /> Baixar o banco de dados (banco_rali.sql) para rodar no seu SQLite
+            </button>
+          ) : (
+            <p className="text-xs text-slate-500 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" /> O banco de dados será liberado pelo professor.
+            </p>
+          )}
         </div>
 
         {/* Ranking */}

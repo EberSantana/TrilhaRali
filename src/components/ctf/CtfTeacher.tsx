@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Clipboard, Flag, Link2, Loader2, Lock, Plus, Power, RefreshCw, Settings, Trash2, Unlock, Users } from 'lucide-react';
+import { Check, Clipboard, Database, Flag, Link2, Loader2, Lock, Plus, Power, RefreshCw, Settings, Trash2, Unlock, Users } from 'lucide-react';
 import { ALL_MISSIONS } from '../../data/missions';
 import { CTF_APPS_SCRIPT } from '../../data/ctfAppsScript';
 import { CtfMissionPayload, CtfStoredRoom, CtfTeacherView } from '../../types/ctf';
@@ -42,6 +42,7 @@ export const CtfTeacher: React.FC = () => {
   // Formulário de nova sala
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
+  const [bancoLiberado, setBancoLiberado] = useState(false);
   const packages = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; count: number }>();
     ALL_MISSIONS.forEach((m) => {
@@ -96,7 +97,7 @@ export const CtfTeacher: React.FC = () => {
       }));
       const res = await ctfCall<{ token: string; adminKey: string }>(
         'createRoom',
-        { nome: nome.trim() || `CTF ${new Date().toLocaleDateString('pt-BR')}`, modo, missions },
+        { nome: nome.trim() || `CTF ${new Date().toLocaleDateString('pt-BR')}`, modo, missions, bancoLiberado },
         apiUrl
       );
       const stored: CtfStoredRoom = {
@@ -143,6 +144,16 @@ export const CtfTeacher: React.FC = () => {
     if (next === 'encerrada' && !window.confirm('Encerrar a sala? Os alunos não poderão mais enviar respostas.')) return;
     try {
       await ctfCall('setStatus', { token: activeRoom.token, adminKey: activeRoom.adminKey, status: next }, activeRoom.api);
+      loadView();
+    } catch (err) {
+      setMonitorError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const toggleBanco = async () => {
+    if (!activeRoom || !view) return;
+    try {
+      await ctfCall('setBanco', { token: activeRoom.token, adminKey: activeRoom.adminKey, liberado: !view.sala.banco }, activeRoom.api);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
@@ -241,6 +252,14 @@ export const CtfTeacher: React.FC = () => {
             </div>
           </div>
 
+          <label className="flex items-start gap-2 text-sm text-slate-200 bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-2 cursor-pointer">
+            <input type="checkbox" checked={bancoLiberado} onChange={(e) => setBancoLiberado(e.target.checked)} className="accent-orange-500 mt-1" />
+            <span>
+              Liberar o download do banco de dados já na entrada
+              <span className="block text-[11px] text-slate-500">Desmarcado: os alunos só veem o link quando você liberar.</span>
+            </span>
+          </label>
+
           <fieldset className="space-y-1.5">
             <legend className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
               Fases (uma missão por fase, em ordem): {totalPhases}
@@ -313,6 +332,16 @@ export const CtfTeacher: React.FC = () => {
                   </button>
                   <button onClick={() => copy('link', inviteLink)} className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1.5">
                     {copied === 'link' ? <Check className="w-4 h-4 text-emerald-400" /> : <Link2 className="w-4 h-4" />} Link de convite
+                  </button>
+                  <button
+                    onClick={toggleBanco}
+                    disabled={!view}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 border disabled:opacity-50 ${
+                      view?.sala.banco ? 'bg-sky-600/20 border-sky-500 text-sky-200 hover:bg-sky-600/30' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                    }`}
+                    title="Mostra ou esconde o link de download do banco_rali.sql para os alunos"
+                  >
+                    <Database className="w-4 h-4" /> Banco: {view?.sala.banco ? 'liberado' : 'oculto'}
                   </button>
                   <button onClick={loadView} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700" title="Atualizar agora" aria-label="Atualizar">
                     <RefreshCw className="w-4 h-4" />
