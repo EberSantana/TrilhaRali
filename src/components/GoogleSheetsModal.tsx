@@ -8,7 +8,8 @@ import {
   FileSpreadsheet, 
   AlertCircle,
   HelpCircle,
-  Download
+  Download,
+  GraduationCap
 } from 'lucide-react';
 import { getAppsScriptUrl, saveAppsScriptUrl } from '../utils/storage';
 import { ALL_MISSIONS } from '../data/missions';
@@ -147,15 +148,19 @@ function doGet() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-            Arquitetura Serverless Educacional
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            IFS Campus Tobias Barreto
           </span>
-          <span className="text-xs text-slate-400">Passos 1, 2 e 3 do PDF</span>
+          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+            <GraduationCap className="w-3.5 h-3.5" />
+            Prof. Eber Santana
+          </span>
+          <span className="text-xs text-slate-400">• Integração Serverless Google Sheets</span>
         </div>
-        <h1 className="text-3xl font-black text-white flex items-center gap-3">
+        <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
           <span>Integração Google Sheets & Apps Script</span>
-          <Sheet className="w-8 h-8 text-teal-400" />
+          <Sheet className="w-8 h-8 text-emerald-400" />
         </h1>
         <p className="text-slate-400 text-sm mt-1">
           Como indicado no material do IFS, você pode conectar sua planilha do Google Drive como banco de dados em nuvem sem pagar por servidores.

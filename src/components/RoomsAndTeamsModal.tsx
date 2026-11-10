@@ -13,9 +13,11 @@ import {
   X,
   Sparkles,
   Archive,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { Team, RallyRoom } from '../types';
+import { IfsLogo } from './IfsLogo';
 
 interface RoomsAndTeamsModalProps {
   rooms: RallyRoom[];
@@ -87,19 +89,24 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
 
   const handleExportRoomReport = () => {
     if (!activeRoom) return;
-    let report = `RELATÓRIO OFICIAL - RALI DE BANCO DE DADOS (IFS CAMPUS TOBIAS BARRETO)\n`;
+    let report = `========================================================================\n`;
+    report += `INSTITUTO FEDERAL DE SERGIPE (IFS) - CAMPUS TOBIAS BARRETO\n`;
+    report += `RALI DE BANCO DE DADOS (100 MINUTOS • 50 MISSÕES NFC)\n`;
+    report += `Desenvolvido e Supervisionado pelo Professor Eber Santana\n`;
+    report += `========================================================================\n\n`;
     report += `Sala / Turma: ${activeRoom.nome}\n`;
     report += `Disciplina: ${activeRoom.disciplina}\n`;
     report += `Data de Registro: ${new Date(activeRoom.dataCriacao).toLocaleString('pt-BR')}\n`;
     report += `Status: ${activeRoom.status.toUpperCase()}\n`;
-    report += `========================================================================\n\n`;
+    report += `Anotações Pedagógicas: ${activeRoom.anotacoes || 'Sem anotações adicionais'}\n`;
+    report += `------------------------------------------------------------------------\n\n`;
 
-    report += `RANKING FINAL E COMPOSIÇÃO DAS EQUIPES:\n\n`;
+    report += `CLASSIFICAÇÃO FINAL E COMPOSIÇÃO NOMINAL DAS EQUIPES:\n\n`;
     const sorted = [...activeRoom.teams].sort((a, b) => b.xp_total - a.xp_total);
     sorted.forEach((team, idx) => {
-      report += `${idx + 1}º LUGAR: ${team.nome} - TOTAL: ${team.xp_total} XP (${team.missoes_concluidas.length} missões resolvidas)\n`;
-      report += `  - Aluno Scanner: ${team.scanner_aluno || 'Não definido'}\n`;
-      report += `  - Integrantes: ${team.alunos.length > 0 ? team.alunos.join(', ') : 'Nenhum aluno cadastrado'}\n`;
+      report += `${idx + 1}º LUGAR: ${team.nome} — TOTAL: ${team.xp_total} XP (${team.missoes_concluidas.length} missões resolvidas)\n`;
+      report += `  - Aluno Scanner Oficial: ${team.scanner_aluno || 'Não definido'}\n`;
+      report += `  - Alunos Integrantes: ${team.alunos.length > 0 ? team.alunos.join(', ') : 'Nenhum aluno cadastrado'}\n`;
       report += `  - Missões Concluídas: ${team.missoes_concluidas.join(', ') || 'Nenhuma'}\n\n`;
     });
 
@@ -114,7 +121,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative">
+      <div className="bg-slate-900 border border-emerald-900/50 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto relative">
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
@@ -123,21 +130,27 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-black uppercase px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              Controle Pedagógico
-            </span>
-            <span className="text-xs text-slate-400">Salas & Integrantes</span>
+        {/* Header Institucional */}
+        <div className="flex items-start gap-4">
+          <IfsLogo size="md" className="p-1 bg-white/5 rounded-xl border border-emerald-500/20 shrink-0" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                IFS Campus Tobias Barreto
+              </span>
+              <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Prof. Eber Santana
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+              <Users className="w-6 h-6 text-emerald-400" />
+              <span>Salas do Rali & Alunos por Equipe</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Crie salas para registrar cada aula/turma e cadastre os nomes dos alunos que compõem cada equipe.
+            </p>
           </div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-emerald-400" />
-            <span>Salas do Rali & Alunos por Equipe</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Crie salas para registrar cada aula/turma e cadastre os nomes dos alunos que compõem cada equipe.
-          </p>
         </div>
 
         {/* Tab Switcher */}

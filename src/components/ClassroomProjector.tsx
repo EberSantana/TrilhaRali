@@ -16,11 +16,13 @@ import {
   XCircle,
   Plus,
   Minus,
-  Users
+  Users,
+  GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, SubmissionLog, ClassSessionState, ClassPhase } from '../types';
 import { playSound } from '../utils/audio';
+import { IfsLogo } from './IfsLogo';
 
 interface ClassroomProjectorProps {
   teams: Team[];
@@ -133,27 +135,45 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      {/* Top Banner: Control Room & Classroom Timeline */}
-      <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-2xl backdrop-blur">
+      {/* Top Banner: Control Room & Classroom Timeline with IFS Institutional Identity */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 rounded-3xl p-6 sm:p-7 border border-emerald-900/50 shadow-2xl backdrop-blur relative overflow-hidden">
+        {/* Decorative corner accent with IFS red & green */}
+        <div className="absolute top-0 right-0 w-32 h-1.5 bg-gradient-to-l from-red-600 via-emerald-500 to-transparent" />
+        
         <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-          {/* Title & Phase */}
-          <div className="space-y-1 text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start gap-2">
-              <span className="text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                IFS Campus Tobias Barreto • Laboratório
-              </span>
+          {/* Title, IFS Badge & Teacher Attribution */}
+          <div className="space-y-2 text-center lg:text-left">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600/40 text-emerald-300 text-xs font-bold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                <span>INSTITUTO FEDERAL DE SERGIPE</span>
+                <span className="text-emerald-500">•</span>
+                <span>CAMPUS TOBIAS BARRETO</span>
+              </div>
               {sessionState.isSubmissionsLocked && (
-                <span className="text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
-                  BLOQUEADO
+                <span className="text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse">
+                  MÃOS PARA CIMA (BLOQUEADO)
                 </span>
               )}
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center justify-center lg:justify-start gap-3">
-              <span>Rali de Banco de Dados</span>
-              <Flame className="w-8 h-8 text-amber-500 fill-amber-500" />
-            </h1>
-            <p className="text-sm text-slate-400">
-              {activeRoomName ? `📍 Sala: ${activeRoomName} • ` : ''}Dinâmica de 100 Minutos • NTAG213 NFC
+
+            <div className="flex items-center justify-center lg:justify-start gap-3">
+              <IfsLogo size="lg" className="shrink-0 hidden sm:inline-flex p-1.5 bg-white/5 rounded-2xl border border-emerald-500/30" />
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center justify-center lg:justify-start gap-2.5">
+                  <span>Rali de Banco de Dados</span>
+                  <Flame className="w-7 h-7 text-amber-500 fill-amber-500" />
+                </h1>
+                {/* Professor attribution */}
+                <div className="flex items-center justify-center lg:justify-start gap-1.5 text-xs text-emerald-300 font-semibold mt-1">
+                  <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Desenvolvido e Supervisionado pelo <strong>Professor Eber Santana</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-400 font-medium">
+              {activeRoomName ? `📍 Sala: ${activeRoomName} • ` : ''}Dinâmica de 100 Minutos • 50 Missões NTAG213 NFC
             </p>
           </div>
 

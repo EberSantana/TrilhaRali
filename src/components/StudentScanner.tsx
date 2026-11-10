@@ -11,7 +11,8 @@ import {
   Lock,
   RefreshCw,
   Search,
-  Check
+  Check,
+  GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, Mission, ClassSessionState } from '../types';
@@ -19,6 +20,7 @@ import { ALL_MISSIONS } from '../data/missions';
 import { validateAnswer } from '../utils/validation';
 import { playSound } from '../utils/audio';
 import { getAppsScriptUrl } from '../utils/storage';
+import { IfsLogo } from './IfsLogo';
 
 interface StudentScannerProps {
   teams: Team[];
@@ -208,8 +210,28 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+      {/* Institutional Mobile Header */}
+      <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-emerald-950/80 border border-emerald-800/40 shadow-md">
+        <div className="flex items-center gap-2.5">
+          <IfsLogo size="sm" />
+          <div className="flex flex-col text-left">
+            <span className="text-[11px] font-black uppercase text-white tracking-wide">
+              IFS • Campus Tobias Barreto
+            </span>
+            <span className="text-[10px] text-emerald-300 font-medium flex items-center gap-1">
+              <GraduationCap className="w-3 h-3 text-emerald-400 shrink-0" />
+              Prof. Eber Santana
+            </span>
+          </div>
+        </div>
+
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+          Rali 50 Tags
+        </span>
+      </div>
+
       {/* Team Selection Banner */}
-      <div className="bg-slate-800/90 rounded-2xl p-5 border border-slate-700 shadow-xl backdrop-blur">
+      <div className="bg-slate-900/95 rounded-2xl p-5 border border-emerald-900/40 shadow-xl backdrop-blur">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">

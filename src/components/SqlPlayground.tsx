@@ -9,7 +9,8 @@ import {
   Terminal, 
   Sparkles,
   FileCode,
-  Layers
+  Layers,
+  GraduationCap
 } from 'lucide-react';
 import { BANCO_RALI_SQL } from '../utils/sqlSeed';
 
@@ -86,18 +87,22 @@ WHERE nota = (SELECT MAX(nota) FROM Alunos);`);
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                SQLite no Laboratório de Informática
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                IFS Campus Tobias Barreto
               </span>
-              <span className="text-xs text-slate-400">Esquema Completo do Rali</span>
+              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Prof. Eber Santana
+              </span>
+              <span className="text-xs text-slate-400">• SQLite no Laboratório</span>
             </div>
-            <h1 className="text-3xl font-black text-white flex items-center gap-3">
-              <span>Banco de Dados MVP (SQLite)</span>
-              <Database className="w-8 h-8 text-indigo-400" />
+            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
+              <span>Banco de Dados Oficial (SQLite)</span>
+              <Database className="w-8 h-8 text-emerald-400" />
             </h1>
             <p className="text-slate-400 text-sm mt-1">
-              Script <code className="text-indigo-300 font-mono">banco_rali.sql</code> pronto para rodar nos PCs dos alunos ou no SQLite Online.
+              Script <code className="text-emerald-300 font-mono">banco_rali.sql</code> pronto para rodar nos PCs dos alunos ou no SQLite Online.
             </p>
           </div>
 

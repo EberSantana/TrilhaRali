@@ -9,10 +9,12 @@ import {
   MapPin, 
   Sparkles, 
   ExternalLink,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { Mission, MissionPackage } from '../types';
 import { ALL_MISSIONS } from '../data/missions';
+import { IfsLogo } from './IfsLogo';
 
 export const MissionsCatalog: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState<string>('all');
@@ -59,18 +61,22 @@ export const MissionsCatalog: React.FC = () => {
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Catálogo de Etiquetas NTAG213
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                IFS Campus Tobias Barreto
               </span>
-              <span className="text-xs text-slate-400">Total: 50 Missões Padronizadas</span>
+              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Supervisão: Prof. Eber Santana
+              </span>
+              <span className="text-xs text-slate-400">• 50 Missões Padronizadas NTAG213</span>
             </div>
-            <h1 className="text-3xl font-black text-white flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
               <span>Arsenal Completo de Missões SQL</span>
-              <Tag className="w-8 h-8 text-amber-400" />
+              <Tag className="w-8 h-8 text-emerald-400" />
             </h1>
             <p className="text-slate-400 text-sm mt-1">
-              Grave os IDs nas etiquetas NTAG213 usando o app NFC Tools e espalhe pelo laboratório do IFS.
+              Grave os IDs nas etiquetas NTAG213 usando o app NFC Tools e espalhe pelo laboratório de informática do IFS.
             </p>
           </div>
 

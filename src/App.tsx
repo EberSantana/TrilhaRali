@@ -13,6 +13,7 @@ import { SqlPlayground } from './components/SqlPlayground';
 import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { RoomsAndTeamsModal } from './components/RoomsAndTeamsModal';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
+import { IfsLogo } from './components/IfsLogo';
 import { 
   getTeams, 
   saveTeams, 
@@ -281,15 +282,28 @@ export default function App() {
         />
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>
-            Instituto Federal de Sergipe (IFS) • Campus Tobias Barreto • Rali de Banco de Dados
-          </span>
-          <span className="font-mono text-emerald-400/80">
-            50 Missões NTAG213 NFC • Gestão de Salas & Alunos • SQLite Gamificado
-          </span>
+      {/* Footer Institucional IFS */}
+      <footer className="border-t border-emerald-950/80 bg-slate-950 py-6 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <IfsLogo size="sm" />
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-slate-200">
+                Instituto Federal de Sergipe (IFS) • Campus Tobias Barreto
+              </span>
+              <span className="text-emerald-400 font-medium">
+                Desenvolvido e Supervisionado pelo Professor Eber Santana
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-right font-mono text-[11px] text-slate-400">
+            <span className="px-2.5 py-1 rounded-md bg-emerald-950/60 border border-emerald-800/40 text-emerald-300">
+              50 Missões NTAG213 NFC
+            </span>
+            <span>Salas & Equipes de Alunos</span>
+            <span className="text-red-400 font-bold">• IFS 2026</span>
+          </div>
         </div>
       </footer>
     </div>
