@@ -39,12 +39,18 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   onFailedSubmission,
   sessionState,
 }) => {
+  const hasWebNfc = typeof window !== 'undefined' && 'NDEFReader' in window;
+
   const [activeTagId, setActiveTagId] = useState<string>('tag_01');
   const [studentAnswer, setStudentAnswer] = useState<string>('');
   const [isNfcScanning, setIsNfcScanning] = useState<boolean>(false);
-  const [nfcStatusMessage, setNfcStatusMessage] = useState<string>('Pronto para leitura NFC.');
+  const [nfcStatusMessage, setNfcStatusMessage] = useState<string>(
+    hasWebNfc 
+      ? 'Pronto para leitura NFC (Android com Chrome).' 
+      : 'Dispositivo sem Web NFC (ex: iPhone / PC). Seletor com as 50 missões liberado abaixo.'
+  );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
-  const [showManualPicker, setShowManualPicker] = useState<boolean>(false);
+  const [showManualPicker, setShowManualPicker] = useState<boolean>(!hasWebNfc);
   const [filterQuery, setFilterQuery] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -54,12 +60,9 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId);
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
 
-  // Web NFC Support Check
-  const hasWebNfc = typeof window !== 'undefined' && 'NDEFReader' in window;
-
   const startNfcScan = async () => {
     if (!hasWebNfc) {
-      setNfcStatusMessage('Web NFC não suportado neste dispositivo/navegador. Use o seletor rápido abaixo.');
+      setNfcStatusMessage('Web NFC não suportado no iOS/iPhone pela Apple. Selecione a missão na lista abaixo!');
       setShowManualPicker(true);
       return;
     }
@@ -337,7 +340,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               <span className="text-xs font-bold text-slate-300 uppercase">
                 Simulador de Tags (Para testes ou iOS sem Web NFC)
               </span>
-              <span className="text-xs text-emerald-400 font-mono">30 Tags Disponíveis</span>
+              <span className="text-xs text-emerald-400 font-mono">50 Tags Disponíveis</span>
             </div>
 
             <div className="relative">

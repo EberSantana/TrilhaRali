@@ -183,7 +183,7 @@ function doGet() {
               className="text-xs py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center justify-center gap-1.5 transition"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Baixar CSV Missoes (30)</span>
+              <span>Baixar CSV Missoes (50)</span>
             </button>
             <button
               onClick={() => handleExportCsv('equipes')}
@@ -241,13 +241,38 @@ function doGet() {
             placeholder="https://script.google.com/macros/s/.../exec"
             className="w-full bg-slate-950 font-mono text-xs sm:text-sm text-teal-300 border border-slate-800 rounded-xl px-4 py-3 focus:ring-2 focus:ring-teal-500 outline-none"
           />
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition shrink-0"
-          >
-            {savedUrl ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            <span>{savedUrl ? 'Salvo!' : 'Salvar URL'}</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition shrink-0"
+            >
+              {savedUrl ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+              <span>{savedUrl ? 'Salvo!' : 'Salvar URL'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!appsScriptUrl) {
+                  alert('Insira a URL do Apps Script primeiro.');
+                  return;
+                }
+                try {
+                  await fetch(appsScriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tag_id: 'tag_01', resposta: 'teste', equipe: 'Equipe A (Alpha)' }),
+                  });
+                  alert('Webhook alcançado com sucesso! O Google Apps Script recebeu a solicitação.');
+                } catch (err) {
+                  alert('Erro ao enviar para o Apps Script: ' + String(err));
+                }
+              }}
+              className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shrink-0"
+            >
+              <span>🧪 Testar Envio</span>
+            </button>
+          </div>
         </form>
       </div>
 
