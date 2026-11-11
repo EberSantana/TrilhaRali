@@ -14,8 +14,8 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado'],
-  CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado'],
+  CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
@@ -24,7 +24,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -39,7 +39,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 9 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 10 });
 }
 
 function doPost(e) {
@@ -76,6 +76,9 @@ function route(req) {
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
     case 'setTerminal': return setTerminal(req);
+    case 'setDebriefing': return setDebriefing(req);
+    case 'debriefTeacher': return debriefTeacher(req);
+    case 'debriefStudent': return debriefStudent(req);
     case 'setTimer': return setTimer(req);
     case 'raliTimer': return raliTimer(req);
     case 'raliEstado': return raliEstado();
@@ -207,6 +210,7 @@ function roomInfo(room) {
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
+    debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
     agora: Date.now()
@@ -323,7 +327,8 @@ function createRoom(req) {
   var sh = getSheet('CtfMissoes');
   var rows = missions.map(function (m, i) {
     return [token, i + 1, m.tag_id, m.categoria || '', m.pacote || '', m.pergunta, m.resposta,
-      JSON.stringify(m.alternativas || []), m.xp || 10, JSON.stringify(m.opcoes || [])];
+      JSON.stringify(m.alternativas || []), m.xp || 10, JSON.stringify(m.opcoes || []),
+      String(m.explicacao || '').substring(0, 800)];
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.CtfMissoes.length).setValues(rows);
   return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo, ordem: ordem };
@@ -597,6 +602,45 @@ function setTerminal(req) {
   var liberado = req.liberado === true;
   updateRow('CtfSalas', room._row, { terminal_liberado: liberado });
   room.terminal_liberado = liberado;
+  return { sala: roomInfo(room) };
+}
+
+// Debriefing: gabarito da sala (pergunta, resposta, explicacao e quantos acertaram).
+// O professor sempre ve; os alunos so veem depois que o professor libera.
+function debriefList(room) {
+  var caps = readRows('CtfCapturas').filter(function (c) { return String(c.token) === room.token; });
+  var porTag = {};
+  caps.forEach(function (c) { porTag[String(c.tag_id)] = (porTag[String(c.tag_id)] || 0) + 1; });
+  var itens = readRows('CtfMissoes')
+    .filter(function (m) { return String(m.token) === room.token; })
+    .sort(function (a, b) { return Number(a.fase) - Number(b.fase); })
+    .map(function (m) {
+      return {
+        fase: Number(m.fase), tag_id: String(m.tag_id), categoria: m.categoria, pacote: m.pacote,
+        pergunta: m.pergunta, resposta: String(m.resposta), alternativas: parseList(m.alternativas),
+        opcoes: parseList(m.opcoes), xp: Number(m.xp), explicacao: String(m.explicacao || ''),
+        acertos: porTag[String(m.tag_id)] || 0
+      };
+    });
+  return { sala: roomInfo(room), itens: itens, total_alunos: playersOf(room.token).length };
+}
+
+function debriefTeacher(req) {
+  return debriefList(requireAdmin(req));
+}
+
+function debriefStudent(req) {
+  var room = requireRoom(req.token);
+  var liberado = room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true';
+  if (!liberado) fail('O professor ainda não liberou o debriefing.');
+  return debriefList(room);
+}
+
+function setDebriefing(req) {
+  var room = requireAdmin(req);
+  var liberado = req.liberado === true;
+  updateRow('CtfSalas', room._row, { debriefing_liberado: liberado });
+  room.debriefing_liberado = liberado;
   return { sala: roomInfo(room) };
 }
 

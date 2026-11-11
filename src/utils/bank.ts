@@ -76,6 +76,7 @@ export function bankToCtfPayload(q: BankQuestion): CtfMissionPayload {
     alternativas: q.tipo === 'exata' ? q.aceitas : [],
     xp: q.xp,
     opcoes: q.tipo === 'multipla' ? q.opcoes : [],
+    explicacao: q.explicacao || '',
   };
 }
 

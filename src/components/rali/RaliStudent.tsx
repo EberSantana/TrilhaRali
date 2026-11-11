@@ -1,3 +1,4 @@
+import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -243,6 +244,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
       {!finished && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
       {sala.terminal && <LinuxTerminal />}
+      <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="equipes" accent="emerald" />
 
       {finished ? (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">

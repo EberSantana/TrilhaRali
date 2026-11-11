@@ -1,3 +1,4 @@
+import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -262,6 +263,7 @@ export const CtfStudent: React.FC = () => {
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
       {sala.terminal && <LinuxTerminal />}
+      <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
       {/* Progresso */}
       {livre ? (
