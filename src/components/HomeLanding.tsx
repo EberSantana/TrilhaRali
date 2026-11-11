@@ -62,9 +62,12 @@ const EntryCard: React.FC<EntryCardProps> = ({ title, tagline, description, chip
 };
 
 export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenTeacher }) => (
-  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-5 pb-5">
+  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-6">
     <header className="flex flex-col items-center text-center">
-      <TrilhaLogo variant="full" height="clamp(120px, calc(100dvh - 590px), 200px)" />
+      <div className="relative">
+        <div aria-hidden className="pointer-events-none absolute -inset-x-16 -inset-y-4 rounded-full bg-gradient-to-r from-emerald-400/25 via-white/0 to-orange-400/25 blur-2xl" />
+        <TrilhaLogo variant="full" height="clamp(120px, calc(100dvh - 590px), 200px)" className="relative drop-shadow-[0_8px_16px_rgba(15,23,42,0.22)]" />
+      </div>
       <h1 className="sr-only">Trilha Rali</h1>
       <p className="mt-3 max-w-xl text-sm sm:text-base text-slate-400 leading-relaxed">
         Escolha como você vai participar da atividade de hoje.
