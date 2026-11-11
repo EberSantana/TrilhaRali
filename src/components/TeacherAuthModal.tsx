@@ -156,7 +156,7 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({
             </span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            As seções de <strong>Debriefing (Gabarito Completo)</strong>, <strong>50 Missões</strong>, <strong>SQLite</strong>, <strong>Google Sheets</strong> e <strong>Gestão de Salas/Alunos</strong> são restritas ao professor para manter o sigilo das respostas durante a dinâmica.
+            As seções de <strong>Debriefing (Gabarito Completo)</strong>, <strong>Missões</strong>, <strong>SQLite</strong>, <strong>Google Sheets</strong> e <strong>Gestão de Salas/Alunos</strong> são restritas ao professor para manter o sigilo das respostas durante a dinâmica.
           </p>
         </div>
 

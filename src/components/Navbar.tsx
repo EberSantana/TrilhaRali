@@ -32,7 +32,7 @@ interface NavbarProps {
 
 const RESTRICTED_TABS: Partial<Record<ActiveTab, string>> = {
   debriefing: 'Debriefing & Gabarito Oficial',
-  missions: 'Banco Completo de 50 Missões',
+  missions: 'Banco Completo de Missões',
   sql: 'Playground SQLite',
   sheets: 'Integração Google Sheets & Apps Script',
 };
@@ -143,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Catálogo de missões'}
             >
               <Tag className="w-4 h-4 text-amber-300" />
-              <span>50 Missões</span>
+              <span>Missões</span>
               {!isTeacher && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
             </button>
 
