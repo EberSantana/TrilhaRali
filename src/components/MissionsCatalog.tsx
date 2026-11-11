@@ -76,7 +76,7 @@ export const MissionsCatalog: React.FC = () => {
                 <GraduationCap className="w-3.5 h-3.5" />
                 Supervisão: Prof. Eber Santana
               </span>
-              <span className="text-xs text-slate-400">• 50 Missões Padronizadas NTAG213</span>
+              <span className="text-xs text-slate-400">• Missões Padronizadas NTAG213</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
               <span>Catálogo de missões</span>
