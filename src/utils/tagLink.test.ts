@@ -11,6 +11,8 @@ test('lê a tag das formas aceitas', () => {
   assert.equal(parseTagFromLocation('#/tag/tag_07'), 'tag_07');
   assert.equal(parseTagFromLocation('#/tag/TAG_07'), 'tag_07');
   assert.equal(parseTagFromLocation('#/?tag=tag_12'), 'tag_12');
+  assert.equal(parseTagFromLocation('#/tag/linux_07'), 'linux_07');
+  assert.equal(parseTagFromLocation('#/tag/LINUX_51'), 'linux_51');
   assert.equal(parseTagFromLocation('', '?tag=tag_03'), 'tag_03');
 });
 
