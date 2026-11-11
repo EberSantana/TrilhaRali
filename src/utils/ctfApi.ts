@@ -1,8 +1,9 @@
 import { DEFAULT_CTF_API_URL } from '../config';
-import { CtfStoredRoom } from '../types/ctf';
+import { CtfStoredRoom, RoomTipo } from '../types/ctf';
 
 const KEY_API = 'rali_ctf_api_url_v1';
 const KEY_STUDENT = 'rali_ctf_student_v1';
+const KEY_RALI_STUDENT = 'rali_nfc_student_v1';
 const KEY_ROOMS = 'rali_ctf_teacher_rooms_v1';
 
 // --- Parâmetros do link de convite: #/ctf?t=TOKEN&api=URL ---
@@ -38,11 +39,11 @@ export function explainInvalidApiUrl(url: string): string {
   return 'Cole a URL do Web App (começa com https://script.google.com/macros/s/ e termina em /exec).';
 }
 
-export function buildStudentLink(token: string, api: string): string {
+export function buildStudentLink(token: string, api: string, tipo: RoomTipo = 'ctf'): string {
   const base = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : '';
   const params = new URLSearchParams({ t: token });
   if (!DEFAULT_CTF_API_URL || DEFAULT_CTF_API_URL !== api) params.set('api', api);
-  return `${base}#/ctf?${params.toString()}`;
+  return `${base}#/${tipo === 'rali' ? 'rali' : 'ctf'}?${params.toString()}`;
 }
 
 // --- URL do backend (Apps Script) ---
@@ -112,6 +113,35 @@ export function saveStudentSession(s: CtfStudentSession) {
 export function clearStudentSession() {
   try {
     localStorage.removeItem(KEY_STUDENT);
+  } catch {
+    // ignore
+  }
+}
+
+// --- Sessão da equipe no Rali NFC ---
+
+export function getRaliSession(): CtfStudentSession | null {
+  try {
+    const raw = localStorage.getItem(KEY_RALI_STUDENT);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.token && s.nome ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveRaliSession(s: CtfStudentSession) {
+  try {
+    localStorage.setItem(KEY_RALI_STUDENT, JSON.stringify(s));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearRaliSession() {
+  try {
+    localStorage.removeItem(KEY_RALI_STUDENT);
   } catch {
     // ignore
   }

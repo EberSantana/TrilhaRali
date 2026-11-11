@@ -2,8 +2,13 @@ import { ScoringMode } from './index';
 import type { TimerInfo } from '../utils/timer';
 import type { Theme } from '../utils/theme';
 
+/** ctf = CTF Online (individual, fase a fase) · rali = Rali NFC (equipes, missões por etiqueta) */
+export type RoomTipo = 'ctf' | 'rali';
+
 export interface CtfRoomInfo {
   token: string;
+  /** ausente em backends anteriores à versão 6 (sempre CTF) */
+  tipo?: RoomTipo;
   nome: string;
   status: 'aberta' | 'encerrada';
   modo: ScoringMode;
@@ -72,6 +77,8 @@ export interface CtfTeacherStudent {
   erros: number;
   fogos: number;
   ultimo_acerto: number | '';
+  /** Rali NFC: nomes dos integrantes da equipe (opcional) */
+  integrantes?: string[];
 }
 
 export interface CtfTeacherView {
@@ -91,9 +98,60 @@ export interface CtfMissionPayload {
 }
 
 export interface CtfStoredRoom {
+  /** salas antigas não têm este campo: são do CTF */
+  tipo?: RoomTipo;
   token: string;
   nome: string;
   adminKey: string;
   api: string;
   criada: number;
+}
+
+// ---------- Rali NFC online (salas com equipes) ----------
+
+export interface RaliTeam {
+  nome: string;
+  integrantes: string[];
+  xp: number;
+  acertos: number;
+  erros: number;
+  fogos: number;
+  posicao: number;
+}
+
+/** Missão da sala vista pela equipe: sem pergunta nem gabarito (a pergunta só vem ao ler a etiqueta). */
+export interface RaliMissionRef {
+  tag_id: string;
+  categoria: string;
+  pacote: string;
+  xp_base: number;
+  capturas: number;
+  concluida: boolean;
+}
+
+export interface RaliMission {
+  tag_id: string;
+  categoria: string;
+  pacote: string;
+  pergunta: string;
+  opcoes: string[];
+  xp_base: number;
+  xp_atual: number;
+  capturas_anteriores: number;
+}
+
+export interface RaliState {
+  sala: CtfRoomInfo;
+  equipe: RaliTeam;
+  missoes: RaliMissionRef[];
+  ranking: CtfRankingRow[];
+  total_equipes: number;
+  correto?: boolean;
+  premio?: CtfAward & { tag_id?: string };
+}
+
+export interface RaliTagInfo {
+  sala: CtfRoomInfo;
+  ja_resolvida: boolean;
+  missao: RaliMission;
 }

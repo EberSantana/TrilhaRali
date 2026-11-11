@@ -14,9 +14,9 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
-  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro'],
+  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
@@ -24,7 +24,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -39,7 +39,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Rali IFSTB CTF', versao: 1 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 6 });
 }
 
 function doPost(e) {
@@ -70,6 +70,8 @@ function route(req) {
     case 'join': return join(req);
     case 'state': return stateFor(req);
     case 'submit': return submit(req);
+    case 'raliTag': return raliTag(req);
+    case 'raliSubmit': return raliSubmit(req);
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
@@ -194,6 +196,7 @@ function roomInfo(room) {
     nome: room.nome,
     status: room.status,
     modo: room.modo,
+    tipo: room.tipo === 'rali' ? 'rali' : 'ctf',
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
@@ -284,6 +287,15 @@ function createRoom(req) {
   if (missions.length > 200) fail('Maximo de 200 fases por sala.');
   var nome = String(req.nome || 'Sala CTF').substring(0, 80);
   var modo = req.modo === 'ctf_dynamic' ? 'ctf_dynamic' : 'fixed';
+  var tipo = req.tipo === 'rali' ? 'rali' : 'ctf';
+  if (tipo === 'rali') {
+    var vistas = {};
+    missions.forEach(function (m) {
+      var id = String(m.tag_id);
+      if (vistas[id]) fail('Etiqueta repetida na sala: ' + id);
+      vistas[id] = 1;
+    });
+  }
 
   var existing = readRows('CtfSalas').map(function (r) { return String(r.token); });
   var token;
@@ -294,7 +306,8 @@ function createRoom(req) {
     token: token, nome: nome, admin_key: adminKey, status: 'aberta',
     modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
     banco_liberado: req.bancoLiberado === true,
-    timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : ''
+    timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
+    tipo: tipo
   });
 
   var sh = getSheet('CtfMissoes');
@@ -303,7 +316,7 @@ function createRoom(req) {
       JSON.stringify(m.alternativas || []), m.xp || 10, JSON.stringify(m.opcoes || [])];
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.CtfMissoes.length).setValues(rows);
-  return { token: token, adminKey: adminKey, total: missions.length };
+  return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo };
 }
 
 function join(req) {
@@ -315,15 +328,16 @@ function join(req) {
     if (room.status !== 'aberta') fail('Esta sala esta encerrada.');
     appendObj('CtfAlunos', {
       token: room.token, nome: nome, nome_key: key, fase_atual: 1, xp: 0, acertos: 0,
-      erros: 0, fogos: 0, entrou_em: Date.now()
+      erros: 0, fogos: 0, entrou_em: Date.now(),
+      integrantes: room.tipo === 'rali' ? JSON.stringify(cleanMembers(req.integrantes)) : ''
     });
   }
-  return buildState(room, key);
+  return room.tipo === 'rali' ? raliBuildState(room, key) : buildState(room, key);
 }
 
 function stateFor(req) {
   var room = requireRoom(req.token);
-  return buildState(room, norm(req.nome));
+  return room.tipo === 'rali' ? raliBuildState(room, norm(req.nome)) : buildState(room, norm(req.nome));
 }
 
 function submit(req) {
@@ -383,6 +397,145 @@ function submit(req) {
   return st;
 }
 
+// ---------- Rali NFC: salas com equipes (as missoes sao resolvidas em qualquer ordem, por etiqueta) ----------
+
+function cleanMembers(list) {
+  var out = [];
+  (Array.isArray(list) ? list : []).forEach(function (n) {
+    var t = String(n || '').replace(/\s+/g, ' ').trim();
+    if (t.length >= 2 && out.length < 8) out.push(t.substring(0, 40));
+  });
+  return out;
+}
+
+function raliBuildState(room, key) {
+  var players = playersOf(room.token);
+  var ranked = rankPlayers(players);
+  var me = null;
+  var pos = 0;
+  for (var i = 0; i < ranked.length; i++) {
+    if (ranked[i].nome_key === key) { me = ranked[i]; pos = i + 1; break; }
+  }
+  if (!me) fail('Equipe nao encontrada nesta sala. Entre novamente.');
+
+  var caps = readRows('CtfCapturas').filter(function (c) { return String(c.token) === room.token; });
+  var minhas = {};
+  var porTag = {};
+  caps.forEach(function (c) {
+    porTag[String(c.tag_id)] = (porTag[String(c.tag_id)] || 0) + 1;
+    if (c.nome === me.nome) minhas[String(c.tag_id)] = 1;
+  });
+  var missoes = readRows('CtfMissoes')
+    .filter(function (m) { return String(m.token) === room.token; })
+    .map(function (m) {
+      var tag = String(m.tag_id);
+      return {
+        tag_id: tag, categoria: m.categoria, pacote: m.pacote, xp_base: Number(m.xp),
+        capturas: porTag[tag] || 0, concluida: minhas[tag] === 1
+      };
+    });
+  return {
+    sala: roomInfo(room),
+    equipe: {
+      nome: me.nome, integrantes: parseList(me.integrantes), xp: Number(me.xp), acertos: Number(me.acertos),
+      erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos
+    },
+    missoes: missoes,
+    ranking: ranked.slice(0, 15).map(function (a) {
+      return { nome: a.nome, fase: Number(a.acertos), xp: Number(a.xp), fogos: Number(a.fogos) };
+    }),
+    total_equipes: ranked.length
+  };
+}
+
+function raliMission(room, tag) {
+  var rows = readRows('CtfMissoes');
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].token) === room.token && String(rows[i].tag_id).toLowerCase() === String(tag || '').trim().toLowerCase()) return rows[i];
+  }
+  fail('Esta etiqueta nao faz parte da sala.');
+}
+
+function raliTeam(room, nome) {
+  var key = norm(nome);
+  var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
+  if (!me) fail('Equipe nao encontrada nesta sala. Entre novamente.');
+  return me;
+}
+
+function raliTag(req) {
+  var room = requireRoom(req.token);
+  if (room.tipo !== 'rali') fail('Esta sala e do CTF Online.');
+  var me = raliTeam(room, req.nome);
+  var m = raliMission(room, req.tag_id);
+  var caps = readRows('CtfCapturas').filter(function (c) {
+    return String(c.token) === room.token && String(c.tag_id) === String(m.tag_id);
+  });
+  var jaResolvida = caps.some(function (c) { return c.nome === me.nome; });
+  var base = Number(m.xp);
+  return {
+    sala: roomInfo(room),
+    ja_resolvida: jaResolvida,
+    missao: {
+      tag_id: String(m.tag_id), categoria: m.categoria, pacote: m.pacote,
+      pergunta: m.pergunta, opcoes: parseList(m.opcoes), xp_base: base,
+      xp_atual: pontos(base, caps.length + 1, room.modo), capturas_anteriores: caps.length
+    }
+  };
+}
+
+function raliSubmit(req) {
+  var room = requireRoom(req.token);
+  if (room.tipo !== 'rali') fail('Esta sala e do CTF Online.');
+  if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
+  requireTimerOpen(parseTimer(room.timer), Date.now());
+  var me = raliTeam(room, req.nome);
+  var m = raliMission(room, req.tag_id);
+  var tag = String(m.tag_id);
+
+  var caps = readRows('CtfCapturas').filter(function (c) {
+    return String(c.token) === room.token && String(c.tag_id) === tag;
+  });
+  if (caps.some(function (c) { return c.nome === me.nome; })) fail('Sua equipe ja resolveu esta missao.');
+
+  var agora = Date.now();
+  if (me.ultimo_erro && agora - Number(me.ultimo_erro) < ERROR_COOLDOWN_MS) {
+    fail('Aguarde alguns segundos antes de tentar novamente.');
+  }
+  var ans = norm(req.resposta);
+  if (!ans) fail('Digite a resposta antes de enviar.');
+  var aceitas = [norm(m.resposta)];
+  try {
+    JSON.parse(m.alternativas || '[]').forEach(function (a) { aceitas.push(norm(a)); });
+  } catch (err) { /* sem alternativas */ }
+
+  var key = norm(me.nome);
+  if (aceitas.indexOf(ans) < 0) {
+    updateRow('CtfAlunos', me._row, { erros: Number(me.erros) + 1, ultimo_erro: agora });
+    var errState = raliBuildState(room, key);
+    errState.correto = false;
+    return errState;
+  }
+
+  var posicao = caps.length + 1;
+  var xp = pontos(Number(m.xp), posicao, room.modo);
+  var isFogo = room.modo === 'ctf_dynamic' && posicao === 1;
+  appendObj('CtfCapturas', {
+    token: room.token, tag_id: tag, nome: me.nome, posicao: posicao, xp: xp,
+    is_fogo: isFogo ? '🔥' : '', timestamp: new Date().toISOString()
+  });
+  updateRow('CtfAlunos', me._row, {
+    xp: Number(me.xp) + xp,
+    acertos: Number(me.acertos) + 1,
+    fogos: Number(me.fogos) + (isFogo ? 1 : 0),
+    ultimo_acerto: agora
+  });
+  var st = raliBuildState(room, key);
+  st.correto = true;
+  st.premio = { xp: xp, posicao: posicao, isFogo: isFogo, modo: room.modo, tag_id: tag };
+  return st;
+}
+
 function requireAdmin(req) {
   var room = requireRoom(req.token);
   if (String(room.admin_key) !== String(req.adminKey || '')) fail('Chave de professor invalida para esta sala.');
@@ -394,7 +547,8 @@ function teacherRoom(req) {
   var alunos = rankPlayers(playersOf(room.token)).map(function (a) {
     return {
       nome: a.nome, fase_atual: Number(a.fase_atual), xp: Number(a.xp), acertos: Number(a.acertos),
-      erros: Number(a.erros), fogos: Number(a.fogos), ultimo_acerto: a.ultimo_acerto === '' ? '' : Number(a.ultimo_acerto)
+      erros: Number(a.erros), fogos: Number(a.fogos), ultimo_acerto: a.ultimo_acerto === '' ? '' : Number(a.ultimo_acerto),
+      integrantes: parseList(a.integrantes)
     };
   });
   return { sala: roomInfo(room), alunos: alunos };
@@ -522,7 +676,7 @@ function raliEstado() {
 
 function setTema(req) {
   requireBancoKey(req);
-  var tema = req.tema === 'claro' ? 'claro' : 'escuro';
+  var tema = req.tema === 'escuro' ? 'escuro' : 'claro';
   PropertiesService.getScriptProperties().setProperty('TEMA', tema);
   return { tema: tema };
 }

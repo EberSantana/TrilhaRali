@@ -19,6 +19,7 @@ import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
 import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
+import { FinalPodium, useCelebrate } from '../common/FinalPodium';
 
 const POLL_MS = 10_000;
 
@@ -70,6 +71,7 @@ export const CtfStudent: React.FC = () => {
   const skewMs = useMemo(() => (state?.sala.agora ? Date.now() - state.sala.agora : 0), [state]);
   const { seconds, phase } = useCountdown(timer, skewMs);
   const theme = useTheme();
+  useCelebrate(state?.sala.status === 'encerrada' || (Boolean(timer) && phase === 'fim'));
   useEffect(() => {
     applyServerTheme(state?.sala.tema);
   }, [state?.sala.tema]);
@@ -233,6 +235,7 @@ export const CtfStudent: React.FC = () => {
   const waiting = Boolean(timer) && phase === 'parado';
   const locked = closed || timeUp || waiting;
   const phases = Array.from({ length: sala.total }, (_, i) => i + 1);
+  const finished = closed || timeUp;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -276,6 +279,15 @@ export const CtfStudent: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {finished && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">
+          <FinalPodium rows={ranking} totalFases={sala.total} unit="fases" entity="alunos" me={aluno.nome} />
+          <p className="mt-4 text-center text-sm text-slate-400">
+            Você: <strong className="text-white">{aluno.posicao}º lugar</strong> • {aluno.xp} XP
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Missão atual */}

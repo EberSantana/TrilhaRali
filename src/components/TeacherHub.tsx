@@ -19,17 +19,14 @@ import { ThemePicker } from './common/ThemePicker';
 
 interface TeacherHubProps {
   isTeacher: boolean;
-  activeRoomName?: string;
-  teamsCount: number;
-  submissionsCount: number;
   onRequireTeacher: () => void;
-  onOpenRooms: () => void;
   onOpenProjector: () => void;
   onOpenMissions: () => void;
   onOpenDebriefing: () => void;
   onOpenSql: () => void;
   onOpenSheets: () => void;
-  onOpenCtfPanel: () => void;
+  onOpenRaliRooms: () => void;
+  onOpenCtfRooms: () => void;
   onOpenAccount: () => void;
 }
 
@@ -79,12 +76,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </section>
 );
 
-const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-    <div className="mt-1 truncate text-lg font-black text-white">{value}</div>
-  </div>
-);
 
 
 interface StepRow {
@@ -153,7 +144,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
     );
   }
 
-  if (showBank) return <BankManager onBack={() => setShowBank(false)} onOpenCtf={() => { setShowBank(false); p.onOpenCtfPanel(); }} />;
+  if (showBank) return <BankManager onBack={() => setShowBank(false)} onOpenCtf={() => { setShowBank(false); p.onOpenCtfRooms(); }} />;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
@@ -167,12 +158,6 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
         </div>
       </header>
-
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat label="Sala ativa (Rali NFC)" value={p.activeRoomName || '—'} />
-        <Stat label="Equipes" value={String(p.teamsCount)} />
-        <Stat label="Envios registrados" value={String(p.submissionsCount)} />
-      </div>
 
       <Section title="1 · Conteúdo (compartilhado)">
         <Tool
@@ -191,10 +176,10 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           tone="emerald"
           icon={<Radio className="w-5 h-5" />}
           rows={[
-            { step: 1, label: 'Perguntas', title: 'Missões e gabarito', description: 'Catálogo das missões, etiquetas NFC/QR e respostas.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenMissions },
-            { step: 2, label: 'Turma', title: 'Salas e equipes', description: 'Crie turmas e cadastre os alunos de cada equipe.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenRooms },
-            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenProjector },
-            { step: 4, label: 'Resultados', title: 'Debriefing', description: 'Erros e acertos da turma para a conversa final.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenDebriefing },
+            { step: 1, label: 'Perguntas', title: 'Escolher missões', description: 'Catálogo de missões e perguntas do seu banco, no mesmo seletor.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenRaliRooms },
+            { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala; as equipes entram com o token, o link ou o QR code.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenRaliRooms },
+            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenRaliRooms },
+            { step: 4, label: 'Resultados', title: 'Ranking e envios', description: 'Acompanhe o ranking e o andamento de cada equipe.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenRaliRooms },
           ]}
         />
         <ModuleCard
@@ -203,24 +188,30 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           tone="orange"
           icon={<Flag className="w-5 h-5" />}
           rows={[
-            { step: 1, label: 'Perguntas', title: 'Escolher fases', description: 'Pacotes de missões e perguntas do seu banco, no mesmo seletor.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
-            { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token aos alunos.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
-            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
-            { step: 4, label: 'Resultados', title: 'Ranking e envios', description: 'Acompanhe o ranking e o andamento de cada aluno.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
+            { step: 1, label: 'Perguntas', title: 'Escolher fases', description: 'Pacotes de missões e perguntas do seu banco, no mesmo seletor.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
+            { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token aos alunos.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
+            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
+            { step: 4, label: 'Resultados', title: 'Ranking e envios', description: 'Acompanhe o ranking e o andamento de cada aluno.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
           ]}
         />
       </div>
 
-      <Section title="3 · Ferramentas do professor">
+      <Section title="3 · Etiquetas NFC e modo local (sem servidor)">
+        <Tool title="Etiquetas NFC e QR" description="Catálogo das missões, gabarito e links para gravar nas etiquetas." icon={<BookOpenCheck className="w-5 h-5" />} onClick={p.onOpenMissions} />
+        <Tool title="Rali local" description="Salas e equipes guardadas só neste navegador, com telão local." icon={<Users className="w-5 h-5" />} onClick={p.onOpenProjector} />
+        <Tool title="Debriefing do rali local" description="Erros e acertos da turma para a conversa final." icon={<BarChart3 className="w-5 h-5" />} onClick={p.onOpenDebriefing} />
+      </Section>
+
+      <Section title="4 · Ferramentas do professor">
         <Tool title="Console SQL do professor" description="Banco do rali para testar consultas." icon={<Database className="w-5 h-5" />} onClick={p.onOpenSql} />
         <Tool title="Planilha (Google Sheets)" description="Exportação e backend do Apps Script." icon={<Sheet className="w-5 h-5" />} onClick={p.onOpenSheets} />
       </Section>
 
-      <Section title="4 · Aparência">
+      <Section title="5 · Aparência">
         <ThemePicker />
       </Section>
 
-      <Section title="5 · Conta">
+      <Section title="6 · Conta">
         <Tool title="PIN e sessão" description="Altere o PIN ou saia do modo professor." icon={<KeyRound className="w-5 h-5" />} onClick={p.onOpenAccount} />
       </Section>
     </div>

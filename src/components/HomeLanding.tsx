@@ -64,14 +64,9 @@ const EntryCard: React.FC<EntryCardProps> = ({ title, tagline, description, chip
 export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenTeacher }) => (
   <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-10">
     <header className="flex flex-col items-center text-center">
-      <TrilhaLogo height={112} />
-      <h1 className="mt-6 text-4xl sm:text-6xl font-black tracking-tight text-white">
-        Trilha <span className="text-emerald-400">Rali</span>
-      </h1>
-      <p className="mt-3 text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-slate-400">
-        Etapas · Desafios · Conhecimento
-      </p>
-      <p className="mt-5 max-w-xl text-sm sm:text-base text-slate-400 leading-relaxed">
+      <TrilhaLogo variant="full" height={168} />
+      <h1 className="sr-only">Trilha Rali</h1>
+      <p className="mt-6 max-w-xl text-sm sm:text-base text-slate-400 leading-relaxed">
         Escolha como você vai participar da atividade de hoje.
       </p>
     </header>
@@ -80,8 +75,8 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
       <EntryCard
         title="Rali NFC"
         tagline="Em equipe, pelo laboratório"
-        description="Encoste o celular na tag da mesa, resolva a missão e some pontos para a sua equipe no ranking ao vivo."
-        chips={['Equipes', 'Tags NFC', 'Ranking no telão']}
+        description="Entre com o token da sala, encoste o celular na etiqueta da mesa, resolva a missão e some pontos para a sua equipe."
+        chips={['Equipes', 'Etiquetas NFC', 'Token da sala', 'Ranking no telão']}
         icon={<Radio className="w-6 h-6" />}
         accent="emerald"
         onClick={onOpenRali}

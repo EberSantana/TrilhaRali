@@ -1,7 +1,9 @@
 import React from 'react';
 import { Flag, Home, Lock, Radio, ShieldCheck } from 'lucide-react';
 
-export type AppModule = 'home' | 'rali' | 'ctf' | 'professor';
+export type AppModule = 'home' | 'rali' | 'ctf' | 'professor' | 'prof-rali' | 'prof-ctf' | 'local';
+type TabId = 'rali' | 'ctf' | 'professor';
+const tabOf = (m: AppModule): TabId => (m === 'rali' || m === 'ctf' ? m : 'professor');
 
 interface ModuleSwitcherProps {
   module: AppModule;
@@ -9,13 +11,13 @@ interface ModuleSwitcherProps {
   onChange: (module: AppModule) => void;
 }
 
-const MODULES: Array<{ id: Exclude<AppModule, 'home'>; label: string; hint: string; active: string }> = [
-  { id: 'rali', label: 'Rali NFC', hint: 'Equipes + tags no laboratório', active: 'bg-emerald-600 text-white shadow-emerald-600/30' },
+const MODULES: Array<{ id: TabId; label: string; hint: string; active: string }> = [
+  { id: 'rali', label: 'Rali NFC', hint: 'Equipes + etiquetas no laboratório', active: 'bg-emerald-600 text-white shadow-emerald-600/30' },
   { id: 'ctf', label: 'CTF Online', hint: 'Fases individuais com token', active: 'bg-orange-600 text-white shadow-orange-600/30' },
   { id: 'professor', label: 'Professor', hint: 'Área administrativa', active: 'bg-slate-100 text-slate-900 shadow-white/10' },
 ];
 
-const iconFor = (id: Exclude<AppModule, 'home'>, isTeacher: boolean) => {
+const iconFor = (id: TabId, isTeacher: boolean) => {
   if (id === 'rali') return <Radio className="w-4 h-4" />;
   if (id === 'ctf') return <Flag className="w-4 h-4" />;
   return isTeacher ? <ShieldCheck className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-400" />;
@@ -38,11 +40,11 @@ export const ModuleSwitcher: React.FC<ModuleSwitcherProps> = ({ module, isTeache
         <button
           key={m.id}
           role="tab"
-          aria-selected={module === m.id}
+          aria-selected={tabOf(module) === m.id}
           onClick={() => onChange(m.id)}
           title={m.hint}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-black tracking-wide transition shadow whitespace-nowrap ${
-            module === m.id ? m.active : 'text-slate-400 hover:text-white hover:bg-slate-800 shadow-none'
+            tabOf(module) === m.id ? m.active : 'text-slate-400 hover:text-white hover:bg-slate-800 shadow-none'
           }`}
         >
           {iconFor(m.id, isTeacher)}
