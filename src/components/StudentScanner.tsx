@@ -164,12 +164,34 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
       const ndef = new NDEFReaderClass();
       await ndef.scan();
 
-      ndef.onreading = (event: { message: { records: Array<{ data: BufferSource }> } }) => {
+      ndef.onreading = (event: { serialNumber?: string; message: { records: Array<{ recordType?: string; data?: BufferSource }> } }) => {
         const decoder = new TextDecoder();
-        for (const record of event.message.records) {
-          const payload = decoder.decode(record.data);
-          loadTag(payload);
+        const records = event.message?.records ?? [];
+        if (records.length === 0) {
+          playSound('error', sessionState.soundEnabled);
+          setNfcStatusMessage('A tag foi detectada, mas está VAZIA (sem dados gravados). Grave nela o texto tag_04 (ou o link) no NFC Tools e tente de novo.');
+          return;
         }
+        const lidos: string[] = [];
+        for (const record of records) {
+          let payload = '';
+          try {
+            payload = record.data ? decoder.decode(record.data) : '';
+          } catch {
+            payload = '';
+          }
+          // Remove caracteres de controle (ex.: prefixo de idioma do registro de texto)
+          payload = payload.replace(/[\u0000-\u001f]/g, '').trim();
+          if (payload) lidos.push(payload);
+        }
+        if (lidos.length === 0) {
+          playSound('error', sessionState.soundEnabled);
+          setNfcStatusMessage('A tag foi detectada, mas o conteúdo não é texto legível. Regrave como Texto (tag_04) ou URL no NFC Tools.');
+          return;
+        }
+        // Usa o primeiro registro que corresponde a uma tag conhecida; senão, informa o que leu
+        const reconhecido = lidos.find((t) => /tag_[a-z0-9_]+/i.test(t));
+        loadTag(reconhecido ?? lidos[0]);
       };
 
       ndef.onreadingerror = () => {
