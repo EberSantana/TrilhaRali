@@ -72,3 +72,15 @@
   --color-slate-200: #e2e8f0; --color-slate-100: #f1f5f9;
   --color-emerald-700: #047857; --color-emerald-600: #059669; --color-emerald-500: #10b981;
 }
+
+/* Ranking: etiqueta de XP ganho entra deslizando, fica em destaque e some (sem animação para quem prefere menos movimento) */
+@keyframes rank-gain {
+  0% { opacity: 0; transform: translateY(6px) scale(0.92); }
+  8% { opacity: 1; transform: none; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.rank-gain { animation: rank-gain 9s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .rank-gain { animation: none; }
+}
