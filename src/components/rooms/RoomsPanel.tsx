@@ -297,12 +297,23 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           {tools && <div className="flex flex-wrap items-center gap-2">{tools}</div>}
         </div>
         <ol className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" aria-label="Roteiro da aula">
-          {['Perguntas', 'Turma', 'Ao vivo', 'Resultados'].map((l, i) => (
-            <li key={l} className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 font-bold text-slate-300">
-              <span className={`w-5 h-5 rounded-full text-[11px] font-black text-white flex items-center justify-center ${nfc ? 'bg-emerald-600' : 'bg-orange-600'}`}>{i + 1}</span>
-              {l}
-            </li>
-          ))}
+          {['Perguntas', 'Turma', 'Ao vivo', 'Resultados'].map((l, i) => {
+            const disabled = i > 0 && !activeRoom;
+            return (
+              <li key={l}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => document.getElementById(`passo-${i + 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  title={disabled ? 'Crie ou abra uma sala para usar esta etapa' : `Ir para: ${l}`}
+                  className="w-full flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-left font-bold text-slate-300 transition hover:border-slate-600 hover:text-white disabled:opacity-50 disabled:hover:border-slate-800 disabled:hover:text-slate-300 disabled:cursor-not-allowed"
+                >
+                  <span className={`w-5 h-5 rounded-full text-[11px] font-black text-white flex items-center justify-center ${nfc ? 'bg-emerald-600' : 'bg-orange-600'}`}>{i + 1}</span>
+                  {l}
+                </button>
+              </li>
+            );
+          })}
         </ol>
       </header>
 
@@ -310,7 +321,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 1 · Perguntas e nova sala */}
-        <form onSubmit={handleCreate} className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
+        <form id="passo-1" onSubmit={handleCreate} className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
           <StepTitle n={1} title="Perguntas e nova sala" hint="Escolha o conteúdo e gere o token." tone={tone} />
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Nome da sala</span>
@@ -449,7 +460,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </div>
           ) : (
             <>
-              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Turma">
+              <section id="passo-2" className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Turma">
                 <StepTitle n={2} title="Turma" hint={`Passe o token, o link ou o QR code para ${nfc ? 'as equipes' : 'os alunos'}.`} tone={tone} />
                 <div className="flex flex-wrap items-center justify-between gap-5">
                   <div>
@@ -481,7 +492,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 </div>
               </section>
 
-              <section className="space-y-3" aria-label="Ao vivo">
+              <section id="passo-3" className="scroll-mt-4 space-y-3" aria-label="Ao vivo">
                 <StepTitle n={3} title="Ao vivo" hint="Cronômetro, telão e controle da sala." tone={tone} />
                 <TimerControl timer={view?.sala.timer} skewMs={skewMs} busy={timerBusy || !view} error={timerError} onOp={handleTimer} />
                 <div className="flex flex-wrap items-center gap-2">
@@ -501,7 +512,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Resultados">
+              <section id="passo-4" className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Resultados">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <StepTitle n={4} title="Resultados" hint="Ranking e andamento, atualizados sozinhos." tone={tone} />
                   <Btn size="sm" disabled={!view || view.alunos.length === 0} onClick={downloadCsv} icon={<Download className="w-4 h-4" />}>Baixar CSV</Btn>
