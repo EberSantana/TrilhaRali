@@ -132,9 +132,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         .filter((p) => p.package !== 'banco')
         .map(({ m }) => ({
           id: `cat:${m.tag_id}`,
-          // Linux é uma disciplina só; os módulos L1–L4 viram assuntos
-          disciplina: String(m.package).startsWith('linux') ? 'Linux' : m.packageName,
-          assunto: String(m.package).startsWith('linux') ? m.packageName.replace(/^(L\d+)\. Linux · /, '$1 · ') : String(m.category || 'Geral'),
+          // Linux entra em Fundamentos de Sistemas Operacionais; os módulos L1–L4 viram assuntos
+          disciplina: String(m.package).startsWith('linux') ? 'Fundamentos de Sistemas Operacionais' : m.packageName,
+          assunto: String(m.package).startsWith('linux') ? m.packageName.replace(/^(L\d+)\. Linux · /, 'Linux · $1 ') : String(m.category || 'Geral'),
           tipo: m.opcoes?.length ? ('multipla' as const) : ('exata' as const),
           pergunta: m.pergunta,
           resposta: m.resposta_curta,
