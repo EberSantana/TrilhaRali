@@ -19,6 +19,7 @@ import { ThemePicker } from './common/ThemePicker';
 
 interface TeacherHubProps {
   isTeacher: boolean;
+  onHome: () => void;
   onRequireTeacher: () => void;
   onOpenProjector: () => void;
   onOpenMissions: () => void;
@@ -140,6 +141,9 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           <KeyRound className="w-4 h-4" />
           Entrar com PIN
         </button>
+        <div className="mt-4">
+          <button type="button" onClick={p.onHome} className="text-xs font-semibold text-slate-400 hover:text-white">← Início</button>
+        </div>
       </div>
     );
   }
@@ -150,6 +154,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
+          <button type="button" onClick={p.onHome} className="mb-2 text-xs font-semibold text-slate-400 hover:text-white">← Início</button>
           <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-300">
             <ShieldCheck className="w-4 h-4" />
             Modo professor ativo

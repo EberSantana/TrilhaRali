@@ -73,7 +73,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
-              <span>Debriefing dos Desafios SQL</span>
+              <span>Debriefing</span>
               <HelpCircle className="w-8 h-8 text-purple-400" />
             </h1>
             <p className="text-slate-400 text-sm mt-1">
