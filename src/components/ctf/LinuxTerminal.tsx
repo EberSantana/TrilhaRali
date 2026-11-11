@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Terminal } from 'lucide-react';
 import { LINUX_GUIDE } from './linuxGuide';
-import { complete, createShell, promptOf, runLine, type ShellState } from '../../utils/shell';
+import { aguardandoTexto, complete, createShell, promptOf, runLine, type ShellState } from '../../utils/shell';
 
 interface Line {
   prompt?: string;
@@ -29,7 +29,7 @@ export function LinuxTerminal() {
     const cmd = input;
     const st = shell.current;
     const echo: Line = { prompt, text: cmd };
-    if (!cmd.trim()) {
+    if (!cmd.trim() && !aguardandoTexto(st)) {
       setLines((l) => [...l, echo]);
       setInput('');
       return;
@@ -41,9 +41,21 @@ export function LinuxTerminal() {
     hist.current.i = -1;
   };
 
+  const finalizar = () => {
+    const st = shell.current;
+    if (!aguardandoTexto(st)) return;
+    runLine(st, '\x04');
+    setLines((l) => [...l, { text: '^D' }]);
+    setPrompt(promptOf(st));
+    inp.current?.focus();
+  };
+
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const st = shell.current;
-    if (e.key === 'Enter') {
+    if (e.key === 'd' && e.ctrlKey && aguardandoTexto(st)) {
+      e.preventDefault();
+      finalizar();
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       submit();
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -99,6 +111,11 @@ export function LinuxTerminal() {
           />
         </div>
       </div>
+      {prompt === '>' && (
+        <button type="button" onClick={finalizar} className="mt-2 min-h-[44px] rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-500">
+          Finalizar texto (Ctrl+D)
+        </button>
+      )}
       <p className="mt-2 text-xs text-slate-400">Use <span className="font-mono">reset</span> para recomeçar. Clique em um comando do guia abaixo para colocá-lo no terminal.</p>
 
       <details className="mt-4 group rounded-xl border border-slate-700 bg-slate-900/50">

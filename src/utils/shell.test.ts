@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createShell, runLine, complete, promptOf } from './shell.ts';
+import { createShell, runLine, complete, promptOf, aguardandoTexto } from './shell.ts';
 
 const run = (st: ReturnType<typeof createShell>, l: string) => runLine(st, l).out;
 
@@ -128,4 +128,23 @@ test('variável na mesma linha, cd -, echo -e, ls -R, true/false', () => {
   runLine(st, 'false');
   assert.match(runLine(st, 'true && echo ok').out, /ok/);
   assert.equal(runLine(st, 'false && echo nao').out.trim(), '');
+});
+
+test('|| e cat > arquivo interativo', () => {
+  const st = createShell();
+  assert.match(runLine(st, 'false || echo plano-b').out, /plano-b/);
+  assert.equal(runLine(st, 'true || echo nunca').out.includes('nunca'), false);
+  assert.match(runLine(st, 'ls /naoexiste || echo falhou').out, /falhou/);
+  runLine(st, 'cat > nota.txt');
+  assert.equal(aguardandoTexto(st), true);
+  assert.equal(promptOf(st), '>');
+  runLine(st, 'linha um');
+  runLine(st, 'linha dois');
+  runLine(st, '\x04');
+  assert.equal(aguardandoTexto(st), false);
+  assert.equal(runLine(st, 'cat nota.txt').out, 'linha um\nlinha dois\n');
+  runLine(st, 'cat >> nota.txt');
+  runLine(st, 'tres');
+  runLine(st, '\x04');
+  assert.match(runLine(st, 'wc -l nota.txt').out, /3/);
 });
