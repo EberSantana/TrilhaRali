@@ -160,3 +160,9 @@ O CTF Online traz um banco de 50 missões (`src/data/consoleMissions.ts`) que s�
 ### Ranking Top 5 e telão
 
 Na tela do aluno, o ranking mostra o Top 5 com pódio, setas de subida/descida (▲ ▼) e "+XP" por alguns segundos quando alguém pontua; se o aluno está fora do Top 5, sua posição aparece abaixo. Atualiza a cada 10 s. No painel do professor, o botão "Projetar ranking" abre o Top 5 em tela cheia (atualiza a cada 5 s, Esc fecha) com o token para novos alunos entrarem.
+
+### Rali NFC: abrir pela tag, etiquetas e aviso de tag repetida
+
+- **Link da tag:** `https://…/ralibd/#/tag/tag_07` abre o app direto no Scanner, já com a missão carregada. Grave esse link na tag NFC como registro URL (NFC Tools) para o aluno só encostar o celular; funciona no Android e no iPhone. O mesmo link vira um QR code de reserva.
+- **Etiquetas:** em "50 Missões" → "Etiquetas NFC/QR" o professor escolhe a quantidade de tags, copia a lista de links, baixa o CSV e imprime as etiquetas (QR + código + categoria + XP; sem pergunta nem resposta).
+- **Tag repetida:** se a equipe abre uma tag que já resolveu, aparece "⚠️ Atenção: tag já resolvida", com quem resolveu e a hora, e não pontua de novo. Também informa quais outras equipes já resolveram (neste aparelho).

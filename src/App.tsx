@@ -40,12 +40,21 @@ import {
 } from './utils/storage';
 import { ALL_MISSIONS, INITIAL_TEAMS } from './data/missions';
 import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/scoring';
+import { parseTagFromLocation } from './utils/tagLink';
 
 export default function App() {
   const [appModule, setAppModule] = useState<AppModule>(() =>
     typeof window !== 'undefined' && window.location.hash.startsWith('#/ctf') ? 'ctf' : 'rali'
   );
-  const [activeTab, setActiveTab] = useState<ActiveTab>('projector');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() =>
+    typeof window !== 'undefined' && parseTagFromLocation(window.location.hash, window.location.search) ? 'scanner' : 'projector'
+  );
+  // Tag pedida por link/QR/NFC (#/tag/tag_07): o scanner carrega a missão ao abrir
+  const [pendingTag, setPendingTag] = useState<{ tag: string; nonce: number } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const t = parseTagFromLocation(window.location.hash, window.location.search);
+    return t ? { tag: t, nonce: Date.now() } : null;
+  });
   const [rooms, setRooms] = useState<RallyRoom[]>(getRooms);
   const [activeRoomId, setActiveRoomIdState] = useState<string>(getActiveRoomId);
   const [teams, setTeams] = useState<Team[]>(getTeams);
@@ -149,7 +158,16 @@ export default function App() {
 
   useEffect(() => {
     const onHash = () => {
-      if (window.location.hash.startsWith('#/ctf')) setAppModule('ctf');
+      if (window.location.hash.startsWith('#/ctf')) {
+        setAppModule('ctf');
+        return;
+      }
+      const t = parseTagFromLocation(window.location.hash, window.location.search);
+      if (t) {
+        setAppModule('rali');
+        setActiveTab('scanner');
+        setPendingTag({ tag: t, nonce: Date.now() });
+      }
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -335,6 +353,16 @@ export default function App() {
             onValidSubmission={handleValidSubmission}
             onFailedSubmission={handleInvalidSubmission}
             sessionState={sessionState}
+            logs={logs}
+            pendingTag={pendingTag}
+            onTagConsumed={() => {
+              setPendingTag(null);
+              try {
+                window.history.replaceState(null, '', `${window.location.pathname}`);
+              } catch {
+                // ignore
+              }
+            }}
           />
         )}
 

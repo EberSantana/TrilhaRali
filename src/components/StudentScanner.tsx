@@ -15,7 +15,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Team, Mission, ClassSessionState } from '../types';
+import { Team, Mission, ClassSessionState, SubmissionLog } from '../types';
 import { ALL_MISSIONS } from '../data/missions';
 import { validateAnswer } from '../utils/validation';
 import { playSound } from '../utils/audio';
@@ -30,6 +30,10 @@ interface StudentScannerProps {
   onValidSubmission: (teamId: string, tagId: string, xpGained: number, answer: string) => CaptureScore | null;
   onFailedSubmission: (teamId: string, tagId: string, answer: string) => void;
   sessionState: ClassSessionState;
+  logs?: SubmissionLog[];
+  /** tag pedida por link/QR/NFC: carrega a missão assim que o scanner abre */
+  pendingTag?: { tag: string; nonce: number } | null;
+  onTagConsumed?: () => void;
 }
 
 export const StudentScanner: React.FC<StudentScannerProps> = ({
@@ -39,6 +43,9 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   onValidSubmission,
   onFailedSubmission,
   sessionState,
+  logs = [],
+  pendingTag = null,
+  onTagConsumed,
 }) => {
   const hasWebNfc = typeof window !== 'undefined' && 'NDEFReader' in window;
 
@@ -48,7 +55,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const [isNfcScanning, setIsNfcScanning] = useState<boolean>(false);
   const [nfcStatusMessage, setNfcStatusMessage] = useState<string>(
     hasWebNfc 
-      ? 'Pronto para leitura NFC (Android com Chrome).' 
+      ? 'Toque no botão e só então encoste a tag. (Se a tag tiver link gravado, basta encostá-la no celular.)' 
       : 'Dispositivo sem Web NFC (ex: iPhone / PC). Seletor com as 50 missões liberado abaixo.'
   );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -61,6 +68,10 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
   const currentTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
   const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId) || customMission;
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
+  const solvedLogs = logs.filter((l) => l.tag_id === activeTagId && l.correto);
+  const mySolve = currentTeam ? solvedLogs.find((l) => l.equipe_id === currentTeam.id) : undefined;
+  const otherSolvers = [...new Set(solvedLogs.filter((l) => !currentTeam || l.equipe_id !== currentTeam.id).map((l) => l.equipe_nome))];
+  const timeOf = (ts: number) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const nextScore = activeMission ? getNextCaptureScore(activeMission, teams, sessionState.scoringMode) : null;
   const isDynamic = nextScore?.mode === 'ctf_dynamic';
 
@@ -75,9 +86,15 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
     if (found) {
       setActiveTagId(found.tag_id);
       setCustomMission(null);
+      const jaResolvida = !!currentTeam && currentTeam.missoes_concluidas.includes(found.tag_id);
       setNfcStatusMessage(`Tag detectada com sucesso: ${found.tag_id}!`);
-      playSound('scan', sessionState.soundEnabled);
-      setFeedback({ type: 'info', text: `Missão carregada: ${found.tag_id}` });
+      if (jaResolvida) {
+        playSound('error', sessionState.soundEnabled);
+        setFeedback({ type: 'error', text: `⚠️ ATENÇÃO: a tag ${found.tag_id} já foi resolvida pela sua equipe. Escolha outra tag da mesa!` });
+      } else {
+        playSound('scan', sessionState.soundEnabled);
+        setFeedback({ type: 'info', text: `Missão carregada: ${found.tag_id}` });
+      }
       setStudentAnswer('');
       inputRef.current?.focus();
       return;
@@ -119,6 +136,14 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
     setNfcStatusMessage(`Tag lida ("${payload}"), mas não encontrada no banco de 50 missões nem na planilha.`);
   };
+
+  // Abertura por link/QR/NFC (#/tag/tag_07)
+  useEffect(() => {
+    if (!pendingTag) return;
+    loadTag(pendingTag.tag);
+    onTagConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTag?.nonce]);
 
   const startNfcScan = async () => {
     if (!hasWebNfc) {
@@ -501,15 +526,21 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
             <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-xl p-4 text-emerald-300 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
               <div>
-                <p className="font-bold text-sm">Missão já conquistada pela sua equipe!</p>
+                <p className="font-bold text-sm">⚠️ Atenção: tag já resolvida pela sua equipe!</p>
                 <p className="text-xs text-emerald-400/80">
-                  Os pontos desta missão já estão no saldo. Encontre outra tag no laboratório!
+                  {mySolve ? `Resolvida por ${mySolve.autor_aluno || mySolve.equipe_nome} às ${timeOf(mySolve.timestamp)}. ` : ''}
+                  Os pontos desta missão já estão no saldo. Escolha outra tag da mesa!
                 </p>
               </div>
             </div>
           ) : (
             /* Answer Submission Form */
             <form onSubmit={handleSubmit} className="space-y-4">
+              {otherSolvers.length > 0 && (
+                <p className="text-xs text-amber-200 bg-amber-950/40 border border-amber-500/30 rounded-lg px-3 py-2">
+                  Esta tag já foi resolvida por: <strong>{otherSolvers.join(', ')}</strong>. Você ainda pontua para a sua equipe.
+                </p>
+              )}
               <div>
                 <label 
                   htmlFor="resposta-input"

@@ -17,6 +17,7 @@ import {
 import { Mission, MissionPackage } from '../types';
 import { ALL_MISSIONS } from '../data/missions';
 import { IfsLogo } from './IfsLogo';
+import { TagLabels } from './TagLabels';
 
 export const MissionsCatalog: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState<string>('all');
@@ -24,6 +25,7 @@ export const MissionsCatalog: React.FC = () => {
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
   const [isPrintMode, setIsPrintMode] = useState<boolean>(false);
   const [showGabarito, setShowGabarito] = useState<boolean>(false);
+  const [showLabels, setShowLabels] = useState<boolean>(false);
 
   const packages: { id: string; label: string; count: number }[] = [
     { id: 'all', label: 'Todas as 50 Missões', count: ALL_MISSIONS.length },
@@ -106,6 +108,16 @@ export const MissionsCatalog: React.FC = () => {
               )}
             </button>
             <button
+              onClick={() => setShowLabels(!showLabels)}
+              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition border ${
+                showLabels ? 'bg-sky-600/20 text-sky-200 border-sky-500/50' : 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
+              }`}
+              title="Gera o link e o QR de cada tag para gravar no NFC e imprimir"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>{showLabels ? 'Voltar ao catálogo' : 'Etiquetas NFC/QR'}</span>
+            </button>
+            <button
               onClick={() => setIsPrintMode(!isPrintMode)}
               className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition"
             >
@@ -131,7 +143,7 @@ export const MissionsCatalog: React.FC = () => {
             <div className="text-xs text-amber-200/90 leading-relaxed">
               <strong className="text-amber-300">Como gravar as tags no app NFC Tools (Android/iOS):</strong>
               <span className="block mt-0.5 text-slate-300">
-                1. Abra o NFC Tools &gt; 2. Toque em <strong>Escrever</strong> &gt; 3. Adicionar registro do tipo <strong>Texto</strong> &gt; 4. Digite o ID da tag (ex: <code className="bg-slate-900 px-1 py-0.5 rounded text-amber-300">tag_01</code>) &gt; 5. Toque em <strong>Escrever</strong> e aproxime a NTAG213.
+                1. Abra o NFC Tools &gt; 2. Toque em <strong>Escrever</strong> &gt; 3. Adicionar registro do tipo <strong>URL/URI</strong> &gt; 4. Cole o link da tag (botão <em>Etiquetas NFC/QR</em> gera todos) &gt; 5. Toque em <strong>Escrever</strong> e aproxime a NTAG213. Com o link gravado, basta encostar o celular na tag. (Também funciona o registro do tipo Texto com <code className="bg-slate-900 px-1 py-0.5 rounded text-amber-300">tag_01</code>, mas aí o aluno precisa apertar o botão de escanear antes.)
               </span>
             </div>
           </div>
@@ -139,7 +151,9 @@ export const MissionsCatalog: React.FC = () => {
       </div>
 
       {/* Printable Cards View */}
-      {isPrintMode ? (
+      {showLabels ? (
+        <TagLabels missions={filteredMissions} />
+      ) : isPrintMode ? (
         <div className="space-y-4">
           <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-emerald-300 text-xs flex items-center justify-between">
             <span>
