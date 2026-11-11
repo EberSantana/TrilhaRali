@@ -9,7 +9,7 @@ import { buildStudentLink, ctfCall, explainInvalidApiUrl, apiTail, getCtfApiUrl,
 import { BankQuestion } from '../../types/bank';
 import { bankToCtfPayload, takeCtfPrefill } from '../../utils/bank';
 import { BankPicker } from '../bank/BankPicker';
-import { getBancoKey, listBanco } from '../../utils/bankApi';
+import { getBancoKey, listBanco, pingBanco, saveBancoKey } from '../../utils/bankApi';
 import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
@@ -105,9 +105,28 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [bank, setBank] = useState<BankQuestion[]>([]);
   const [bankMsg, setBankMsg] = useState('');
   const [bankSel, setBankSel] = useState<Set<string>>(new Set());
+  const [bankTry, setBankTry] = useState(0);
+  const [bankKeyInput, setBankKeyInput] = useState('');
+  const [bankKeyBusy, setBankKeyBusy] = useState(false);
+  const connectBank = async () => {
+    const k = bankKeyInput.trim();
+    if (!k) return;
+    setBankKeyBusy(true);
+    try {
+      await pingBanco(k);
+      saveBancoKey(k);
+      setBankKeyInput('');
+      setBankMsg('');
+      setBankTry((n) => n + 1);
+    } catch (e) {
+      setBankMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBankKeyBusy(false);
+    }
+  };
   useEffect(() => {
     if (!getBancoKey()) {
-      setBankMsg('Conecte o banco de perguntas em Professor → Banco de perguntas para usar as suas perguntas aqui.');
+      setBankMsg('Digite a chave do banco de perguntas abaixo para usar as suas perguntas aqui.');
       return;
     }
     listBanco()
@@ -123,7 +142,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         }
       })
       .catch((e) => setBankMsg(e instanceof Error ? e.message : String(e)));
-  }, [nfc]);
+  }, [nfc, bankTry]);
   // Pacotes prontos do catálogo (Linux, Banco de Dados NTAG…) entram no mesmo menu de disciplinas do banco.
   // As missões publicadas a partir do banco ('banco') já aparecem como perguntas do banco.
   const catalogAsBank = useMemo<BankQuestion[]>(
@@ -450,6 +469,33 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 <p className="mb-2 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-[11px] text-amber-200">
                   Suas perguntas do banco não carregaram: {bankMsg}
                 </p>
+              )}
+              {bank.length === 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <input
+                    type="password"
+                    value={bankKeyInput}
+                    onChange={(e) => setBankKeyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void connectBank();
+                      }
+                    }}
+                    placeholder="Chave do banco de perguntas"
+                    aria-label="Chave do banco de perguntas"
+                    autoComplete="off"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-2 text-sm text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void connectBank()}
+                    disabled={bankKeyBusy || !bankKeyInput.trim()}
+                    className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
+                  >
+                    {bankKeyBusy ? 'Conectando…' : 'Conectar banco'}
+                  </button>
+                </div>
               )}
               {pickerQuestions.length > 0 ? (
                 <BankPicker questions={pickerQuestions} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
