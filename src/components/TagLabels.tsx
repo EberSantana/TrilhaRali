@@ -117,7 +117,7 @@ export const TagLabels: React.FC<TagLabelsProps> = ({ missions }) => {
             <span className="text-[10px] font-bold uppercase text-slate-500">
               {m.category} • +{m.xp_valor} XP
             </span>
-            <span className="text-[9px] text-slate-400">Rali IFSTB</span>
+            <span className="text-[9px] text-slate-400">Trilha Rali</span>
           </div>
         ))}
       </div>

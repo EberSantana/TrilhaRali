@@ -414,7 +414,7 @@ function doGet(e) {
 {`git remote add origin https://github.com/EberSantana/ralibd.git
 git branch -M main
 git add .
-git commit -m "feat: Rali de Banco de Dados NFC - IFS Campus Tobias Barreto"
+git commit -m "feat: Trilha Rali NFC - IFS Campus Tobias Barreto"
 git push -u origin main`}
           </pre>
           <p className="text-[11px] text-slate-400 mt-2">

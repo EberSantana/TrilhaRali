@@ -15,7 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { ClassSessionState } from '../types';
-import { IfsLogo } from './IfsLogo';
+import { TrilhaLogo } from './TrilhaLogo';
 
 export type ActiveTab = 'scanner' | 'projector' | 'debriefing' | 'missions' | 'sql' | 'sheets' | 'about';
 
@@ -69,13 +69,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           
-          {/* Brand & Identity: IFS + Rali IFSTB + Prof. Eber Santana */}
+          {/* Brand & Identity: Trilha Rali + IFS + Prof. Eber Santana */}
           <div className="flex items-center space-x-3 shrink-0">
-            <IfsLogo size="md" className="p-1 bg-white/5 rounded-xl border border-emerald-500/20" />
+            <TrilhaLogo height={46} className="rounded-lg" />
             <div className="flex flex-col">
               <div className="flex items-center space-x-2">
                 <span className="font-black text-lg sm:text-xl tracking-tight text-white">
-                  Rali IFSTB
+                  Trilha Rali
                 </span>
                 <span className="inline-flex items-center text-[10px] uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold tracking-wider">
                   NTAG213 NFC

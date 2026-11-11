@@ -186,7 +186,7 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
     if (!activeRoom) return;
     let report = `========================================================================\n`;
     report += `INSTITUTO FEDERAL DE SERGIPE (IFS) - CAMPUS TOBIAS BARRETO\n`;
-    report += `RALI DE BANCO DE DADOS (100 MINUTOS • 50 MISSÕES NFC)\n`;
+    report += `TRILHA RALI (100 MINUTOS • 50 MISSÕES NFC)\n`;
     report += `Desenvolvido e Supervisionado pelo Professor Eber Santana\n`;
     report += `========================================================================\n\n`;
     report += `Sala / Turma: ${activeRoom.nome}\n`;

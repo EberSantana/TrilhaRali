@@ -22,7 +22,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from '../types';
 import { playSound } from '../utils/audio';
-import { IfsLogo } from './IfsLogo';
+import { TrilhaLogo } from './TrilhaLogo';
 import { normalizeScoringMode } from '../utils/scoring';
 
 interface ClassroomProjectorProps {
@@ -215,10 +215,10 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
             </div>
 
             <div className="flex items-center justify-center lg:justify-start gap-3">
-              <IfsLogo size="lg" className="shrink-0 hidden sm:inline-flex p-1.5 bg-white/5 rounded-2xl border border-emerald-500/30" />
+              <TrilhaLogo height={72} className="hidden sm:block" />
               <div>
                 <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center justify-center lg:justify-start gap-2.5">
-                  <span>Rali de Banco de Dados</span>
+                  <span>Trilha Rali</span>
                   <Flame className="w-7 h-7 text-amber-500 fill-amber-500" />
                 </h1>
                 {/* Professor attribution */}

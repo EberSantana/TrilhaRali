@@ -1,5 +1,5 @@
 {
-  "name": "Rali IFSTB - App Educativo com Tags NFC",
+  "name": "Trilha Rali - App Educativo com Tags NFC",
   "description": "Sistema gamificado para dinâmica de Rali de Banco de Dados de 100 minutos com leitura de Tags NFC (NTAG213), ranking em tempo real no telão, 50 missões e gestão de salas. Desenvolvido e supervisionado pelo Prof. Eber Santana no IFS Campus Tobias Barreto.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

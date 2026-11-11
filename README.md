@@ -1,4 +1,4 @@
-# Rali IFSTB - App Educativo com Tags NFC 🏷️⚡
+# Trilha Rali - App Educativo com Tags NFC 🏷️⚡
 
 **Instituto Federal de Sergipe (IFS) - Campus Tobias Barreto**  
 **Docente:** Prof. Eber Santana  

@@ -18,6 +18,7 @@ import {
   Tv
 } from 'lucide-react';
 import { IfsLogo } from './IfsLogo';
+import { TrilhaLogo } from './TrilhaLogo';
 import { ALL_MISSIONS } from '../data/missions';
 
 interface AboutViewProps {
@@ -43,10 +44,11 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigateToTab }) => {
             </div>
 
             <div className="flex items-center gap-4">
+              <TrilhaLogo variant="full" height={150} className="rounded-2xl" />
               <IfsLogo size="lg" className="p-2 bg-white/5 rounded-2xl border border-emerald-500/30 shrink-0" />
               <div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
-                  Rali de Banco de Dados
+                  Trilha Rali
                 </h1>
                 <p className="text-base sm:text-lg text-emerald-400 font-semibold mt-1 flex items-center gap-2">
                   <GraduationCap className="w-5 h-5" />
@@ -56,7 +58,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigateToTab }) => {
             </div>
 
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              O <strong>Rali IFSTB com Tags NFC</strong> é uma metodologia ativa gamificada concebida para o laboratório de informática do IFS. Em uma dinâmica cronometrada de <strong>100 minutos</strong>, os alunos integram teoria e prática de Banco de Dados Relacional, conectando a exploração física do ambiente por meio de etiquetas de radiofrequência (NTAG213) à resolução de desafios reais no SQLite.
+              A <strong>Trilha Rali</strong> é uma metodologia ativa gamificada concebida para o laboratório de informática do IFS. Em uma dinâmica cronometrada de <strong>100 minutos</strong>, os alunos integram teoria e prática de Banco de Dados Relacional, conectando a exploração física do ambiente por meio de etiquetas de radiofrequência (NTAG213) à resolução de desafios reais no SQLite.
             </p>
           </div>
 
