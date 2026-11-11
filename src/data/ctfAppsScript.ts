@@ -16,7 +16,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 var SHEET_HEADERS = {
   CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
-  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes'],
+  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
@@ -39,7 +39,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 6 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 9 });
 }
 
 function doPost(e) {
@@ -186,7 +186,7 @@ function findRoom(token) {
 
 function requireRoom(token) {
   var room = findRoom(token);
-  if (!room) fail('Sala nao encontrada. Confira o token.');
+  if (!room) fail('Sala não encontrada. Confira o token.');
   room.token = String(room.token);
   return room;
 }
@@ -249,14 +249,14 @@ function buildState(room, nomeKey) {
   for (var i = 0; i < ranked.length; i++) {
     if (ranked[i].nome_key === nomeKey) { me = ranked[i]; pos = i + 1; break; }
   }
-  if (!me) fail('Aluno nao encontrado nesta sala. Entre novamente.');
+  if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
 
   var fase = Number(me.fase_atual);
   var concluido = fase > total;
   var missao = null;
   if (!concluido) {
     var m = missionRow(room.token, fase);
-    if (!m) fail('Fase nao encontrada na sala.');
+    if (!m) fail('Fase não encontrada na sala.');
     var anteriores = readRows('CtfCapturas').filter(function (c) {
       return String(c.token) === room.token && String(c.tag_id) === String(m.tag_id);
     }).length;
@@ -334,15 +334,28 @@ function join(req) {
   var nome = cleanName(req.nome);
   var key = norm(nome);
   var found = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
+  var chave = String(req.chave || '');
+  if (found && found.chave && String(found.chave) !== chave) {
+    fail('Já existe alguém com este nome nesta sala. Use outro nome (ex.: nome e sobrenome).');
+  }
+  if (found && !found.chave) {
+    // linha criada antes da v9: ganha a chave do primeiro aparelho que voltar a entrar
+    chave = Utilities.getUuid();
+    updateRow('CtfAlunos', found._row, { chave: chave });
+  }
   if (!found) {
-    if (room.status !== 'aberta') fail('Esta sala esta encerrada.');
+    if (room.status !== 'aberta') fail('Esta sala está encerrada.');
+    chave = Utilities.getUuid();
     appendObj('CtfAlunos', {
+      chave: chave,
       token: room.token, nome: nome, nome_key: key, fase_atual: 1, xp: 0, acertos: 0,
       erros: 0, fogos: 0, entrou_em: Date.now(),
       integrantes: room.tipo === 'rali' ? JSON.stringify(cleanMembers(req.integrantes)) : ''
     });
   }
-  return room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
+  var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
+  st.chave = chave;
+  return st;
 }
 
 function stateFor(req) {
@@ -356,12 +369,12 @@ function submit(req) {
   requireTimerOpen(parseTimer(room.timer), Date.now());
   var key = norm(req.nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
-  if (!me) fail('Aluno nao encontrado nesta sala. Entre novamente.');
+  if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
 
   if (isLivre(room)) fail('Esta sala e livre: escolha um desafio na lista.');
   var total = Number(room.total_fases);
   var fase = Number(me.fase_atual);
-  if (fase > total) fail('Voce ja concluiu todas as fases!');
+  if (fase > total) fail('Você já concluiu todas as fases!');
 
   var agora = Date.now();
   if (me.ultimo_erro && agora - Number(me.ultimo_erro) < ERROR_COOLDOWN_MS) {
@@ -427,7 +440,7 @@ function raliBuildState(room, key) {
   for (var i = 0; i < ranked.length; i++) {
     if (ranked[i].nome_key === key) { me = ranked[i]; pos = i + 1; break; }
   }
-  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' nao encontrado(a) nesta sala. Entre novamente.');
+  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' não encontrado(a) nesta sala. Entre novamente.');
 
   var caps = readRows('CtfCapturas').filter(function (c) { return String(c.token) === room.token; });
   var minhas = {};
@@ -470,13 +483,13 @@ function raliMission(room, tag) {
   for (var i = 0; i < rows.length; i++) {
     if (String(rows[i].token) === room.token && String(rows[i].tag_id).toLowerCase() === String(tag || '').trim().toLowerCase()) return rows[i];
   }
-  fail('Esta etiqueta nao faz parte da sala.');
+  fail('Esta etiqueta não faz parte da sala.');
 }
 
 function raliTeam(room, nome) {
   var key = norm(nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
-  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' nao encontrado(a) nesta sala. Entre novamente.');
+  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' não encontrado(a) nesta sala. Entre novamente.');
   return me;
 }
 
@@ -513,7 +526,7 @@ function raliSubmit(req) {
   var caps = readRows('CtfCapturas').filter(function (c) {
     return String(c.token) === room.token && String(c.tag_id) === tag;
   });
-  if (caps.some(function (c) { return c.nome === me.nome; })) fail(room.tipo === 'rali' ? 'Sua equipe ja resolveu esta missao.' : 'Voce ja resolveu este desafio.');
+  if (caps.some(function (c) { return c.nome === me.nome; })) fail(room.tipo === 'rali' ? 'Sua equipe já resolveu esta missão.' : 'Você já resolveu este desafio.');
 
   var agora = Date.now();
   if (me.ultimo_erro && agora - Number(me.ultimo_erro) < ERROR_COOLDOWN_MS) {
@@ -555,7 +568,7 @@ function raliSubmit(req) {
 
 function requireAdmin(req) {
   var room = requireRoom(req.token);
-  if (String(room.admin_key) !== String(req.adminKey || '')) fail('Chave de professor invalida para esta sala.');
+  if (String(room.admin_key) !== String(req.adminKey || '')) fail('Chave de professor inválida para esta sala.');
   return room;
 }
 
@@ -662,7 +675,7 @@ function timerOut(t, now) {
 function requireTimerOpen(t, now) {
   if (!t) return;
   if (timerLeft(t, now) <= 0) fail('Tempo esgotado! As respostas foram bloqueadas.');
-  if (!(t.f > 0)) fail('O cronometro esta parado. Aguarde o professor iniciar.');
+  if (!(t.f > 0)) fail('O cronômetro está parado. Aguarde o professor iniciar.');
 }
 
 function getTema() {
@@ -734,10 +747,10 @@ function setupBanco() {
 
 function requireBancoKey(req) {
   var hash = PropertiesService.getScriptProperties().getProperty('BANCO_KEY_HASH');
-  if (!hash) fail('O banco de perguntas ainda nao foi configurado. Rode setupBanco() no editor do Apps Script.');
+  if (!hash) fail('O banco de perguntas ainda não foi configurado. Rode setupBanco() no editor do Apps Script.');
   if (sha256hex(String(req.chave || '')) !== hash) {
     Utilities.sleep(1200);
-    fail('Chave do banco invalida.');
+    fail('Chave do banco inválida.');
   }
 }
 
@@ -843,7 +856,7 @@ function bancoDelete(req) {
       return { ok: true };
     }
   }
-  fail('Pergunta nao encontrada.');
+  fail('Pergunta não encontrada.');
 }
 
 function bancoImport(req) {
@@ -877,12 +890,12 @@ function bancoImport(req) {
 function nfcPublish(req) {
   requireBancoKey(req);
   var list = req.missoes || [];
-  if (list.length > 200) fail('Maximo de 200 missoes publicadas.');
+  if (list.length > 200) fail('Máximo de 200 missões publicadas.');
   var now = new Date().toISOString();
   var seen = {};
   var values = list.map(function (m) {
     var tag = String(m.tag_id || '').trim().toLowerCase();
-    if (!/^tag_[a-z0-9_]+$/.test(tag)) fail('Tag invalida: ' + tag);
+    if (!/^(tag|linux)_[a-z0-9_]+$/.test(tag)) fail('Tag inválida: ' + tag);
     if (seen[tag]) fail('Tag repetida: ' + tag);
     seen[tag] = true;
     var c;

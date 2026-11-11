@@ -7,6 +7,8 @@ import {
   ctfCall, startPolling,
   getCtfApiUrl,
   getStudentSession,
+  getChave,
+  saveChave,
   parseCtfHash,
   saveCtfApiUrl,
   saveStudentSession,
@@ -79,8 +81,9 @@ export const CtfStudent: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome });
+      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome, chave: getChave(token, nome) });
       const next = { token: s.sala.token, nome: s.aluno.nome };
+      saveChave(token, nome, (s as { chave?: string }).chave);
       saveStudentSession(next);
       setSession(next);
       setState(s);

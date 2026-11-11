@@ -48,6 +48,7 @@ function createBackend() {
       MimeType: { JSON: 'json' },
       createTextOutput: (s: string) => ({ content: s, setMimeType() { return this; } }),
     },
+    Utilities: { getUuid: () => 'u-' + Math.random().toString(36).slice(2) + Date.now() },
     Date,
     Math,
     JSON,
@@ -57,8 +58,15 @@ function createBackend() {
   };
   vm.createContext(ctx);
   vm.runInContext(CTF_APPS_SCRIPT, ctx);
-  const call = (body: Json): Json =>
-    JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).content);
+  // simula o aparelho do aluno: guarda a chave devolvida no join e a reenvia nas entradas seguintes
+  const chaves = new Map<string, string>();
+  const call = (body: Json): Json => {
+    const id = body.action === 'join' ? `${String(body.token).toUpperCase()}|${String(body.nome).trim().toLowerCase()}` : '';
+    if (id && body.chave === undefined && chaves.has(id)) body = { ...body, chave: chaves.get(id) };
+    const r = JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).content);
+    if (id && r.chave) chaves.set(id, r.chave);
+    return r;
+  };
   return { call, ctx, sheets };
 }
 
@@ -74,7 +82,7 @@ test('fluxo completo: sala, entrada por token+nome e avanço obrigatório de fas
   assert.match(room.token, /^[A-Z][A-Z2-9]{5}$/);
   assert.equal(room.total, 3);
 
-  assert.match(call({ action: 'join', token: 'ZZZZZZ', nome: 'Ana' }).error, /Sala nao encontrada/);
+  assert.match(call({ action: 'join', token: 'ZZZZZZ', nome: 'Ana' }).error, /Sala não encontrada/);
   assert.match(call({ action: 'join', token: room.token, nome: 'A' }).error, /minimo 2/);
 
   const joined = call({ action: 'join', token: room.token.toLowerCase(), nome: '  Ana  Souza ' });
@@ -148,7 +156,7 @@ test('download do banco: oculto por padrão, só o professor libera e esconde', 
   const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
   assert.equal(call({ action: 'join', token: room.token, nome: 'Ana' }).sala.banco, false);
 
-  assert.match(call({ action: 'setBanco', token: room.token, adminKey: 'errada', liberado: true }).error, /invalida/);
+  assert.match(call({ action: 'setBanco', token: room.token, adminKey: 'errada', liberado: true }).error, /inválida/);
   assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.banco, false);
 
   assert.equal(call({ action: 'setBanco', token: room.token, adminKey: room.adminKey, liberado: true }).sala.banco, true);
@@ -163,7 +171,7 @@ test('terminal Linux: oculto por padrão, só o professor libera', () => {
   const { call } = createBackend();
   const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
   assert.equal(call({ action: 'join', token: room.token, nome: 'Ana' }).sala.terminal, false);
-  assert.match(call({ action: 'setTerminal', token: room.token, adminKey: 'errada', liberado: true }).error, /invalida/);
+  assert.match(call({ action: 'setTerminal', token: room.token, adminKey: 'errada', liberado: true }).error, /inválida/);
   assert.equal(call({ action: 'setTerminal', token: room.token, adminKey: room.adminKey, liberado: true }).sala.terminal, true);
   assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.terminal, true);
 });
@@ -179,13 +187,13 @@ test('ranking, painel do professor, chave de admin e sala encerrada', () => {
   assert.deepEqual(st.ranking.map((r: Json) => r.nome), ['Bia', 'Ana']);
   assert.equal(st.aluno.posicao, 2);
 
-  assert.match(call({ action: 'teacherRoom', token: room.token, adminKey: 'errada' }).error, /invalida/);
+  assert.match(call({ action: 'teacherRoom', token: room.token, adminKey: 'errada' }).error, /inválida/);
   const view = call({ action: 'teacherRoom', token: room.token, adminKey: room.adminKey });
   assert.equal(view.alunos.length, 2);
   assert.equal(view.alunos[0].nome, 'Bia');
   assert.equal(JSON.stringify(view).includes('admin_key'), false);
 
-  assert.match(call({ action: 'setStatus', token: room.token, adminKey: 'x', status: 'encerrada' }).error, /invalida/);
+  assert.match(call({ action: 'setStatus', token: room.token, adminKey: 'x', status: 'encerrada' }).error, /inválida/);
   assert.equal(call({ action: 'setStatus', token: room.token, adminKey: room.adminKey, status: 'encerrada' }).sala.status, 'encerrada');
   assert.match(call({ action: 'submit', token: room.token, nome: 'Ana', resposta: 'drop table' }).error, /encerrada/);
   assert.match(call({ action: 'join', token: room.token, nome: 'Novo Aluno' }).error, /encerrada/);
@@ -209,7 +217,7 @@ test('Rali NFC online: sala por equipes, missões em qualquer ordem, XP e rankin
   call({ action: 'join', token: room.token, nome: 'Equipe Beta' });
 
   // etiqueta fora da sala e sala do tipo errado
-  assert.match(call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'zzz' }).error, /nao faz parte/);
+  assert.match(call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'zzz' }).error, /não faz parte/);
   const ctfRoom = call({ action: 'createRoom', nome: 'C', missions });
   call({ action: 'join', token: ctfRoom.token, nome: 'Caio' });
   assert.match(call({ action: 'raliTag', token: ctfRoom.token, nome: 'Caio', tag_id: 't1' }).error, /CTF em ordem/);
@@ -226,7 +234,7 @@ test('Rali NFC online: sala por equipes, missões em qualquer ordem, XP e rankin
   assert.equal(ok.missoes.find((m: Json) => m.tag_id === 't3').concluida, true);
 
   // mesma equipe não captura duas vezes; outra equipe ganha menos (dinâmico) e sem fogo
-  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Alfa', tag_id: 't3', resposta: 'Verdadeiro' }).error, /ja resolveu/);
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Alfa', tag_id: 't3', resposta: 'Verdadeiro' }).error, /já resolveu/);
   const b = call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't3', resposta: 'Verdadeiro' });
   assert.equal(b.premio.posicao, 2);
   assert.equal(b.premio.xp, 27);
@@ -287,7 +295,7 @@ test('CTF livre: o aluno escolhe a ordem, ranking por pontos; em ordem e salas a
   assert.equal(ok.aluno.acertos, 1);
   assert.equal(ok.aluno.xp, 30);
   assert.equal(ok.missoes.find((m: Json) => m.tag_id === 't3').concluida, true);
-  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Ana Lima', tag_id: 't3', resposta: 'Verdadeiro' }).error, /Voce ja resolveu/);
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Ana Lima', tag_id: 't3', resposta: 'Verdadeiro' }).error, /Você já resolveu/);
 
   // o 2º aluno ganha menos nesse desafio e o valor mostrado já cai
   assert.equal(call({ action: 'state', token: room.token, nome: 'Bruno Reis' }).missoes.find((m: Json) => m.tag_id === 't3').xp_atual, 27);
@@ -316,4 +324,15 @@ test('CTF livre: o aluno escolhe a ordem, ranking por pontos; em ordem e salas a
   assert.equal(s1.missao.fase, 1);
   assert.equal(s1.missoes, undefined);
   assert.match(call({ action: 'raliTag', token: legado.token, nome: 'Caio Alves', tag_id: 't1' }).error, /CTF em ordem/);
+});
+
+test('v9: nome repetido só entra com a chave do aparelho original', () => {
+  const { call } = createBackend();
+  const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
+  const a = call({ action: 'join', token: room.token, nome: 'Ana' });
+  assert.ok(a.chave);
+  // outro aparelho (sem chave) tentando usar o mesmo nome
+  assert.match(call({ action: 'join', token: room.token, nome: 'ana', chave: '' }).error, /Já existe alguém com este nome/);
+  // o aparelho original volta com a chave
+  assert.equal(call({ action: 'join', token: room.token, nome: 'Ana', chave: a.chave }).aluno.nome, 'Ana');
 });
