@@ -120,6 +120,17 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
           }
         />
 
+        <div
+          className={`flex flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-2xl border px-5 py-3 ${nfc ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-orange-500/40 bg-orange-500/10'}`}
+          aria-label="Token da sala"
+        >
+          <span className="text-sm font-bold uppercase tracking-[0.16em] text-slate-300">Token da sala</span>
+          <span className={`font-mono font-black tracking-[0.3em] text-4xl sm:text-5xl select-all ${nfc ? 'text-emerald-400' : 'text-orange-400'}`}>{room.token}</span>
+          <span className="text-sm text-slate-400">
+            {nfc ? 'Entre no Rali NFC com o token e o nome da equipe' : 'Entre no CTF com o token e o seu nome'} • {inviteLink.split('#')[0]}
+          </span>
+        </div>
+
         <Toolbar label="Controles do telão">
           {running ? (
             <Btn variant="warn" disabled={busy || !timer} onClick={() => op('pause')} icon={<Pause className="w-4 h-4" />}>Pausar</Btn>
