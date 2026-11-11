@@ -278,3 +278,58 @@ export function takeCtfPrefill(): string[] {
     return Array.isArray(v) ? v.map(String) : [];
   } catch { return []; }
 }
+
+// ---------- Auditoria do banco ----------
+
+export interface AuditIssue {
+  id: string;
+  pergunta: string;
+  problemas: string[];
+  /** correção segura e automática (quando existe) */
+  conserto?: BankQuestionDraft;
+  consertoDescricao?: string;
+}
+
+const LETRAS = 'abcdef';
+
+/**
+ * Procura problemas em todas as perguntas: regras do servidor, resposta escrita como letra (A, B, C…),
+ * resposta que aparece no enunciado, perguntas repetidas e alternativas parecidas demais.
+ */
+export function auditBank(list: BankQuestion[]): AuditIssue[] {
+  const out: AuditIssue[] = [];
+  const vistas = new Map<string, string>();
+  for (const q of list) {
+    const problemas: string[] = [];
+    let conserto: BankQuestionDraft | undefined;
+    let consertoDescricao: string | undefined;
+    const erro = validateDraft(q);
+    if (erro) {
+      problemas.push(erro);
+      if (q.tipo === 'multipla') {
+        const r = clean(q.resposta);
+        const letra = r.replace(/[).:\s-]+$/g, '').toLowerCase();
+        const idx = letra.length === 1 ? LETRAS.indexOf(letra) : -1;
+        const opcoes = q.opcoes.map(clean).filter(Boolean);
+        if (idx >= 0 && opcoes[idx]) {
+          conserto = { ...q, resposta: opcoes[idx], opcoes };
+          consertoDescricao = `trocar a resposta “${q.resposta}” pelo texto da alternativa ${letra.toUpperCase()}: “${opcoes[idx]}”`;
+        } else {
+          const parecida = opcoes.filter((o) => normalizeAnswer(o).includes(normalizeAnswer(r)) || normalizeAnswer(r).includes(normalizeAnswer(o)));
+          if (r && parecida.length === 1) {
+            conserto = { ...q, resposta: parecida[0], opcoes };
+            consertoDescricao = `usar a alternativa “${parecida[0]}” como resposta`;
+          }
+        }
+      }
+    }
+    const resp = normalizeAnswer(q.resposta);
+    if (q.tipo === 'exata' && resp.length >= 6 && normalizeAnswer(q.pergunta).includes(resp)) problemas.push('O enunciado contém a resposta.');
+    const chave = `${normalizeAnswer(q.disciplina)}|${normalizeAnswer(q.pergunta)}`;
+    const outra = vistas.get(chave);
+    if (outra) problemas.push('Pergunta repetida no banco.');
+    else vistas.set(chave, q.id);
+    if (problemas.length) out.push({ id: q.id, pergunta: q.pergunta, problemas, conserto, consertoDescricao });
+  }
+  return out;
+}

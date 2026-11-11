@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RaliState, RaliTagInfo } from '../../types/ctf';
-import { clearRaliSession, ctfCall, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
+import { clearRaliSession, ctfCall, startPolling, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
 import { Top5Board } from '../ctf/Top5Board';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
@@ -13,7 +13,6 @@ import { Btn } from '../common/ui';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { parseTagFromLocation } from '../../utils/tagLink';
 
-const POLL_MS = 10_000;
 
 interface Props {
   /** etiqueta lida por NFC/QR (#/tag/tag_07) */
@@ -63,10 +62,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
   useEffect(() => {
     if (!session) return;
     refresh();
-    const id = setInterval(() => {
-      if (document.visibilityState === 'visible') refresh();
-    }, POLL_MS);
-    return () => clearInterval(id);
+    return startPolling(refresh);
   }, [session, refresh]);
 
   const timer = state?.sala.timer ?? null;
@@ -354,7 +350,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
               variant={theme === 'claro' ? 'bars' : 'podium'}
               unit="missões"
             />
-            <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 10 segundos.</p>
+            <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>
           </div>
         </div>
       )}
