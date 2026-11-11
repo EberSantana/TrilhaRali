@@ -206,7 +206,7 @@ function roomInfo(room) {
 }
 
 function cleanName(nome) {
-  var n = String(nome || '').replace(/\s+/g, ' ').trim();
+  var n = String(nome || '').replace(/\s+/g, ' ').trim().replace(/^[=+\-@]+/, '').trim();
   if (n.length < 2) fail('Digite seu nome (minimo 2 letras).');
   if (n.length > 40) fail('Nome muito longo (maximo 40 caracteres).');
   return n;
@@ -402,7 +402,7 @@ function submit(req) {
 function cleanMembers(list) {
   var out = [];
   (Array.isArray(list) ? list : []).forEach(function (n) {
-    var t = String(n || '').replace(/\s+/g, ' ').trim();
+    var t = String(n || '').replace(/\s+/g, ' ').trim().replace(/^[=+\-@]+/, '').trim();
     if (t.length >= 2 && out.length < 8) out.push(t.substring(0, 40));
   });
   return out;

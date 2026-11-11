@@ -249,7 +249,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
   const downloadCsv = () => {
     if (!view || !activeRoom) return;
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    // Planilhas executam células que começam com = + - @ : o apóstrofo as mantém como texto
+    const esc = (v: string | number) => `"${String(v).replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"`;
     const head = [txt.singular, ...(nfc ? ['integrantes'] : []), 'posicao', 'xp', nfc ? 'missoes_resolvidas' : 'fases_concluidas', 'erros', 'fogos'];
     const lines = view.alunos.map((a, i) =>
       [a.nome, ...(nfc ? [(a.integrantes || []).join('; ')] : []), i + 1, a.xp, nfc ? a.acertos : Math.min(a.fase_atual - 1, view.sala.total), a.erros, a.fogos].map(esc).join(',')

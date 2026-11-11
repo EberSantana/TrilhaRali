@@ -239,3 +239,11 @@ test('Rali NFC online: sala por equipes, missões em qualquer ordem, XP e rankin
   sheets.get('CtfAlunos')![2][10] = 0;
   assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't1', resposta: 'drop' }).error, /encerrada/);
 });
+
+test('nomes que começam com = + - @ não viram fórmula na planilha', () => {
+  const { call } = createBackend();
+  const missions = [{ tag_id: 't1', categoria: 'DQL', pacote: 'P', pergunta: 'Q?', resposta: 'a', alternativas: [], xp: 10 }];
+  const room = call({ action: 'createRoom', nome: 'Seg', modo: 'fixed', missions });
+  const st = call({ action: 'join', token: room.token, nome: '=HYPERLINK("http://x","clique")' });
+  assert.ok(!/^[=+\-@]/.test(st.aluno.nome), st.aluno.nome);
+});
