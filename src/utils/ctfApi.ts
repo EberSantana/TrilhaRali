@@ -48,10 +48,28 @@ export function buildStudentLink(token: string, api: string, tipo: RoomTipo = 'c
 
 // --- URL do backend (Apps Script) ---
 
+/** Implantações antigas do servidor: quem tinha uma delas guardada passa a usar a atual. */
+const OLD_API_IDS = ['AKfycbzeFKw63nXlkhYOf5UNEpr0eDONDtwbZrcwxYt2OYfw8oFTa40IFueN3ng8oCfPTanbQA'];
+const isOldApi = (u: string | null | undefined) => !!u && OLD_API_IDS.some((id) => u.includes(id));
+
 export function getCtfApiUrl(): string {
   if (typeof window === 'undefined') return DEFAULT_CTF_API_URL;
-  return parseCtfHash().api || localStorage.getItem(KEY_API) || DEFAULT_CTF_API_URL;
+  const fromLink = parseCtfHash().api;
+  const stored = localStorage.getItem(KEY_API);
+  if (isOldApi(stored)) {
+    try {
+      localStorage.setItem(KEY_API, DEFAULT_CTF_API_URL);
+    } catch {
+      // ignore
+    }
+  }
+  const useLink = fromLink && !isOldApi(fromLink) ? fromLink : '';
+  const useStored = stored && !isOldApi(stored) ? stored : '';
+  return useLink || useStored || DEFAULT_CTF_API_URL;
 }
+
+/** Final da URL, para mostrar ao professor qual servidor está em uso. */
+export const apiTail = (u: string) => (u.match(/\/s\/([\w-]+)\/exec/)?.[1] || '').slice(-6);
 
 export function saveCtfApiUrl(url: string) {
   if (typeof window === 'undefined') return;
