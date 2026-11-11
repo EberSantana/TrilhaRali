@@ -140,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-amber-700 text-white shadow-lg shadow-amber-700/30 ring-1 ring-amber-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Banco das 50 Missões SQL'}
+              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Catálogo de missões'}
             >
               <Tag className="w-4 h-4 text-amber-300" />
               <span>50 Missões</span>

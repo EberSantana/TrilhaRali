@@ -79,7 +79,7 @@ export const MissionsCatalog: React.FC = () => {
               <span className="text-xs text-slate-400">• 50 Missões Padronizadas NTAG213</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
-              <span>Arsenal Completo de Missões SQL</span>
+              <span>Catálogo de missões</span>
               <Tag className="w-8 h-8 text-emerald-400" />
             </h1>
             <p className="text-slate-400 text-sm mt-1">

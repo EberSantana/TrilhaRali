@@ -33,7 +33,7 @@ const COPY: Record<RoomTipo, { nome: string; tagline: string; plural: string; si
   },
   ctf: {
     nome: 'CTF Online',
-    tagline: 'Alunos individuais: cada um avança de fase resolvendo a fase atual no console SQLite.',
+    tagline: 'Alunos individuais: cada um avança de fase resolvendo a fase atual.',
     plural: 'alunos',
     singular: 'aluno',
     unidade: 'fases',

@@ -84,8 +84,8 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
       <EntryCard
         title="CTF Online"
         tagline="Individual, fase a fase"
-        description="Entre com o token da sala, resolva cada fase no console SQLite e suba no ranking Top 5."
-        chips={['Individual', 'Token da sala', 'Console SQLite']}
+        description="Entre com o token da sala, resolva cada fase no seu ritmo e suba no ranking Top 5."
+        chips={['Individual', 'Token da sala', 'Ranking Top 5']}
         icon={<Flag className="w-6 h-6" />}
         accent="orange"
         onClick={onOpenCtf}
