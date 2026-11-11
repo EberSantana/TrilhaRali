@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RaliState, RaliTagInfo } from '../../types/ctf';
-import { clearRaliSession, ctfCall, startPolling, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
+import { clearRaliSession, getChave, saveChave, ctfCall, startPolling, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
 import { Top5Board } from '../ctf/Top5Board';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
@@ -115,9 +115,10 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
     setError('');
     try {
       const members = integrantes.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
-      const s = await ctfCall<RaliState>('join', { token: token.trim(), nome, integrantes: members });
+      const s = await ctfCall<RaliState>('join', { token: token.trim(), nome, integrantes: members, chave: getChave(token, nome) });
       if (!('missoes' in s)) throw new Error('Esta sala é do CTF Online. Abra o CTF Online para entrar.');
       const next = { token: s.sala.token, nome: s.equipe.nome };
+      saveChave(token, nome, (s as { chave?: string }).chave);
       saveRaliSession(next);
       setSession(next);
       setState(s);

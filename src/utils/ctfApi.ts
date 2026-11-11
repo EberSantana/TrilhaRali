@@ -129,6 +129,30 @@ export function clearStudentSession() {
   }
 }
 
+// --- Chave do aparelho: impede que outra pessoa entre com o nome de um colega ---
+
+const KEY_CHAVES = 'trilha_rali_chaves';
+const chaveId = (token: string, nome: string) => `${token.trim().toUpperCase()}|${nome.trim().toLowerCase()}`;
+
+export function getChave(token: string, nome: string): string {
+  try {
+    return (JSON.parse(localStorage.getItem(KEY_CHAVES) || '{}') as Record<string, string>)[chaveId(token, nome)] || '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveChave(token: string, nome: string, chave?: string) {
+  if (!chave) return;
+  try {
+    const m = JSON.parse(localStorage.getItem(KEY_CHAVES) || '{}') as Record<string, string>;
+    m[chaveId(token, nome)] = chave;
+    localStorage.setItem(KEY_CHAVES, JSON.stringify(m));
+  } catch {
+    // ignore
+  }
+}
+
 // --- Sessão da equipe no Rali NFC ---
 
 export function getRaliSession(): CtfStudentSession | null {

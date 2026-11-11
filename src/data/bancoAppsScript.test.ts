@@ -54,6 +54,7 @@ function createBackend() {
       computeDigest: (_alg: string, text: string) =>
         Array.from(createHash('sha256').update(text, 'utf8').digest()).map((b) => (b > 127 ? b - 256 : b)),
       sleep: () => {},
+      getUuid: () => 'u-' + Math.random().toString(36).slice(2) + Date.now(),
     },
     Logger: { log: () => {} },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
@@ -65,7 +66,14 @@ function createBackend() {
   };
   vm.createContext(ctx);
   vm.runInContext(CTF_APPS_SCRIPT, ctx);
-  const call = (body: Json): Json => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).content);
+  const chaves = new Map<string, string>();
+  const call = (body: Json): Json => {
+    const id = body.action === 'join' ? `${String(body.token).toUpperCase()}|${String(body.nome).trim().toLowerCase()}` : '';
+    if (id && body.chave === undefined && chaves.has(id)) body = { ...body, chave: chaves.get(id) };
+    const r = JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).content);
+    if (id && r.chave) chaves.set(id, r.chave);
+    return r;
+  };
   return { call, ctx, sheets };
 }
 
@@ -80,10 +88,10 @@ function ready() {
 
 test('o banco exige a chave gerada por setupBanco', () => {
   const { call, chave } = createBackend() as any;
-  assert.match(call({ action: 'bancoList', chave: 'x' }).error, /ainda nao foi configurado/);
+  assert.match(call({ action: 'bancoList', chave: 'x' }).error, /ainda não foi configurado/);
   const b = ready();
-  assert.match(b.call({ action: 'bancoList', chave: 'errada' }).error, /Chave do banco invalida/);
-  assert.match(b.call({ action: 'bancoList' }).error, /Chave do banco invalida/);
+  assert.match(b.call({ action: 'bancoList', chave: 'errada' }).error, /Chave do banco inválida/);
+  assert.match(b.call({ action: 'bancoList' }).error, /Chave do banco inválida/);
   assert.deepEqual(b.call({ action: 'bancoPing', chave: b.chave }), { ok: true });
   assert.equal(b.chave.length, 20);
   void chave;
@@ -113,7 +121,7 @@ test('salvar, listar, editar e apagar perguntas', () => {
 
   assert.deepEqual(call({ action: 'bancoDelete', chave, id: a.id }), { ok: true });
   assert.equal(call({ action: 'bancoList', chave }).perguntas.length, 1);
-  assert.match(call({ action: 'bancoDelete', chave, id: 'nao-existe' }).error, /nao encontrada/);
+  assert.match(call({ action: 'bancoDelete', chave, id: 'nao-existe' }).error, /não encontrada/);
 });
 
 test('valida perguntas inválidas', () => {
@@ -184,8 +192,8 @@ test('publicação NFC: só o professor publica, qualquer celular lê, e vazio r
   const { call, chave } = ready();
   assert.deepEqual(call({ action: 'nfcSet' }), { somenteBanco: true, missoes: [] });
   const missoes = [{ tag_id: 'tag_01', ...exata }, { tag_id: 'TAG_02', ...multipla }];
-  assert.match(call({ action: 'nfcPublish', chave: 'errada', missoes }).error, /Chave do banco invalida/);
-  assert.match(call({ action: 'nfcPublish', chave, missoes: [{ tag_id: 'xx', ...exata }] }).error, /Tag invalida/);
+  assert.match(call({ action: 'nfcPublish', chave: 'errada', missoes }).error, /Chave do banco inválida/);
+  assert.match(call({ action: 'nfcPublish', chave, missoes: [{ tag_id: 'xx', ...exata }] }).error, /Tag inválida/);
   assert.match(call({ action: 'nfcPublish', chave, missoes: [{ tag_id: 'tag_01', ...exata }, { tag_id: 'tag_01', ...exata }] }).error, /repetida/);
 
   assert.equal(call({ action: 'nfcPublish', chave, missoes, somenteBanco: false }).total, 2);
@@ -237,7 +245,7 @@ test('cronômetro do CTF: duração de 5 a 120 em passos de 5, iniciar, pausar e
   assert.equal(t.restanteS, 810);
   assert.equal(call({ action: 'setTimer', ...adm, op: 'reset' }).sala.timer.restanteS, 600);
   assert.equal(call({ action: 'setTimer', ...adm, op: 'off' }).sala.timer, null);
-  assert.match(call({ action: 'setTimer', token: sala.token, adminKey: 'x', op: 'start' }).error, /Chave de professor invalida/);
+  assert.match(call({ action: 'setTimer', token: sala.token, adminKey: 'x', op: 'start' }).error, /Chave de professor inválida/);
 });
 
 test('com cronômetro, o CTF só aceita respostas enquanto ele roda e bloqueia ao zerar', () => {
@@ -246,7 +254,7 @@ test('com cronômetro, o CTF só aceita respostas enquanto ele roda e bloqueia a
   const adm = { token: sala.token, adminKey: sala.adminKey };
   const eu = { token: sala.token, nome: 'Ana' };
   assert.equal(call({ action: 'join', ...eu }).sala.timer.restanteS, 300);
-  assert.match(call({ action: 'submit', ...eu, resposta: 'A' }).error, /cronometro esta parado/);
+  assert.match(call({ action: 'submit', ...eu, resposta: 'A' }).error, /cronômetro está parado/);
 
   call({ action: 'setTimer', ...adm, op: 'start' });
   assert.equal(call({ action: 'submit', ...eu, resposta: 'A' }).correto, true);
@@ -273,8 +281,8 @@ test('cronômetro do Rali NFC e tema: só o professor altera, qualquer aluno lê
   const { call, chave, tick } = withClock();
   assert.deepEqual(call({ action: 'raliEstado' }).timer, null);
   assert.equal(call({ action: 'raliEstado' }).tema, '');
-  assert.match(call({ action: 'raliTimer', chave: 'x', op: 'config', minutos: 60 }).error, /Chave do banco invalida/);
-  assert.match(call({ action: 'setTema', chave: 'x', tema: 'claro' }).error, /Chave do banco invalida/);
+  assert.match(call({ action: 'raliTimer', chave: 'x', op: 'config', minutos: 60 }).error, /Chave do banco inválida/);
+  assert.match(call({ action: 'setTema', chave: 'x', tema: 'claro' }).error, /Chave do banco inválida/);
   assert.match(call({ action: 'raliTimer', chave, op: 'start' }).error, /Defina primeiro a duracao/);
 
   assert.equal(call({ action: 'raliTimer', chave, op: 'config', minutos: 60 }).timer.restanteS, 3600);
