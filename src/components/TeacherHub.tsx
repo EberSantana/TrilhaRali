@@ -208,7 +208,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
       </Section>
 
       <Section title="4 · Ferramentas do professor">
-        <Tool title="Console SQL do professor" description="Banco do rali para testar consultas." icon={<Database className="w-5 h-5" />} onClick={p.onOpenSql} />
+        <Tool title="Console SQLite (Banco de Dados)" description="Banco de exemplo para testar consultas nas aulas de SQL." icon={<Database className="w-5 h-5" />} onClick={p.onOpenSql} />
         <Tool title="Planilha (Google Sheets)" description="Exportação e backend do Apps Script." icon={<Sheet className="w-5 h-5" />} onClick={p.onOpenSheets} />
       </Section>
 
