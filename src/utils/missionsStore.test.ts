@@ -14,9 +14,11 @@ test('sem publicação, valem as missões padrão', () => {
   assert.deepEqual(mergeMissions({ somenteBanco: true, missoes: [] }), PADRAO);
 });
 
-test('somenteBanco usa só as perguntas do professor', () => {
+test('somenteBanco usa só as perguntas do professor, mantendo o módulo Linux', () => {
   const m = mergeMissions({ somenteBanco: true, missoes: [pub('tag_01'), pub('tag_02')] });
-  assert.deepEqual(m.map((x) => x.tag_id), ['tag_01', 'tag_02']);
+  assert.deepEqual(m.slice(0, 2).map((x) => x.tag_id), ['tag_01', 'tag_02']);
+  assert.equal(m.slice(2).every((x) => x.tag_id.startsWith('linux_')), true);
+  assert.equal(m.length, 2 + LINUX_MISSIONS.length);
   assert.equal(m[0].package, 'banco');
 });
 

@@ -26,7 +26,11 @@ function load(): PublishedSet | null {
 export function mergeMissions(set: PublishedSet | null): Mission[] {
   if (!set || set.missoes.length === 0) return BASE;
   const custom = set.missoes.map(publishedToMission);
-  if (set.somenteBanco) return custom;
+  if (set.somenteBanco) {
+    // o módulo Linux é à parte das 50 missões NTAG: continua no catálogo mesmo no modo "só meu banco"
+    const tags = new Set(custom.map((m) => m.tag_id.toLowerCase()));
+    return [...custom, ...LINUX_MISSIONS.filter((m) => !tags.has(m.tag_id.toLowerCase()))];
+  }
   const byTag = new Map(custom.map((m) => [m.tag_id.toLowerCase(), m]));
   const replaced = BASE.map((m) => byTag.get(m.tag_id.toLowerCase()) ?? m);
   const known = new Set(BASE.map((m) => m.tag_id.toLowerCase()));
