@@ -5,7 +5,7 @@ import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
 import { CtfMissionPayload, CtfOrdem, CtfStoredRoom, CtfTeacherView, RoomTipo } from '../../types/ctf';
 import { ScoringMode } from '../../types';
-import { buildStudentLink, ctfCall, explainInvalidApiUrl, getCtfApiUrl, getTeacherRooms, isValidApiUrl, saveTeacherRooms } from '../../utils/ctfApi';
+import { buildStudentLink, ctfCall, explainInvalidApiUrl, apiTail, getCtfApiUrl, getTeacherRooms, isValidApiUrl, saveTeacherRooms } from '../../utils/ctfApi';
 import { BankQuestion } from '../../types/bank';
 import { bankToCtfPayload, takeCtfPrefill } from '../../utils/bank';
 import { BankPicker } from '../bank/BankPicker';
@@ -192,7 +192,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
       }
       if (!nfc && ordem === 'livre' && res.ordem !== 'livre') {
-        throw new Error('O servidor está numa versão antiga e não tem o modo livre. Atualize o script do Apps Script (versão 7) e publique uma nova versão, ou escolha “Em ordem”.');
+        throw new Error('O servidor está numa versão antiga e não tem o modo livre. O servidor em uso termina em …' + apiTail(apiUrl) + '. Confira em Servidor (Apps Script) se é o da versão 9, ou escolha “Em ordem”.');
       }
       const stored: CtfStoredRoom = { tipo, token: res.token, adminKey: res.adminKey, nome: nomeSala, api: apiUrl, criada: Date.now() };
       persist([stored, ...allRooms]);
