@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import { CtfState } from '../../types/ctf';
 import {
   clearStudentSession,
-  ctfCall,
+  ctfCall, startPolling,
   getCtfApiUrl,
   getStudentSession,
   parseCtfHash,
@@ -21,7 +21,6 @@ import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
 
-const POLL_MS = 10_000;
 
 export const CtfStudent: React.FC = () => {
   const link = useRef(parseCtfHash());
@@ -60,10 +59,7 @@ export const CtfStudent: React.FC = () => {
   useEffect(() => {
     if (!session) return;
     refresh();
-    const id = setInterval(() => {
-      if (document.visibilityState === 'visible') refresh();
-    }, POLL_MS);
-    return () => clearInterval(id);
+    return startPolling(refresh);
   }, [session, refresh]);
 
   // Cronômetro da sala: conta no aparelho a partir do fim informado pelo servidor
@@ -417,7 +413,7 @@ export const CtfStudent: React.FC = () => {
             mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
             variant={theme === 'claro' ? 'bars' : 'podium'}
           />
-          <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 10 segundos.</p>
+          <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>
         </div>
       </div>
     </div>

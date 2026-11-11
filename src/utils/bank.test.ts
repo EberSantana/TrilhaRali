@@ -103,3 +103,19 @@ test('prefill do CTF é lido uma única vez', () => {
   assert.deepEqual(takeCtfPrefill(), ['a', 'b']);
   assert.deepEqual(takeCtfPrefill(), []);
 });
+
+test('auditBank: letra como resposta vira correção automática; repetida e enunciado com resposta são apontados', async () => {
+  const { auditBank } = await import('./bank');
+  const base = { disciplina: 'BD', assunto: '', tipo: 'multipla' as const, aceitas: [], opcoes: ['Alpha', 'Beta', 'Gama'], xp: 10, explicacao: '', ativo: true };
+  const lista = [
+    { ...base, id: '1', pergunta: 'Qual é a segunda letra grega?', resposta: 'B' },
+    { ...base, id: '2', pergunta: 'Qual é a primeira letra grega?', resposta: 'Alpha' },
+    { ...base, id: '3', pergunta: 'Qual é a primeira letra grega?', resposta: 'Alpha' },
+    { ...base, id: '4', tipo: 'exata' as const, opcoes: [], pergunta: 'A resposta é fundamental e ponto.', resposta: 'fundamental' },
+  ];
+  const r = auditBank(lista);
+  assert.deepEqual(r.map((x) => x.id), ['1', '3', '4']);
+  assert.equal(r[0].conserto?.resposta, 'Beta');
+  assert.match(r[1].problemas.join(), /repetida/);
+  assert.match(r[2].problemas.join(), /enunciado/);
+});

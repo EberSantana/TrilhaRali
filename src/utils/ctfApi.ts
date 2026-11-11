@@ -166,3 +166,29 @@ export function saveTeacherRooms(rooms: CtfStoredRoom[]) {
     // ignore
   }
 }
+
+/**
+ * Consulta o servidor de tempos em tempos, com variação por aparelho: 40 celulares não batem juntos no Apps Script.
+ * Pausa com a aba em segundo plano e atualiza na hora quando ela volta. Devolve a função que para.
+ */
+export function startPolling(fn: () => void, baseMs = 12_000, jitterMs = 6_000): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  const schedule = () => {
+    timer = setTimeout(() => {
+      if (stopped) return;
+      if (document.visibilityState === 'visible') fn();
+      schedule();
+    }, baseMs + Math.random() * jitterMs);
+  };
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') fn();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  schedule();
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+}

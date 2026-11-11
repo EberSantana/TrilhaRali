@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
 import { BankQuestion, BankQuestionDraft } from '../../types/bank';
-import { emptyDraft, validateDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
+import { auditBank, AuditIssue, emptyDraft, tidyDraft, validateDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
 import { clearBancoKey, deleteQuestion, getBancoKey, importQuestions, listBanco, pingBanco, publishNfc, saveBancoKey, saveQuestion } from '../../utils/bankApi';
 import { setPublishedLocal } from '../../utils/missionsStore';
 import { QuestionForm } from './QuestionForm';
@@ -103,6 +103,9 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
     [questions, editing]
   );
 
+  const [audit, setAudit] = useState<AuditIssue[] | null>(null);
+  const [fixing, setFixing] = useState(false);
+
   const flash = (msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice((n) => (n === msg ? '' : n)), 6000);
@@ -173,6 +176,7 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
           <button onClick={() => setEditing(emptyDraft(disc))} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500"><Plus className="w-4 h-4" /> Nova pergunta</button>
           <button onClick={() => setImporting(true)} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"><Upload className="w-4 h-4" /> Importar</button>
           <button onClick={() => downloadText('banco-de-perguntas.csv', exportCsv(visible), 'text/csv')} disabled={!visible.length} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-40"><Download className="w-4 h-4" /> CSV</button>
+          <button onClick={() => setAudit(auditBank(questions))} disabled={!questions.length} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-40"><CheckCircle2 className="w-4 h-4" /> Verificar banco</button>
           <button onClick={() => downloadText('banco-de-perguntas.json', exportJson(visible), 'application/json')} disabled={!visible.length} className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-40"><Download className="w-4 h-4" /> JSON</button>
           <button onClick={() => run(load)} aria-label="Atualizar lista" className="rounded-xl border border-slate-700 p-2 text-slate-300 hover:bg-slate-800"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
         </div>
@@ -210,6 +214,53 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
 
       {notice && <p role="status" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"><CheckCircle2 className="w-4 h-4" />{notice}</p>}
       {error && <p role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+
+      {audit && (
+        <section role="region" aria-label="Resultado da verificação" className="mb-4 rounded-xl border border-slate-700 bg-slate-900 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-black text-white">
+              {audit.length === 0 ? `Tudo certo: ${questions.length} perguntas verificadas, nenhum problema.` : `${audit.length} pergunta(s) com problema em ${questions.length}.`}
+            </h2>
+            <div className="flex gap-2">
+              {audit.some((a) => a.conserto) && (
+                <button
+                  disabled={fixing}
+                  onClick={() => run(async () => {
+                    setFixing(true);
+                    try {
+                      const fixes = audit.filter((a) => a.conserto);
+                      for (const a of fixes) {
+                        const saved = await saveQuestion(tidyDraft(a.conserto!));
+                        setQuestions((cur) => cur.map((x) => (x.id === saved.id ? saved : x)));
+                      }
+                      flash(`${fixes.length} pergunta(s) corrigida(s). Rode a verificação de novo.`);
+                      setAudit(null);
+                    } finally {
+                      setFixing(false);
+                    }
+                  })}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {fixing ? 'Corrigindo…' : `Corrigir ${audit.filter((a) => a.conserto).length} automaticamente`}
+                </button>
+              )}
+              <button onClick={() => setAudit(null)} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-800">Fechar</button>
+            </div>
+          </div>
+          {audit.length > 0 && (
+            <ul className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1 text-xs">
+              {audit.map((a) => (
+                <li key={a.id} className="rounded-lg border border-slate-800 bg-slate-950 p-2.5">
+                  <div className="font-semibold text-slate-200">{a.pergunta.replace(/\s+/g, ' ').slice(0, 110)}</div>
+                  <div className="mt-0.5 text-red-300">{a.problemas.join(' ')}</div>
+                  {a.consertoDescricao && <div className="mt-0.5 text-emerald-300">Correção automática: {a.consertoDescricao}.</div>}
+                  <button onClick={() => setEditing(questions.find((q) => q.id === a.id) || null)} className="mt-1 text-[11px] font-bold text-sky-300 underline">Editar</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <div className="mt-5 space-y-2">
         {visible.length > 0 && (
