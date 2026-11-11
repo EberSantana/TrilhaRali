@@ -26,3 +26,9 @@ test('link de convite só carrega api válida', () => {
   assert.deepEqual(parseCtfHash(`#/ctf?t=abc123&api=${encodeURIComponent(OK)}`), { token: 'ABC123', api: OK });
   assert.deepEqual(parseCtfHash(`#/ctf?t=abc123&api=${encodeURIComponent(EDITOR)}`), { token: 'ABC123', api: undefined });
 });
+
+import { acentua } from './ctfApi';
+test('acentua mensagens do servidor', () => {
+  assert.equal(acentua('Sala nao encontrada. Confira o token.'), 'Sala não encontrada. Confira o token.');
+  assert.equal(acentua('Esta sala esta encerrada.'), 'Esta sala está encerrada.');
+});

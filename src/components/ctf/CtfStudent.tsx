@@ -258,6 +258,8 @@ export const CtfStudent: React.FC = () => {
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
+      {sala.terminal && <LinuxTerminal />}
+
       {/* Progresso */}
       {livre ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
@@ -413,7 +415,6 @@ export const CtfStudent: React.FC = () => {
 
           {sala.banco && <SqlConsole />}
 
-          {sala.terminal && <LinuxTerminal />}
 
           {sala.banco && (
             <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">

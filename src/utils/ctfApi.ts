@@ -80,8 +80,19 @@ export async function ctfCall<T>(action: string, payload: Record<string, unknown
   } catch {
     throw new Error('Resposta inesperada do servidor. Confira se o Web App está publicado para "Qualquer pessoa".');
   }
-  if (data && data.error) throw new Error(String(data.error));
+  if (data && data.error) throw new Error(acentua(String(data.error)));
   return data as T;
+}
+
+/** Corrige acentos das mensagens do servidor (o Apps Script publicado manda sem acento). */
+export function acentua(msg: string): string {
+  return msg
+    .replace(/\bnao\b/g, 'não').replace(/\bNao\b/g, 'Não')
+    .replace(/\besta encerrada/g, 'está encerrada')
+    .replace(/\bestá encerrada\b/g, 'está encerrada')
+    .replace(/\bmissoes\b/g, 'missões')
+    .replace(/\bainda nao\b/g, 'ainda não')
+    .replace(/\betiqueta nao faz\b/g, 'etiqueta não faz');
 }
 
 // --- Sessão do aluno (retomar após recarregar a página) ---
