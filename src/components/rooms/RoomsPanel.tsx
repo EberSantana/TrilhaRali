@@ -390,10 +390,12 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             )}
           </div>
 
-          <fieldset className="space-y-1.5">
-            <legend className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Missões do catálogo: {total}
+          <fieldset className={`space-y-2 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
+            <legend className={`flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider ${accentText}`}>
+              🎯 Missões do catálogo
+              <span className={`rounded-full px-2 py-0.5 text-xs font-black text-white ${nfc ? 'bg-emerald-600' : 'bg-orange-500'}`}>{total}</span>
             </legend>
+            <p className="text-[11px] text-slate-400">Pacotes prontos (Linux, Banco de Dados, Redes…). Marque os que entram nesta sala.</p>
             <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
               {packages.map((p) => (
                 <label key={p.id} className="flex items-center gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 cursor-pointer">
@@ -413,9 +415,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 </label>
               ))}
             </div>
-            <div className="pt-2">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                Do meu banco de perguntas {bankPool.length > 0 && <span className={accentText}>· {bankPool.length} escolhida(s)</span>}
+            <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950/40 p-2.5">
+              <div className={`text-xs font-black uppercase tracking-wider mb-1.5 ${accentText}`}>
+                📚 Do meu banco de perguntas {bankPool.length > 0 && <span className={accentText}>· {bankPool.length} escolhida(s)</span>}
               </div>
               {bank.length > 0 ? (
                 <BankPicker questions={bank} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
