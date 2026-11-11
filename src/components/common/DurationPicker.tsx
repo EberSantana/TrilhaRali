@@ -58,3 +58,41 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({ value, onChange,
     </div>
   );
 };
+
+/** Duração compacta para barras de ferramentas: [−] 60 min [+] numa única peça, no mesmo porte dos botões. */
+export const DurationInline: React.FC<DurationPickerProps> = ({ value, onChange, disabled, id = 'duracao' }) => {
+  const set = (m: number) => onChange(clampMinutes(m));
+  const step =
+    'h-full px-3 flex items-center justify-center text-slate-300 hover:bg-slate-800 hover:text-white transition outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed';
+  return (
+    <div
+      role="group"
+      aria-label="Duração do cronômetro"
+      title={disabled ? 'Pause o relógio para trocar a duração' : 'Duração (5 a 120 min). Ao zerar, as respostas são bloqueadas.'}
+      className={`inline-flex h-12 items-stretch overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm ${disabled ? 'opacity-60' : ''}`}
+    >
+      <button type="button" className={step} onClick={() => set(value - TIMER_STEP)} disabled={disabled || value <= TIMER_MIN} aria-label="Diminuir 5 minutos">
+        <Minus className="w-4 h-4" />
+      </button>
+      <label htmlFor={id} className="sr-only">
+        Duração em minutos
+      </label>
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => set(Number(e.target.value))}
+        className="h-full w-[5.5rem] cursor-pointer border-x border-slate-800 bg-transparent px-1 text-center font-mono text-base font-black text-white outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed [text-align-last:center]"
+      >
+        {DURATIONS.map((m) => (
+          <option key={m} value={m}>
+            {m} min
+          </option>
+        ))}
+      </select>
+      <button type="button" className={step} onClick={() => set(value + TIMER_STEP)} disabled={disabled || value >= TIMER_MAX} aria-label="Aumentar 5 minutos">
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
