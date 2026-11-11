@@ -860,7 +860,8 @@ function nfcPublish(req) {
     if (!/^tag_[a-z0-9_]+$/.test(tag)) fail('Tag invalida: ' + tag);
     if (seen[tag]) fail('Tag repetida: ' + tag);
     seen[tag] = true;
-    var c = cleanQuestion(m);
+    var c;
+    try { c = cleanQuestion(m); } catch (err) { fail(tag + ': ' + (err && err.message ? err.message : String(err))); }
     var o = { tag_id: tag, disciplina: c.disciplina, assunto: c.assunto, tipo: c.tipo, pergunta: c.pergunta,
       resposta: c.resposta, aceitas: JSON.stringify(c.aceitas), opcoes: JSON.stringify(c.opcoes), xp: c.xp,
       explicacao: c.explicacao, publicada_em: now };

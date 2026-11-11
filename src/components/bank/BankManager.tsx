@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
 import { BankQuestion, BankQuestionDraft } from '../../types/bank';
-import { emptyDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
+import { emptyDraft, validateDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
 import { clearBancoKey, deleteQuestion, getBancoKey, importQuestions, listBanco, pingBanco, publishNfc, saveBancoKey, saveQuestion } from '../../utils/bankApi';
 import { setPublishedLocal } from '../../utils/missionsStore';
 import { QuestionForm } from './QuestionForm';
@@ -311,6 +311,13 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
               const { id: _id, atualizado_em: _a, ...rest } = q;
               return { ...rest, tag_id: tagName(start + i) };
             });
+            const ruins = missoes
+              .map((m) => ({ m, erro: validateDraft(m) }))
+              .filter((x) => x.erro);
+            if (ruins.length) {
+              const lista = ruins.slice(0, 5).map(({ m, erro }) => `• ${m.tag_id}: “${m.pergunta.replace(/\s+/g, ' ').slice(0, 60)}…” — ${erro}`).join('\n');
+              throw new Error(`${ruins.length} pergunta(s) com problema. Corrija (ou desmarque) e publique de novo:\n${lista}${ruins.length > 5 ? `\n…e mais ${ruins.length - 5}.` : ''}`);
+            }
             await publishNfc(missoes, somenteBanco);
             setPublishedLocal({ somenteBanco, missoes });
             setPublishing(false);
