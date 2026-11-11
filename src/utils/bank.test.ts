@@ -71,3 +71,35 @@ test('missões do banco: payload do CTF e missão do NFC validam a resposta cert
   assert.equal(validateAnswer(m, 'RSA').correto, false);
   assert.equal(tagName(7), 'tag_07');
 });
+
+import { filterBank, pickRandom, setCtfPrefill, takeCtfPrefill } from './bank.ts';
+import { BankQuestion } from '../types/bank';
+
+const mk = (id: string, disciplina: string, ativo: boolean, assunto = 'A'): BankQuestion => ({
+  id, disciplina, assunto, tipo: 'exata', pergunta: `Pergunta ${id}?`, resposta: 'x', aceitas: [], opcoes: [], xp: 10, explicacao: '', ativo,
+});
+
+test('filterBank: por padrão só ativas; incluirInativas traz todas (mesma regra NFC/CTF)', () => {
+  const list = [mk('1', 'Redes', true), mk('2', 'Redes', false), mk('3', 'SO', false, 'B')];
+  assert.deepEqual(filterBank(list, {}).map((q) => q.id), ['1']);
+  assert.deepEqual(filterBank(list, { incluirInativas: true }).map((q) => q.id).sort(), ['1', '2', '3']);
+  assert.deepEqual(filterBank(list, { incluirInativas: true, disciplina: 'SO' }).map((q) => q.id), ['3']);
+  assert.deepEqual(filterBank(list, { incluirInativas: true, assunto: 'B' }).map((q) => q.id), ['3']);
+  assert.deepEqual(filterBank(list, { incluirInativas: true, busca: 'pergunta 2' }).map((q) => q.id), ['2']);
+});
+
+test('pickRandom: sorteia sem repetir e respeita o limite', () => {
+  const r = pickRandom([1, 2, 3, 4, 5], 3, () => 0.3);
+  assert.equal(r.length, 3);
+  assert.equal(new Set(r).size, 3);
+  assert.equal(pickRandom([1, 2], 10).length, 2);
+  assert.equal(pickRandom([1, 2], 0).length, 0);
+});
+
+test('prefill do CTF é lido uma única vez', () => {
+  const store: Record<string, string> = {};
+  (globalThis as any).sessionStorage = { getItem: (k: string) => store[k] ?? null, setItem: (k: string, v: string) => { store[k] = v; }, removeItem: (k: string) => { delete store[k]; } };
+  setCtfPrefill(['a', 'b']);
+  assert.deepEqual(takeCtfPrefill(), ['a', 'b']);
+  assert.deepEqual(takeCtfPrefill(), []);
+});

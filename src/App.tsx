@@ -536,9 +536,6 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-right font-mono text-[11px] text-slate-400">
-            <span className="px-2.5 py-1 rounded-md bg-emerald-950/60 border border-emerald-800/40 text-emerald-300">
-              50 Missões NTAG213 NFC
-            </span>
             <span>Salas & Equipes de Alunos</span>
             <span className="text-red-400 font-bold">• IFS 2026</span>
           </div>

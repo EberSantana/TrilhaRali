@@ -9,6 +9,7 @@ import {
   Library,
   Lock,
   MonitorPlay,
+  Radio,
   Sheet,
   ShieldCheck,
   Users,
@@ -85,6 +86,49 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   </div>
 );
 
+
+interface StepRow {
+  step: number;
+  label: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
+/** Cartão de módulo: Rali NFC e CTF Online seguem exatamente os mesmos 4 passos. */
+const ModuleCard: React.FC<{ name: string; tagline: string; tone: 'emerald' | 'orange'; icon: React.ReactNode; rows: StepRow[] }> = ({ name, tagline, tone, icon, rows }) => {
+  const t = tone === 'emerald'
+    ? { head: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300', num: 'bg-emerald-600', hover: 'hover:border-emerald-500/50' }
+    : { head: 'bg-orange-500/10 border-orange-500/30 text-orange-300', num: 'bg-orange-600', hover: 'hover:border-orange-500/50' };
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5" aria-label={name}>
+      <header className="flex items-center gap-3">
+        <div className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center ${t.head}`}>{icon}</div>
+        <div>
+          <h2 className="text-lg font-black text-white leading-tight">{name}</h2>
+          <p className="text-xs text-slate-400">{tagline}</p>
+        </div>
+      </header>
+      <ol className="mt-4 space-y-2">
+        {rows.map((r) => (
+          <li key={r.step}>
+            <button type="button" onClick={r.onClick} className={`w-full text-left flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3 transition ${t.hover} hover:bg-slate-950`}>
+              <span className={`mt-0.5 w-6 h-6 shrink-0 rounded-full text-xs font-black text-white flex items-center justify-center ${t.num}`}>{r.step}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{r.label}</span>
+                <span className="block text-sm font-bold text-white">{r.title}</span>
+                <span className="block text-xs leading-relaxed text-slate-400">{r.description}</span>
+              </span>
+              <span className="mt-1 text-slate-500 shrink-0">{r.icon}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+};
+
 export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
   const [showBank, setShowBank] = useState(false);
   if (!p.isTeacher) {
@@ -109,7 +153,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
     );
   }
 
-  if (showBank) return <BankManager onBack={() => setShowBank(false)} />;
+  if (showBank) return <BankManager onBack={() => setShowBank(false)} onOpenCtf={() => { setShowBank(false); p.onOpenCtfPanel(); }} />;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
@@ -130,33 +174,53 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
         <Stat label="Envios registrados" value={String(p.submissionsCount)} />
       </div>
 
-      <Section title="Rali NFC">
-        <Tool title="Salas e equipes" description="Crie turmas e cadastre os alunos de cada equipe." icon={<Users className="w-5 h-5" />} onClick={p.onOpenRooms} />
-        <Tool title="Telão do rali" description="Ranking ao vivo e modo de pontuação para projetar." icon={<MonitorPlay className="w-5 h-5" />} onClick={p.onOpenProjector} />
-        <Tool title="Missões e gabarito" description="Catálogo das missões, etiquetas NFC/QR e respostas." icon={<BookOpenCheck className="w-5 h-5" />} onClick={p.onOpenMissions} />
-        <Tool title="Debriefing" description="Erros e acertos da turma para a conversa final." icon={<BarChart3 className="w-5 h-5" />} onClick={p.onOpenDebriefing} />
-        <Tool title="Console SQL do professor" description="Banco do rali para testar consultas." icon={<Database className="w-5 h-5" />} onClick={p.onOpenSql} />
-        <Tool title="Planilha (Google Sheets)" description="Exportação e backend do Apps Script." icon={<Sheet className="w-5 h-5" />} onClick={p.onOpenSheets} />
-      </Section>
-
-      <Section title="CTF Online">
-        <Tool title="Painel do CTF" description="Salas com token, fases, liberação do banco, ranking e telão." icon={<Flag className="w-5 h-5" />} onClick={p.onOpenCtfPanel} />
-      </Section>
-
-      <Section title="Banco de perguntas">
+      <Section title="1 · Conteúdo (compartilhado)">
         <Tool
-          title="Minhas perguntas e respostas"
-          description="Cadastre perguntas por disciplina (resposta exata ou múltipla escolha) e use no NFC e no CTF."
+          title="Banco de perguntas"
+          description="Cadastre e importe perguntas por disciplina. A mesma seleção vai para o Rali NFC, para o CTF Online ou para os dois."
           icon={<Library className="w-5 h-5" />}
           onClick={() => setShowBank(true)}
         />
       </Section>
 
-      <Section title="Aparência">
+      <h2 className="mt-8 mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">2 · Aula — mesmo roteiro nos dois módulos</h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ModuleCard
+          name="Rali NFC"
+          tagline="Equipes em grupo, tags no laboratório"
+          tone="emerald"
+          icon={<Radio className="w-5 h-5" />}
+          rows={[
+            { step: 1, label: 'Perguntas', title: 'Missões e gabarito', description: 'Catálogo das missões, etiquetas NFC/QR e respostas.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenMissions },
+            { step: 2, label: 'Turma', title: 'Salas e equipes', description: 'Crie turmas e cadastre os alunos de cada equipe.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenRooms },
+            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenProjector },
+            { step: 4, label: 'Resultados', title: 'Debriefing', description: 'Erros e acertos da turma para a conversa final.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenDebriefing },
+          ]}
+        />
+        <ModuleCard
+          name="CTF Online"
+          tagline="Fases individuais, com token"
+          tone="orange"
+          icon={<Flag className="w-5 h-5" />}
+          rows={[
+            { step: 1, label: 'Perguntas', title: 'Escolher fases', description: 'Pacotes de missões e perguntas do seu banco, no mesmo seletor.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
+            { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token aos alunos.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
+            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
+            { step: 4, label: 'Resultados', title: 'Ranking e envios', description: 'Acompanhe o ranking e o andamento de cada aluno.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCtfPanel },
+          ]}
+        />
+      </div>
+
+      <Section title="3 · Ferramentas do professor">
+        <Tool title="Console SQL do professor" description="Banco do rali para testar consultas." icon={<Database className="w-5 h-5" />} onClick={p.onOpenSql} />
+        <Tool title="Planilha (Google Sheets)" description="Exportação e backend do Apps Script." icon={<Sheet className="w-5 h-5" />} onClick={p.onOpenSheets} />
+      </Section>
+
+      <Section title="4 · Aparência">
         <ThemePicker />
       </Section>
 
-      <Section title="Conta">
+      <Section title="5 · Conta">
         <Tool title="PIN e sessão" description="Altere o PIN ou saia do modo professor." icon={<KeyRound className="w-5 h-5" />} onClick={p.onOpenAccount} />
       </Section>
     </div>

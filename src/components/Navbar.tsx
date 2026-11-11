@@ -77,9 +77,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-black text-lg sm:text-xl tracking-tight text-white">
                   Trilha Rali
                 </span>
-                <span className="inline-flex items-center text-[10px] uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold tracking-wider">
-                  NTAG213 NFC
-                </span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
                 <span>IFS Tobias Barreto</span>

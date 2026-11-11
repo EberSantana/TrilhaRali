@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
 import { BankQuestion, BankQuestionDraft } from '../../types/bank';
-import { emptyDraft, exportCsv, exportJson, tagName } from '../../utils/bank';
+import { emptyDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
 import { clearBancoKey, deleteQuestion, getBancoKey, importQuestions, listBanco, pingBanco, publishNfc, saveBancoKey, saveQuestion } from '../../utils/bankApi';
 import { setPublishedLocal } from '../../utils/missionsStore';
 import { QuestionForm } from './QuestionForm';
@@ -10,11 +10,13 @@ import { PublishDialog } from './PublishDialog';
 
 interface BankManagerProps {
   onBack: () => void;
+  /** Abre o Painel do CTF (a seleção atual vai junto para a nova sala). */
+  onOpenCtf: () => void;
 }
 
 const chip = 'text-[11px] font-semibold px-2 py-0.5 rounded-full border';
 
-export const BankManager: React.FC<BankManagerProps> = ({ onBack }) => {
+export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) => {
   const [chave, setChave] = useState(getBancoKey);
   const [authed, setAuthed] = useState(false);
   const [keyInput, setKeyInput] = useState('');
@@ -25,6 +27,7 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack }) => {
 
   const [disc, setDisc] = useState('');
   const [tipo, setTipo] = useState('');
+  const [status, setStatus] = useState('');
   const [busca, setBusca] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -89,10 +92,10 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack }) => {
   const visible = useMemo(() => {
     const term = busca.trim().toLowerCase();
     return questions
-      .filter((q) => (!disc || q.disciplina === disc) && (!tipo || q.tipo === tipo))
+      .filter((q) => (!disc || q.disciplina === disc) && (!tipo || q.tipo === tipo) && (!status || (status === 'ativas') === q.ativo))
       .filter((q) => !term || `${q.pergunta} ${q.assunto} ${q.resposta}`.toLowerCase().includes(term))
       .sort((a, b) => a.disciplina.localeCompare(b.disciplina, 'pt-BR') || a.assunto.localeCompare(b.assunto, 'pt-BR') || a.pergunta.localeCompare(b.pergunta, 'pt-BR'));
-  }, [questions, disc, tipo, busca]);
+  }, [questions, disc, tipo, status, busca]);
 
   const selectedList = useMemo(() => visible.filter((q) => selected.has(q.id)), [visible, selected]);
   const assuntosDaDisciplina = useMemo(
@@ -164,7 +167,7 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack }) => {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Banco de perguntas</h1>
-          <p className="mt-1 text-sm text-slate-400">{questions.length} pergunta(s) em {disciplinas.length} disciplina(s) · {ativas} ativa(s)</p>
+          <p className="mt-1 text-sm text-slate-400">{questions.length} pergunta(s) em {disciplinas.length} disciplina(s) · {ativas} ativa(s) · {questions.length - ativas} inativa(s)</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setEditing(emptyDraft(disc))} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500"><Plus className="w-4 h-4" /> Nova pergunta</button>
@@ -185,15 +188,21 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack }) => {
           <option value="exata">Resposta exata</option>
           <option value="multipla">Múltipla escolha</option>
         </select>
+        <select aria-label="Filtrar por situação" value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-200">
+          <option value="">Ativas e inativas</option>
+          <option value="ativas">Só ativas</option>
+          <option value="inativas">Só inativas</option>
+        </select>
         <input aria-label="Buscar" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar pergunta, assunto ou resposta" className="min-w-[220px] flex-1 rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white placeholder:text-slate-500" />
         <button onClick={disconnect} className="text-xs font-semibold text-slate-500 hover:text-slate-300">Desconectar</button>
       </div>
 
       {selected.size > 0 && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5">
-          <span className="text-sm font-semibold text-emerald-200">{selectedList.length} selecionada(s)</span>
-          <div className="flex gap-2">
-            <button onClick={() => setPublishing(true)} disabled={!selectedList.length} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"><Send className="w-4 h-4" /> Publicar no Rali NFC</button>
+          <span className="text-sm font-semibold text-emerald-200">{selectedList.length} selecionada(s)<span className="ml-2 text-xs font-normal text-emerald-200/70">usar em:</span></span>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setPublishing(true)} disabled={!selectedList.length} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"><Send className="w-4 h-4" /> Rali NFC</button>
+            <button onClick={() => { setCtfPrefill(selectedList.map((q) => q.id)); onOpenCtf(); }} disabled={!selectedList.length} className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-orange-500 disabled:opacity-50"><Flag className="w-4 h-4" /> CTF Online</button>
             <button onClick={() => setSelected(new Set())} className="rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-300 hover:bg-slate-800">Limpar</button>
           </div>
         </div>

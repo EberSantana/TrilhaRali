@@ -229,3 +229,52 @@ export const CSV_TEMPLATE = exportCsv([
   { ...emptyDraft('Redes de Computadores'), assunto: 'Camada de rede', pergunta: 'Qual protocolo traduz nomes em endereços IP?', resposta: 'DNS', aceitas: ['dns server'], xp: 10 },
   { ...emptyDraft('Segurança da Informação'), assunto: 'Criptografia', tipo: 'multipla', pergunta: 'Qual destes é um algoritmo simétrico?', resposta: 'AES', opcoes: ['RSA', 'AES', 'ECC'], xp: 15, explicacao: 'AES usa a mesma chave para cifrar e decifrar.' },
 ]);
+
+// ---------- Seleção (usada pelo Rali NFC e pelo CTF Online) ----------
+
+export interface BankFilter {
+  disciplina?: string;
+  assunto?: string;
+  busca?: string;
+  incluirInativas?: boolean;
+}
+
+/** Mesma regra de filtro nos dois módulos: por padrão só perguntas ativas. */
+export function filterBank(list: BankQuestion[], f: BankFilter): BankQuestion[] {
+  const term = (f.busca || '').trim().toLowerCase();
+  return list
+    .filter((q) => (f.incluirInativas ? true : q.ativo))
+    .filter((q) => !f.disciplina || q.disciplina === f.disciplina)
+    .filter((q) => !f.assunto || q.assunto === f.assunto)
+    .filter((q) => !term || `${q.pergunta} ${q.assunto} ${q.resposta}`.toLowerCase().includes(term))
+    .sort(
+      (a, b) =>
+        a.disciplina.localeCompare(b.disciplina, 'pt-BR') ||
+        a.assunto.localeCompare(b.assunto, 'pt-BR') ||
+        a.pergunta.localeCompare(b.pergunta, 'pt-BR')
+    );
+}
+
+/** Sorteia até n itens sem repetir (rand injetável para testes). */
+export function pickRandom<T>(list: T[], n: number, rand: () => number = Math.random): T[] {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, Math.max(0, Math.min(n, a.length)));
+}
+
+/** Seleção levada do Banco de perguntas para a criação de uma sala de CTF. */
+const PREFILL_KEY = 'trilha_ctf_prefill_v1';
+export function setCtfPrefill(ids: string[]) {
+  try { sessionStorage.setItem(PREFILL_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+}
+export function takeCtfPrefill(): string[] {
+  try {
+    const raw = sessionStorage.getItem(PREFILL_KEY);
+    sessionStorage.removeItem(PREFILL_KEY);
+    const v = raw ? JSON.parse(raw) : [];
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch { return []; }
+}
