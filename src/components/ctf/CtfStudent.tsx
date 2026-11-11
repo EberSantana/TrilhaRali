@@ -14,8 +14,9 @@ import {
 import { playSound } from '../../utils/audio';
 import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 import { SqlConsole } from './SqlConsole';
+import { Top5Board } from './Top5Board';
 
-const POLL_MS = 20_000;
+const POLL_MS = 10_000;
 
 export const CtfStudent: React.FC = () => {
   const link = useRef(parseCtfHash());
@@ -362,29 +363,17 @@ export const CtfStudent: React.FC = () => {
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 h-fit">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <h3 className="font-bold text-white flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-400" /> Ranking
+              <Trophy className="w-4 h-4 text-amber-400" /> Top 5
             </h3>
             <span className="text-[11px] font-mono text-slate-500">{state.total_alunos} {state.total_alunos === 1 ? 'aluno' : 'alunos'}</span>
           </div>
-          <ol className="space-y-1.5">
-            {ranking.map((r, i) => (
-              <li
-                key={`${r.nome}-${i}`}
-                className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${
-                  r.nome === aluno.nome ? 'bg-orange-500/15 border border-orange-500/40' : 'bg-slate-950/70 border border-slate-800'
-                }`}
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono font-black text-slate-400 w-6 shrink-0">{i + 1}º</span>
-                  <span className="truncate font-semibold text-slate-100">{r.nome}</span>
-                </span>
-                <span className="shrink-0 font-mono text-xs text-slate-300">
-                  {r.fogos > 0 && <span className="mr-1.5">🔥{r.fogos}</span>}F{Math.min(r.fase, sala.total)} • <strong className="text-emerald-300">{r.xp}</strong>
-                </span>
-              </li>
-            ))}
-          </ol>
-          <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 20 segundos.</p>
+          <Top5Board
+            rows={ranking}
+            totalFases={sala.total}
+            me={aluno.nome}
+            mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
+          />
+          <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 10 segundos.</p>
         </div>
       </div>
     </div>

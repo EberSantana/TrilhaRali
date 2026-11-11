@@ -156,3 +156,7 @@ Se desejar replicar as notas ao vivo para uma planilha no seu Google Drive sem c
 ### Missões do Console SQLite (50 fases)
 
 O CTF Online traz um banco de 50 missões (`src/data/consoleMissions.ts`) que só se resolvem executando comandos no Console SQLite: consultas, agregações, JOINs, subconsultas, DDL e integridade. São os pacotes "Console" ao criar a sala (marcados por padrão). Cada resposta é verificada nos testes (`npx tsx --test src/data/*.test.ts`) executando a solução no banco entregue aos alunos.
+
+### Ranking Top 5 e telão
+
+Na tela do aluno, o ranking mostra o Top 5 com pódio, setas de subida/descida (▲ ▼) e "+XP" por alguns segundos quando alguém pontua; se o aluno está fora do Top 5, sua posição aparece abaixo. Atualiza a cada 10 s. No painel do professor, o botão "Projetar ranking" abre o Top 5 em tela cheia (atualiza a cada 5 s, Esc fecha) com o token para novos alunos entrarem.

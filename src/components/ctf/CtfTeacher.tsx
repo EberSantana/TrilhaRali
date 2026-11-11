@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Clipboard, Database, Flag, Link2, Loader2, Lock, Plus, Power, RefreshCw, Settings, Trash2, Unlock, Users } from 'lucide-react';
+import { Check, Clipboard, Database, Flag, Link2, Loader2, Lock, Plus, Power, RefreshCw, Settings, Trash2, Trophy, Unlock, Users } from 'lucide-react';
 import { ALL_MISSIONS } from '../../data/missions';
 import { CONSOLE_MISSIONS } from '../../data/consoleMissions';
 
@@ -7,6 +7,7 @@ import { CONSOLE_MISSIONS } from '../../data/consoleMissions';
 const CTF_POOL = [...CONSOLE_MISSIONS, ...ALL_MISSIONS];
 const isConsolePackage = (id: string) => id.startsWith('console_');
 import { CTF_APPS_SCRIPT } from '../../data/ctfAppsScript';
+import { CtfProjector } from './CtfProjector';
 import { CtfMissionPayload, CtfStoredRoom, CtfTeacherView } from '../../types/ctf';
 import { ScoringMode } from '../../types';
 import {
@@ -40,6 +41,7 @@ export const CtfTeacher: React.FC = () => {
   const [rooms, setRooms] = useState<CtfStoredRoom[]>(getTeacherRooms);
   const [activeToken, setActiveToken] = useState<string | null>(() => getTeacherRooms()[0]?.token ?? null);
   const [view, setView] = useState<CtfTeacherView | null>(null);
+  const [projecting, setProjecting] = useState(false);
   const [monitorError, setMonitorError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -355,6 +357,13 @@ export const CtfTeacher: React.FC = () => {
                   >
                     <Database className="w-4 h-4" /> Banco: {view?.sala.banco ? 'liberado' : 'oculto'}
                   </button>
+                  <button
+                    onClick={() => setProjecting(true)}
+                    className="px-3 py-2 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500 text-amber-200 text-xs font-bold flex items-center gap-1.5"
+                    title="Abre o top 5 em tela cheia para projetar"
+                  >
+                    <Trophy className="w-4 h-4" /> Projetar ranking
+                  </button>
                   <button onClick={loadView} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700" title="Atualizar agora" aria-label="Atualizar">
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -440,6 +449,7 @@ export const CtfTeacher: React.FC = () => {
           )}
         </div>
       </div>
+      {projecting && activeRoom && <CtfProjector room={activeRoom} siteLink={siteLink} onClose={() => setProjecting(false)} />}
     </div>
   );
 };
