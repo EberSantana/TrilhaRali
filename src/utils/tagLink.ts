@@ -1,4 +1,4 @@
-const TAG_RE = /^tag_[a-z0-9_]+$/i;
+const TAG_RE = /^(tag|linux)_[a-z0-9_]+$/i;
 
 /** Endereço que abre o app direto numa missão: ...#/tag/tag_07 (serve para NFC e QR code). */
 export function buildTagLink(base: string, tagId: string): string {

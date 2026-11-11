@@ -83,8 +83,8 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
   const loadTag = async (rawPayload: string) => {
     let payload = rawPayload.trim();
-    if (payload.length > 3 && payload.includes('tag_')) {
-      const match = payload.match(/tag_[a-z0-9_]+/i);
+    if (payload.length > 3 && /(tag|linux)_/i.test(payload)) {
+      const match = payload.match(/(?:tag|linux)_[a-z0-9_]+/i);
       if (match) payload = match[0];
     }
 
