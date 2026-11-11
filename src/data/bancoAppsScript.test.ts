@@ -293,5 +293,5 @@ test('cronômetro do Rali NFC e tema: só o professor altera, qualquer aluno lê
 
   assert.equal(call({ action: 'setTema', chave, tema: 'claro' }).tema, 'claro');
   assert.equal(call({ action: 'raliEstado' }).tema, 'claro');
-  assert.equal(call({ action: 'setTema', chave, tema: 'qualquer' }).tema, 'escuro');
+  assert.equal(call({ action: 'setTema', chave, tema: 'qualquer' }).tema, 'claro');
 });

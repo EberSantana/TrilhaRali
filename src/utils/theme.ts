@@ -1,14 +1,15 @@
 import { useSyncExternalStore } from 'react';
 
-/** 'escuro' = Arena escura (proposta A) · 'claro' = Quadro claro (proposta B) */
+/** 'claro' = Quadro claro (padrão) · 'escuro' = Arena escura (alternativa para sala escura) */
 export type Theme = 'escuro' | 'claro';
 
-const KEY = 'trilha_tema_v1';
+// v2: o padrão passou a ser o Quadro claro; quem tinha escolhido o escuro antes volta ao padrão
+const KEY = 'trilha_tema_v2';
 const listeners = new Set<() => void>();
 
 export const THEMES: { id: Theme; nome: string; descricao: string }[] = [
-  { id: 'escuro', nome: 'Arena escura', descricao: 'Fundo escuro com verde e laranja. Pódio no telão.' },
-  { id: 'claro', nome: 'Quadro claro', descricao: 'Fundo claro e alto contraste, para sala iluminada ou projetor fraco.' },
+  { id: 'claro', nome: 'Quadro claro', descricao: 'Padrão. Fundo claro e alto contraste, ótimo para sala iluminada, projetor e impressão.' },
+  { id: 'escuro', nome: 'Arena escura', descricao: 'Fundo escuro com verde e laranja, para sala com pouca luz.' },
 ];
 
 export const isTheme = (v: unknown): v is Theme => v === 'escuro' || v === 'claro';
@@ -16,13 +17,13 @@ export const isTheme = (v: unknown): v is Theme => v === 'escuro' || v === 'clar
 function load(): Theme {
   try {
     const v = localStorage.getItem(KEY);
-    return isTheme(v) ? v : 'escuro';
+    return isTheme(v) ? v : 'claro';
   } catch {
-    return 'escuro';
+    return 'claro';
   }
 }
 
-let current: Theme = typeof window === 'undefined' ? 'escuro' : load();
+let current: Theme = typeof window === 'undefined' ? 'claro' : load();
 
 function paint() {
   if (typeof document !== 'undefined') document.documentElement.dataset.theme = current;

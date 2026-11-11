@@ -62,6 +62,8 @@ A **Trilha Rali** transforma uma aula de laboratório em uma competição organi
 
 O topo do site alterna entre os módulos. Os endereços `#/rali`, `#/ctf` e `#/professor` abrem cada um direto.
 
+> **Novidade (script v6):** o Rali NFC agora também tem **salas com token criadas pelo professor**, como o CTF Online. Os dois ambientes são independentes (painel `#/professor/rali` e `#/professor/ctf`) e só **compartilham o banco de perguntas**. A equipe entra com token + nome da equipe, lê as etiquetas NFC/QR (ou digita o código) e vê o ranking; ao fim do tempo, ou quando o professor encerra a sala, aparece o **pódio final** nos dois ambientes e nos dois temas. O tema claro é o padrão e a logo tem versão própria para fundo branco. Ao atualizar, cole o script v6 no Apps Script e publique uma **nova versão**.
+
 ### 🏷️ Rali NFC — em equipes
 
 Dinâmica presencial. Etiquetas **NTAG213** (ou QR codes) espalhadas pelo laboratório guardam as missões. Cada equipe elege um **aluno scanner** que encosta o celular na etiqueta, lê a pergunta, resolve com o grupo e envia a resposta. O ranking atualiza no **Telão**.

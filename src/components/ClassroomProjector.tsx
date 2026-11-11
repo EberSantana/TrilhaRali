@@ -32,6 +32,8 @@ import { Top5Board } from './ctf/Top5Board';
 import { useTheme } from '../utils/theme';
 import { pushRaliTimer } from '../utils/raliSession';
 import { DurationPicker } from './common/DurationPicker';
+import { Btn, Toolbar, ToolbarDivider } from './common/ui';
+import { FinalPodium, useCelebrate } from './common/FinalPodium';
 
 interface ClassroomProjectorProps {
   teams: Team[];
@@ -175,6 +177,8 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   const maxScore = Math.max(sortedTeams[0]?.xp_total || 1, 100);
 
   const rem = sessionState.timerSecondsRemaining;
+  const finishedRun = sessionState.isSubmissionsLocked && (rem <= 0 || sessionState.activePhase === 'hard_stop' || !sessionState.isRunning) && sortedTeams.some((t) => t.xp_total > 0);
+  useCelebrate(finishedRun && rem <= 0);
   const durationMin = clampMinutes(sessionState.totalSeconds / 60);
   // Mesmo relógio do CTF: o estado local do Rali vira um TimerInfo para o componente padrão
   const timerInfo: TimerInfo = {
@@ -206,73 +210,21 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
 
           <TimerDisplay timer={timerInfo} seconds={rem} phase={timerPhase(timerInfo, rem)} size="faixa" />
 
-          {/* Instructor Quick Controls */}
-          <div className="flex items-center flex-wrap gap-2">
-            <button
-              onClick={onOpenRoomsModal}
-              className="p-3 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 rounded-xl font-bold flex items-center gap-2 transition shadow-lg text-sm"
-              title="Gerenciar Salas do Rali e Integrantes das Equipes"
-            >
-              <Users className="w-5 h-5 text-emerald-400" />
-              <span className="hidden sm:inline">Alunos & Salas</span>
-            </button>
-
-            <button
-              onClick={toggleTimer}
-              className={`p-3 rounded-xl font-bold flex items-center gap-2 transition text-white shadow-lg ${
-                sessionState.isRunning
-                  ? 'bg-amber-600 hover:bg-amber-500'
-                  : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
-              }`}
-              title={sessionState.isRunning ? 'Pausar Cronômetro' : 'Iniciar Contagem'}
-              aria-label={sessionState.isRunning ? 'Pausar' : 'Iniciar'}
-            >
-              {sessionState.isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              <span className="text-sm">{sessionState.isRunning ? 'Pausar' : 'Iniciar'}</span>
-            </button>
-
-            <button
-              onClick={toggleLock}
-              className={`p-3 rounded-xl font-bold flex items-center gap-2 transition text-white shadow-lg ${
-                sessionState.isSubmissionsLocked
-                  ? 'bg-emerald-600 hover:bg-emerald-500'
-                  : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30'
-              }`}
-              title={sessionState.isSubmissionsLocked ? 'Liberar respostas' : 'Travar respostas agora'}
-              aria-label="Travar Respostas"
-            >
-              {sessionState.isSubmissionsLocked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-              <span className="text-sm">
-                {sessionState.isSubmissionsLocked ? 'Destravar' : 'Travar'}
-              </span>
-            </button>
-
-            <button
-              onClick={() => addTimeMinutes(5)}
-              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-sm font-semibold transition border border-slate-700"
-              title="Adicionar 5 minutos"
-            >
-              +5 min
-            </button>
-
-            <button
-              onClick={onResetSession}
-              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700"
-              title="Reiniciar Dinâmica"
-              aria-label="Reiniciar"
-            >
-              <RotateCcw className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700"
-              title="Modo Telão Fullscreen"
-              aria-label="Tela Cheia"
-            >
-              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
-          </div>
+          <Toolbar label="Controles do telão" className="!bg-transparent !shadow-none !border-slate-800">
+            <Btn variant={sessionState.isRunning ? 'warn' : 'primary'} size="lg" onClick={toggleTimer} icon={sessionState.isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />} aria-label={sessionState.isRunning ? 'Pausar' : 'Iniciar'}>
+              {sessionState.isRunning ? 'Pausar' : 'Iniciar'}
+            </Btn>
+            <Btn variant={sessionState.isSubmissionsLocked ? 'primary' : 'danger'} size="lg" onClick={toggleLock} icon={sessionState.isSubmissionsLocked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />} aria-label="Travar Respostas">
+              {sessionState.isSubmissionsLocked ? 'Destravar' : 'Travar'}
+            </Btn>
+            <Btn size="lg" onClick={() => addTimeMinutes(5)} title="Adicionar 5 minutos">+5 min</Btn>
+            <ToolbarDivider />
+            <Btn size="lg" onClick={onOpenRoomsModal} icon={<Users className="w-5 h-5" />} title="Gerenciar salas do rali local e integrantes das equipes">Equipes</Btn>
+            <Btn size="lg" onClick={onResetSession} icon={<RotateCcw className="w-5 h-5" />} aria-label="Reiniciar" title="Reiniciar dinâmica">Reiniciar</Btn>
+            <Btn size="lg" variant="ghost" onClick={toggleFullscreen} icon={isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />} aria-label="Tela Cheia" title="Tela cheia">
+              Tela cheia
+            </Btn>
+          </Toolbar>
         </div>
 
         {isTeacher && !sessionState.isRunning && (
@@ -330,7 +282,18 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
         </div>
       </div>
 
-      {/* Top 5 (mesmo quadro do CTF Online) */}
+      {/* Resultado final: aparece quando o tempo acaba ou o professor trava as respostas */}
+      {finishedRun ? (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10">
+          <FinalPodium
+            rows={sortedTeams.map((t) => ({ nome: t.nome, xp: t.xp_total, fase: t.missoes_concluidas.length, fogos: t.fogos_count || 0 }))}
+            totalFases={missions.length}
+            unit="missões"
+            entity="equipes"
+            size="big"
+          />
+        </div>
+      ) : (
       <Top5Board
         rows={sortedTeams.map((t) => ({ nome: t.nome, xp: t.xp_total, fase: t.missoes_concluidas.length, fogos: 0 }))}
         totalFases={missions.length}
@@ -338,6 +301,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
         variant={theme === 'claro' ? 'bars' : 'podium'}
         unit="missões"
       />
+      )}
 
       {/* Main Leaderboard Table and Live Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

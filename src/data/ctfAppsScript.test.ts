@@ -183,3 +183,59 @@ test('ranking, painel do professor, chave de admin e sala encerrada', () => {
   // quem já estava na sala ainda consegue ver o estado/ranking
   assert.equal(call({ action: 'join', token: room.token, nome: 'Ana' }).sala.status, 'encerrada');
 });
+
+test('Rali NFC online: sala por equipes, missões em qualquer ordem, XP e ranking no servidor', () => {
+  const { call, sheets } = createBackend();
+  assert.match(call({ action: 'createRoom', nome: 'X', tipo: 'rali', missions: [missions[0], missions[0]] }).error, /repetida/);
+  const room = call({ action: 'createRoom', nome: 'Rali 1', tipo: 'rali', modo: 'ctf_dynamic', missions });
+  assert.equal(room.tipo, 'rali');
+  assert.equal(call({ action: 'teacherRoom', token: room.token, adminKey: room.adminKey }).sala.tipo, 'rali');
+
+  const a = call({ action: 'join', token: room.token, nome: 'Equipe Alfa', integrantes: ['Ana', ' ', 'Bia Souza'] });
+  assert.equal(a.sala.tipo, 'rali');
+  assert.equal(a.equipe.nome, 'Equipe Alfa');
+  assert.deepEqual(a.equipe.integrantes, ['Ana', 'Bia Souza']);
+  assert.equal(a.missoes.length, 3);
+  assert.equal(JSON.stringify(a).includes('DROP TABLE'), false, 'o gabarito não pode vazar para a equipe');
+  call({ action: 'join', token: room.token, nome: 'Equipe Beta' });
+
+  // etiqueta fora da sala e sala do tipo errado
+  assert.match(call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'zzz' }).error, /nao faz parte/);
+  const ctfRoom = call({ action: 'createRoom', nome: 'C', missions });
+  call({ action: 'join', token: ctfRoom.token, nome: 'Caio' });
+  assert.match(call({ action: 'raliTag', token: ctfRoom.token, nome: 'Caio', tag_id: 't1' }).error, /CTF Online/);
+
+  // ordem livre: começa pela t3
+  const info = call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'T3' });
+  assert.equal(info.missao.pergunta, 'Q3?');
+  assert.equal(info.ja_resolvida, false);
+  const ok = call({ action: 'raliSubmit', token: room.token, nome: 'equipe alfa', tag_id: 't3', resposta: 'verdadeiro' });
+  assert.equal(ok.correto, true);
+  assert.equal(ok.premio.xp, 30);
+  assert.equal(ok.premio.isFogo, true);
+  assert.equal(ok.equipe.acertos, 1);
+  assert.equal(ok.missoes.find((m: Json) => m.tag_id === 't3').concluida, true);
+
+  // mesma equipe não captura duas vezes; outra equipe ganha menos (dinâmico) e sem fogo
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Alfa', tag_id: 't3', resposta: 'Verdadeiro' }).error, /ja resolveu/);
+  const b = call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't3', resposta: 'Verdadeiro' });
+  assert.equal(b.premio.posicao, 2);
+  assert.equal(b.premio.xp, 27);
+  assert.equal(b.premio.isFogo, false);
+
+  // erro conta e aplica o intervalo
+  const wrong = call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't1', resposta: 'x' });
+  assert.equal(wrong.correto, false);
+  assert.equal(wrong.equipe.erros, 1);
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't1', resposta: 'drop' }).error, /Aguarde/);
+
+  const st = call({ action: 'state', token: room.token, nome: 'Equipe Beta' });
+  assert.equal(st.ranking[0].nome, 'Equipe Alfa');
+  assert.equal(st.ranking[0].fase, 1);
+  assert.equal(st.total_equipes, 2);
+
+  // sala encerrada bloqueia envios
+  call({ action: 'setStatus', token: room.token, adminKey: room.adminKey, status: 'encerrada' });
+  sheets.get('CtfAlunos')![2][10] = 0;
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Equipe Beta', tag_id: 't1', resposta: 'drop' }).error, /encerrada/);
+});
