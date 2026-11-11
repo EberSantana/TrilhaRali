@@ -12,6 +12,7 @@ export interface FsNode {
   mtime: number;
   content: string; // arquivos
   children: Record<string, FsNode>; // diretórios
+  link?: string; // link simbólico (ln -s)
 }
 
 export interface ShellState {
@@ -284,7 +285,7 @@ const fmtDate = (t: number) => {
 
 function modeStr(n: FsNode): string {
   const bits = 'rwxrwxrwx';
-  let s = n.type === 'dir' ? 'd' : '-';
+  let s = n.link ? 'l' : n.type === 'dir' ? 'd' : '-';
   for (let i = 0; i < 9; i++) s += n.mode & (1 << (8 - i)) ? bits[i] : '-';
   return s;
 }
@@ -294,7 +295,7 @@ function sizeOf(n: FsNode): number {
 }
 
 function lsLine(name: string, n: FsNode): string {
-  return `${modeStr(n)} 1 ${n.owner.padEnd(6)} ${n.group.padEnd(6)} ${String(sizeOf(n)).padStart(5)} ${fmtDate(n.mtime)} ${name}`;
+  return `${modeStr(n)} 1 ${n.owner.padEnd(6)} ${n.group.padEnd(6)} ${String(sizeOf(n)).padStart(5)} ${fmtDate(n.mtime)} ${name}${n.link ? ' -> ' + n.link : ''}`;
 }
 
 const lines = (s: string): string[] => {
@@ -313,7 +314,8 @@ function readInputs(st: ShellState, names: string[], stdin: string, cmd: string)
   let code = 0;
   const named: { name: string; text: string }[] = [];
   names.forEach((nm) => {
-    const n = nodeAt(st, resolvePath(st, nm));
+    let n = nodeAt(st, resolvePath(st, nm));
+    if (n && n.link) n = nodeAt(st, resolvePath(st, n.link));
     if (!n) {
       err += `${cmd}: ${nm}: Arquivo ou diretório inexistente\n`;
       code = 1;
@@ -365,7 +367,11 @@ const COMMANDS: Record<string, Impl> = {
         '  texto ......... echo  grep [-i -n -v -c]  wc [-l -w -c]  sort [-r -n]  uniq [-c]  cut -d -f',
         '  permissões .... chmod  (ex.: chmod 755 arq, chmod +x arq)  ls -l',
         '  sistema ....... whoami  id  hostname  uname -a  date  uptime  w  free  du  df  ps  kill  history  clear',
-        '  rede (simul.) . ping  whois  dig  wget  curl  ssh      compactar ... tar cf/tf/xf      outros ... locate  whereis  man',
+        '  rede (simul.) . ping  ip  ifconfig  netstat  ss  traceroute  nslookup  dig  whois  wget  curl  ssh  scp  nmap',
+        '  compactar ..... tar cf/tf/xf  gzip  gunzip  zip  unzip  rsync      links ... ln -s',
+        '  usuários ...... who  last  groups  su  umask  passwd  (useradd/usermod/userdel só o root)',
+        '  disco/serviços  lsblk  blkid  mount  top  htop  systemctl status  apt list  (instalar pede root)',
+        '  outros ........ locate  whereis  man  stat  diff  less  basename  dirname',
         '  extras ........ pipes (cmd | cmd), redirecionamento (> e >>), && e ;, ./script.sh, TAB completa, ↑ ↓ histórico',
         '  dica .......... use  reset  para voltar o sistema de arquivos ao início',
       ].join('\n') + '\n'
@@ -374,7 +380,7 @@ const COMMANDS: Record<string, Impl> = {
   whoami: (st) => ok(st.user + '\n'),
   id: (st) => ok(`uid=1000(${st.user}) gid=1000(${st.user}) grupos=1000(${st.user})\n`),
   hostname: (st) => ok(st.host + '\n'),
-  uname: (_st, a) => ok(a.includes('-a') ? 'Linux rali-lab 6.1.0-rali #1 SMP x86_64 GNU/Linux\n' : 'Linux\n'),
+  uname: (_st, a) => ok(a.includes('-r') ? '6.1.0-rali\n' : a.includes('-a') ? 'Linux rali-lab 6.1.0-rali #1 SMP x86_64 GNU/Linux\n' : 'Linux\n'),
   date: () => ok(new Date().toString() + '\n'),
   env: (st) => ok(Object.entries(st.env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n'),
   printenv: (st, a) => (a[0] ? ok((st.env[a[0]] ?? '') + (st.env[a[0]] !== undefined ? '\n' : '')) : COMMANDS.env(st, [], '')),
@@ -793,6 +799,12 @@ const MANUAL: Record<string, string> = {
   kill: 'kill PID - encerra o processo com aquele número.',
   find: 'find pasta -name "*.txt" - procura arquivos pelo nome.',
   df: 'df -h - mostra o espaço dos discos.',
+  ln: 'ln -s origem link - cria um atalho (link simbólico) para um arquivo.',
+  gzip: 'gzip arquivo - comprime (vira arquivo.gz); gunzip desfaz.',
+  systemctl: 'systemctl status nome - mostra se um serviço está rodando (start/stop pedem root).',
+  sudo: 'sudo comando - roda como administrador. Aqui você não tem esse poder.',
+  chown: 'chown dono arquivo - muda o dono; só o root pode.',
+  top: 'top - mostra os processos que mais usam CPU e memória.',
   du: 'du -sh pasta - mostra o tamanho de uma pasta.',
 };
 
@@ -945,6 +957,140 @@ const EXTRA: Record<string, Impl> = {
   },
 };
 Object.assign(COMMANDS, EXTRA);
+
+const SIM_ROOT = (st: ShellState, cmd: string): Cmd => bad(`${cmd}: permissão negada: só o administrador (root) pode fazer isso. Você é "${st.user}".\n`);
+
+const EXTRA2: Record<string, Impl> = {
+  who: (st) => ok(`${st.user}   pts/0   2026-11-11 14:26\n`),
+  last: (st) => ok(`${st.user}   pts/0   rali-lab   Qua Nov 11 14:26   ainda logado\nreboot   system boot  6.1.0-rali   Qua Nov 11 14:24\n`),
+  groups: (st) => ok(`${st.user} cdrom audio users\n`),
+  su: (st) => bad(`su: falha de autenticação (${st.user} não conhece a senha de root)\n`),
+  umask: () => ok('0022\n'),
+  useradd: (st) => SIM_ROOT(st, 'useradd'),
+  adduser: (st) => SIM_ROOT(st, 'adduser'),
+  usermod: (st) => SIM_ROOT(st, 'usermod'),
+  userdel: (st) => SIM_ROOT(st, 'userdel'),
+  gpasswd: (st) => SIM_ROOT(st, 'gpasswd'),
+  passwd: (st) => ok(`Alterando a senha de ${st.user}.\n(simulado: a senha não é alterada de verdade)\n`),
+  mount: () => ok('/dev/sda1 on / type ext4 (rw,relatime)\ntmpfs on /tmp type tmpfs (rw)\nproc on /proc type proc (rw)\n'),
+  umount: (st) => SIM_ROOT(st, 'umount'),
+  fdisk: (st) => SIM_ROOT(st, 'fdisk'),
+  parted: (st) => SIM_ROOT(st, 'parted'),
+  mkfs: (st) => SIM_ROOT(st, 'mkfs'),
+  fsck: (st) => SIM_ROOT(st, 'fsck'),
+  lsblk: () => ok('NOME   TAM  TIPO PONTO DE MONTAGEM\nsda     40G  disk\n└─sda1  40G  part /\n'),
+  blkid: () => ok('/dev/sda1: UUID="3f2a9c1e-77aa-4d10-9c3e-0b5f1d2e8a11" TYPE="ext4"\n'),
+  lsof: (st) => ok('COMANDO  PID  USUARIO  ARQUIVO\nbash     101  ' + st.user + '    /home/aluno\nfirefox  150  ' + st.user + '    /home/aluno/downloads\n'),
+  vmstat: () => ok('procs  memória   swap   cpu\n r  b   livre   si so  us sy id\n 0  0 1523212   0  0   2  1 97\n'),
+  iostat: () => ok('CPU: %user 2,1  %system 1,0  %idle 96,9\nDispositivo   tps   kB_lidos/s\nsda          3,2   41,5\n'),
+  top: (st) => ok('top - 16:40:12 up 2:14, 1 user, load average: 0,12\nTarefas: ' + (st.procs.length + 1) + ' total\n  PID USUARIO  %CPU %MEM COMANDO\n' + st.procs.map((p) => `${String(p.pid).padStart(5)} ${p.user.padEnd(8)} 0,${p.pid % 9}  1,${p.pid % 7} ${p.cmd}`).join('\n') + '\n(foto do momento; no Linux de verdade o top atualiza sozinho. Saia com q)\n'),
+  htop: (st) => COMMANDS.top(st, [], ''),
+  pkill: (st, a) => COMMANDS.killall(st, a, ''),
+  nice: (st, a) => (a.length ? COMMANDS.echo(st, ['(simulado) rodaria com prioridade menor:', ...a.filter((x) => x !== '-n' && !/^-?\d+$/.test(x))], '') : ok('0\n')),
+  renice: () => ok('(simulado) prioridade alterada\n'),
+  jobs: () => ok(''),
+  bg: () => bad('bg: não há tarefas suspensas\n'),
+  fg: () => bad('fg: não há tarefas em segundo plano\n'),
+  strace: (_st, a) => ok(`execve("/usr/bin/${a[0] ?? 'programa'}", ...) = 0\nbrk(NULL) = 0x55d4c0\nopenat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY) = 3\nwrite(1, "...", 12) = 12\nexit_group(0) = ?\n(simulado: só um exemplo do que o strace mostra)\n`),
+  systemctl: (st, a) => {
+    const [acao, srv] = a;
+    if (acao === 'status') return ok(`● ${srv ?? 'sistema'}.service - serviço de exemplo\n   Ativo: ativo (rodando) desde Qua 2026-11-11 14:24\n`);
+    if (['start', 'stop', 'restart', 'enable', 'disable'].includes(acao)) return SIM_ROOT(st, 'systemctl ' + acao);
+    return bad('Uso: systemctl status|start|stop|restart nome\n');
+  },
+  service: (st, a) => COMMANDS.systemctl(st, [a[1] ?? '', a[0] ?? ''], ''),
+  apt: (st, a) => (a[0] === 'list' || a[0] === 'search' ? ok('git/estável 2.39 amd64\nnano/estável 7.2 amd64\nhtop/estável 3.2 amd64\n') : SIM_ROOT(st, 'apt ' + (a[0] ?? ''))),
+  'apt-get': (st, a) => SIM_ROOT(st, 'apt-get ' + (a[0] ?? '')),
+  'apt-cache': (_st, a) => ok(a[0] === 'search' ? 'htop - visualizador de processos interativo\n' : 'apt-cache: use  apt-cache search nome\n'),
+  dpkg: (st, a) => (a[0] === '-l' ? ok('ii  bash   5.2  shell\nii  coreutils  9.1  comandos básicos\n') : SIM_ROOT(st, 'dpkg')),
+  yum: (st) => SIM_ROOT(st, 'yum'),
+  dnf: (st) => SIM_ROOT(st, 'dnf'),
+  rpm: (st) => SIM_ROOT(st, 'rpm'),
+  pacman: (st) => SIM_ROOT(st, 'pacman'),
+  snap: (st, a) => (a[0] === 'list' ? ok('Nome  Versão\ncore  16\n') : SIM_ROOT(st, 'snap')),
+  flatpak: (st) => SIM_ROOT(st, 'flatpak'),
+  brew: () => bad('brew: não instalado neste terminal simulado\n'),
+  ifconfig: () => ok('eth0: flags=UP,BROADCAST,RUNNING\n      inet 192.168.0.23  máscara 255.255.255.0  broadcast 192.168.0.255\nlo:   inet 127.0.0.1  máscara 255.0.0.0\n' + NET_NOTE),
+  ip: (_st, a) => (a[0] === 'addr' || a[0] === 'a' ? ok('1: lo    inet 127.0.0.1/8\n2: eth0  inet 192.168.0.23/24\n') : ok('default via 192.168.0.1 dev eth0\n192.168.0.0/24 dev eth0\n')),
+  netstat: () => ok('Proto  Endereço local   Estado\ntcp    0.0.0.0:22       OUVINDO\ntcp    0.0.0.0:80       OUVINDO\ntcp    192.168.0.23:5432  ESTABELECIDA\n'),
+  ss: () => COMMANDS.netstat(null as never, [], ''),
+  traceroute: (_st, a) => ok(`traceroute para ${a[0] ?? 'destino'}\n 1  192.168.0.1  1,2 ms\n 2  10.10.0.1  8,4 ms\n 3  200.17.141.1  15,7 ms\n 4  ${a[0] ?? 'destino'}  23,0 ms\n${NET_NOTE}`),
+  nslookup: (_st, a) => (a[0] ? ok(`Servidor:  192.168.0.1\nNome:      ${a[0]}\nEndereço:  93.184.216.34\n${NET_NOTE}`) : bad('nslookup: uso: nslookup domínio\n')),
+  scp: (_st, a) => bad(`scp: não foi possível copiar ${a[0] ?? ''}: ambiente simulado, sem rede.\n`, 1),
+  nmap: (_st, a) => ok(`Varredura em ${a[0] ?? '192.168.0.1'} (simulada)\nPORTA   ESTADO  SERVIÇO\n22/tcp  aberta  ssh\n80/tcp  aberta  http\n443/tcp fechada https\n${NET_NOTE}(use nmap só em redes que você tem autorização para testar!)\n`),
+  tcpdump: (st) => SIM_ROOT(st, 'tcpdump'),
+  less: (st, a, stdin) => COMMANDS.cat(st, a, stdin),
+  more: (st, a, stdin) => COMMANDS.cat(st, a, stdin),
+  sleep: () => ok(''),
+  basename: (_st, a) => ok((a[0] ?? '').split('/').filter(Boolean).pop() + '\n'),
+  dirname: (_st, a) => ok('/' + (a[0] ?? '').split('/').filter(Boolean).slice(0, -1).join('/') + '\n'),
+  stat: (st, a) => {
+    const n = nodeAt(st, resolvePath(st, a[0] ?? ''));
+    return n ? ok(`  Arquivo: ${a[0]}\n  Tamanho: ${sizeOf(n)}   Tipo: ${n.type === 'dir' ? 'diretório' : 'arquivo'}\n  Acesso: (${n.mode.toString(8).padStart(4, '0')}/${modeStr(n)})  Dono: ${n.owner}\n`) : bad(`stat: não foi possível obter estado de '${a[0] ?? ''}': Arquivo ou diretório inexistente\n`);
+  },
+  diff: (st, a) => {
+    const r = readInputs(st, a.slice(0, 2), '', 'diff');
+    if (r.code || r.named.length < 2) return { out: '', err: r.err, code: 2 };
+    const x = lines(r.named[0].text);
+    const y = lines(r.named[1].text);
+    let out = '';
+    for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) out += `${i + 1}c${i + 1}\n${x[i] !== undefined ? '< ' + x[i] + '\n' : ''}---\n${y[i] !== undefined ? '> ' + y[i] + '\n' : ''}`;
+    return { out, err: '', code: out ? 1 : 0 };
+  },
+  ln: (st, a) => {
+    const { flags, rest } = parseFlags(a);
+    if (rest.length < 2) return bad('ln: uso: ln -s origem nome_do_link\n');
+    const src = nodeAt(st, resolvePath(st, rest[0]));
+    if (!src) return bad(`ln: não foi possível acessar '${rest[0]}': Arquivo ou diretório inexistente\n`);
+    const err = writeFile(st, rest[1], flags.has('s') ? '' : src.content, false);
+    if (err) return bad(err);
+    if (flags.has('s')) {
+      const l = nodeAt(st, resolvePath(st, rest[1]))!;
+      l.link = rest[0];
+      l.mode = 0o777;
+    }
+    return ok();
+  },
+  gzip: (st, a) => {
+    let err = '';
+    a.filter((x) => !x.startsWith('-')).forEach((nm) => {
+      const abs = resolvePath(st, nm);
+      const n = nodeAt(st, abs);
+      if (!n || n.type !== 'file') err += `gzip: ${nm}: Arquivo inexistente\n`;
+      else {
+        const e = writeFile(st, nm + '.gz', 'GZv1:' + n.content, false);
+        if (e) err += e;
+        else delete nodeAt(st, splitParent(abs).parent)!.children[splitParent(abs).name];
+      }
+    });
+    return { out: '', err, code: err ? 1 : 0 };
+  },
+  gunzip: (st, a) => {
+    let err = '';
+    a.forEach((nm) => {
+      const abs = resolvePath(st, nm);
+      const n = nodeAt(st, abs);
+      if (!n || !n.content.startsWith('GZv1:') || !nm.endsWith('.gz')) err += `gunzip: ${nm}: não está em formato gzip\n`;
+      else {
+        const e = writeFile(st, nm.slice(0, -3), n.content.slice(5), false);
+        if (e) err += e;
+        else delete nodeAt(st, splitParent(abs).parent)!.children[splitParent(abs).name];
+      }
+    });
+    return { out: '', err, code: err ? 1 : 0 };
+  },
+  zip: (st, a) => {
+    const { flags, rest } = parseFlags(a);
+    if (rest.length < 2) return bad('zip: uso: zip arquivo.zip pasta_ou_arquivos...\n');
+    return COMMANDS.tar(st, [flags.has('r') ? 'cvf' : 'cvf', ...rest], '');
+  },
+  unzip: (st, a) => COMMANDS.tar(st, ['xvf', a[0] ?? ''], ''),
+  rsync: (st, a) => {
+    const { rest } = parseFlags(a);
+    return rest.length >= 2 ? COMMANDS.cp(st, ['-r', ...rest], '') : bad('rsync: uso: rsync -av origem destino\n');
+  },
+};
+Object.assign(COMMANDS, EXTRA2);
 
 // ---------- execução ----------
 
