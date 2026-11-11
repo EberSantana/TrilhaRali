@@ -26,6 +26,7 @@ export interface ShellState {
   depth: number;
   piped?: boolean; // saída vai para outro comando ou arquivo (ls passa a listar um por linha)
   procs: { pid: number; user: string; cmd: string }[];
+  input?: { path: string; append: boolean; buf: string[] }; // 'cat > arquivo' esperando texto (Ctrl+D termina)
 }
 
 export interface ShellResult {
@@ -242,7 +243,7 @@ function can(st: ShellState, n: FsNode, bit: 4 | 2 | 1): boolean {
 }
 
 const display = (st: ShellState, abs: string) => (abs === HOME ? '~' : abs.startsWith(HOME + '/') ? '~' + abs.slice(HOME.length) : abs);
-export const promptOf = (st: ShellState) => `${st.user}@${st.host}:${display(st, st.cwd)}$`;
+export const promptOf = (st: ShellState) => st.input ? '>' : `${st.user}@${st.host}:${display(st, st.cwd)}$`;
 
 // ---------- tokenização ----------
 
@@ -1271,10 +1272,10 @@ function writeFile(st: ShellState, path: string, text: string, append: boolean):
 
 /** Executa uma linha (com ; && | > >>). Devolve o que deve aparecer na tela. */
 /** Divide a linha em ; e && fora de aspas, para expandir $VAR só na hora de executar cada parte. */
-function splitSegments(line: string): { text: string; cond: boolean }[] {
-  const out: { text: string; cond: boolean }[] = [];
+function splitSegments(line: string): { text: string; cond: '' | 'and' | 'or' }[] {
+  const out: { text: string; cond: '' | 'and' | 'or' }[] = [];
   let cur = '';
-  let cond = false;
+  let cond: '' | 'and' | 'or' = '';
   let q = '';
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
@@ -1288,11 +1289,11 @@ function splitSegments(line: string): { text: string; cond: boolean }[] {
       cur += c + line[++i];
     } else if (c === '#' && !cur.trim().length) {
       break;
-    } else if (c === ';' || (c === '&' && line[i + 1] === '&')) {
+    } else if (c === ';' || (c === '&' && line[i + 1] === '&') || (c === '|' && line[i + 1] === '|')) {
       out.push({ text: cur, cond });
       cur = '';
-      cond = c === '&';
-      if (c === '&') i++;
+      cond = c === ';' ? '' : c === '&' ? 'and' : 'or';
+      if (c !== ';') i++;
     } else cur += c;
   }
   out.push({ text: cur, cond });
@@ -1304,7 +1305,7 @@ function execLine(st: ShellState, line: string, record: boolean): ShellResult {
   let screen = '';
   let clear = false;
   for (const sg of segs) {
-    if (sg.cond && st.lastCode !== 0) continue;
+    if ((sg.cond === 'and' && st.lastCode !== 0) || (sg.cond === 'or' && st.lastCode === 0)) continue;
     let gt: Tok[];
     try {
       gt = tokenize(st, sg.text);
@@ -1354,6 +1355,18 @@ function execLine(st: ShellState, line: string, record: boolean): ShellResult {
         code = 0;
         continue;
       }
+      if (words[0] === 'cat' && words.length === 1 && redir && stages.length === 1) {
+        const e0 = writeFile(st, redir.path, '', redir.append);
+        if (e0) {
+          err += e0;
+          code = 1;
+        } else {
+          st.input = { path: redir.path, append: true, buf: [] };
+          screen += '(digite o texto; Ctrl+D ou o botão Finalizar termina)\n';
+          code = 0;
+        }
+        continue;
+      }
       st.piped = i < stages.length - 1 || redir !== null;
       const r = runCommand(st, words, stdin);
       st.piped = false;
@@ -1371,7 +1384,20 @@ function execLine(st: ShellState, line: string, record: boolean): ShellResult {
   return { out: screen, clear };
 }
 
+export const aguardandoTexto = (st: ShellState) => !!st.input;
+
 export function runLine(st: ShellState, line: string): ShellResult {
+  if (st.input) {
+    if (line === '\x04') {
+      const { path, buf } = st.input;
+      st.input = undefined;
+      const err = buf.length ? writeFile(st, path, buf.join('\n') + '\n', true) : '';
+      st.lastCode = err ? 1 : 0;
+      return { out: err };
+    }
+    st.input.buf.push(line.slice(0, 500));
+    return { out: '' };
+  }
   if (line.length > 500) return { out: 'bash: linha muito longa\n' };
   return execLine(st, line, true);
 }

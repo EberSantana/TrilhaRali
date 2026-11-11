@@ -26,6 +26,7 @@ export const LINUX_GUIDE: GuideGroup[] = [
       { cmd: 'rm renomeado.txt', desc: 'apaga um arquivo' },
       { cmd: 'rm -r nova_pasta', desc: 'apaga uma pasta e tudo dentro dela' },
       { cmd: 'cat notas.txt', desc: 'mostra o conteúdo de um arquivo' },
+      { cmd: 'cat > novo.txt', desc: 'cria um arquivo digitando o texto (Ctrl+D termina)' },
       { cmd: 'echo "ola" > teste.txt', desc: 'escreve texto em um arquivo (apaga o que tinha)' },
       { cmd: 'echo "mais" >> teste.txt', desc: 'acrescenta texto no fim do arquivo' },
       { cmd: 'tail -n 3 /var/log/sistema.log', desc: 'mostra as últimas linhas de um arquivo' },
