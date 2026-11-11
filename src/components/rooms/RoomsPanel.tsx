@@ -446,6 +446,11 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               <div className={`text-xs font-black uppercase tracking-wider mb-1.5 ${accentText}`}>
                 📚 Todas as disciplinas {bankPool.length + catalogPicked.length > 0 && <span className={accentText}>· {bankPool.length + catalogPicked.length} escolhida(s)</span>}
               </div>
+              {bank.length === 0 && bankMsg && (
+                <p className="mb-2 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-[11px] text-amber-200">
+                  Suas perguntas do banco não carregaram: {bankMsg}
+                </p>
+              )}
               {pickerQuestions.length > 0 ? (
                 <BankPicker questions={pickerQuestions} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
               ) : (
