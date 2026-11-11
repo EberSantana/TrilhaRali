@@ -6,10 +6,12 @@ import { CtfTeacher } from './CtfTeacher';
 interface CtfModuleProps {
   isTeacher: boolean;
   onRequireTeacher: () => void;
+  /** Abre direto no painel do professor (quando ele já está autenticado). */
+  initialView?: 'student' | 'teacher';
 }
 
-export const CtfModule: React.FC<CtfModuleProps> = ({ isTeacher, onRequireTeacher }) => {
-  const [view, setView] = useState<'student' | 'teacher'>('student');
+export const CtfModule: React.FC<CtfModuleProps> = ({ isTeacher, onRequireTeacher, initialView = 'student' }) => {
+  const [view, setView] = useState<'student' | 'teacher'>(initialView);
   const [wantsTeacher, setWantsTeacher] = useState(false);
 
   // Depois de digitar o PIN, abre o painel que o professor tinha pedido

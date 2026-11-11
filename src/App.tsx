@@ -16,6 +16,8 @@ import { TeacherAuthModal } from './components/TeacherAuthModal';
 import { AboutView } from './components/AboutView';
 import { ModuleSwitcher, AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
+import { HomeLanding } from './components/HomeLanding';
+import { TeacherHub } from './components/TeacherHub';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
 import { IfsLogo } from './components/IfsLogo';
 import { 
@@ -43,9 +45,16 @@ import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/sco
 import { parseTagFromLocation } from './utils/tagLink';
 
 export default function App() {
-  const [appModule, setAppModule] = useState<AppModule>(() =>
-    typeof window !== 'undefined' && window.location.hash.startsWith('#/ctf') ? 'ctf' : 'rali'
-  );
+  const [appModule, setAppModule] = useState<AppModule>(() => {
+    if (typeof window === 'undefined') return 'home';
+    const { hash, search } = window.location;
+    if (hash.startsWith('#/ctf')) return 'ctf';
+    if (hash.startsWith('#/professor')) return 'professor';
+    if (hash.startsWith('#/rali') || parseTagFromLocation(hash, search)) return 'rali';
+    return 'home';
+  });
+  // Quando o professor abre o CTF pelo painel, já cai direto no painel do CTF
+  const [ctfInitialView, setCtfInitialView] = useState<'student' | 'teacher'>('student');
   const [activeTab, setActiveTab] = useState<ActiveTab>(() =>
     typeof window !== 'undefined' && parseTagFromLocation(window.location.hash, window.location.search) ? 'scanner' : 'projector'
   );
@@ -146,10 +155,12 @@ export default function App() {
   };
 
   // Troca de módulo mantém o endereço compartilhável (#/ctf)
+  const MODULE_HASH: Record<AppModule, string> = { home: '', rali: '#/rali', ctf: '#/ctf', professor: '#/professor' };
   const handleChangeModule = (next: AppModule) => {
     setAppModule(next);
+    setCtfInitialView('student');
     try {
-      const url = `${window.location.pathname}${window.location.search}${next === 'ctf' ? '#/ctf' : ''}`;
+      const url = `${window.location.pathname}${window.location.search}${MODULE_HASH[next]}`;
       window.history.replaceState(null, '', url);
     } catch {
       // ignore
@@ -160,6 +171,10 @@ export default function App() {
     const onHash = () => {
       if (window.location.hash.startsWith('#/ctf')) {
         setAppModule('ctf');
+        return;
+      }
+      if (window.location.hash.startsWith('#/professor')) {
+        setAppModule('professor');
         return;
       }
       const t = parseTagFromLocation(window.location.hash, window.location.search);
@@ -317,11 +332,47 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
-      <ModuleSwitcher module={appModule} onChange={handleChangeModule} />
+      {appModule !== 'home' && (
+        <ModuleSwitcher module={appModule} isTeacher={isTeacher} onChange={handleChangeModule} />
+      )}
 
-      {appModule === 'ctf' ? (
+      {appModule === 'home' ? (
         <main className="flex-1 pb-16">
-          <CtfModule isTeacher={isTeacher} onRequireTeacher={() => handleOpenTeacherAuth('Painel do CTF')} />
+          <HomeLanding
+            isTeacher={isTeacher}
+            onOpenRali={() => {
+              setActiveTab('scanner');
+              handleChangeModule('rali');
+            }}
+            onOpenCtf={() => handleChangeModule('ctf')}
+            onOpenTeacher={() => handleChangeModule('professor')}
+          />
+        </main>
+      ) : appModule === 'professor' ? (
+        <main className="flex-1 pb-16">
+          <TeacherHub
+            isTeacher={isTeacher}
+            activeRoomName={activeRoom?.nome}
+            teamsCount={teams.length}
+            submissionsCount={logs.length}
+            onRequireTeacher={() => handleOpenTeacherAuth('Área do Professor')}
+            onOpenRooms={() => setIsRoomsModalOpen(true)}
+            onOpenProjector={() => { setActiveTab('projector'); handleChangeModule('rali'); }}
+            onOpenMissions={() => { setActiveTab('missions'); handleChangeModule('rali'); }}
+            onOpenDebriefing={() => { setActiveTab('debriefing'); handleChangeModule('rali'); }}
+            onOpenSql={() => { setActiveTab('sql'); handleChangeModule('rali'); }}
+            onOpenSheets={() => { setActiveTab('sheets'); handleChangeModule('rali'); }}
+            onOpenCtfPanel={() => { handleChangeModule('ctf'); setCtfInitialView('teacher'); }}
+            onOpenAccount={() => handleOpenTeacherAuth('PIN e sessão')}
+          />
+        </main>
+      ) : appModule === 'ctf' ? (
+        <main className="flex-1 pb-16">
+          <CtfModule
+            isTeacher={isTeacher}
+            initialView={ctfInitialView}
+            onRequireTeacher={() => handleOpenTeacherAuth('Painel do CTF')}
+          />
         </main>
       ) : (
         <>
