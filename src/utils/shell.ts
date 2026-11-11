@@ -23,6 +23,7 @@ export interface ShellState {
   history: string[];
   lastCode: number;
   depth: number;
+  procs: { pid: number; user: string; cmd: string }[];
 }
 
 export interface ShellResult {
@@ -91,12 +92,27 @@ export function createFs(): FsNode {
         'root'
       ),
       var: dir({ log: dir({ 'sistema.log': file(linhasLog(), 0o644, 'root') }, 0o755, 'root') }, 0o755, 'root'),
+      proc: dir(
+        {
+          cpuinfo: file('processor\t: 0\nmodel name\t: Rali Virtual CPU @ 2.40GHz\ncpu cores\t: 2\n', 0o444, 'root'),
+          meminfo: file('MemTotal:        4046848 kB\nMemFree:         1523212 kB\nMemAvailable:    2870144 kB\nSwapTotal:       2097148 kB\nSwapFree:        2097148 kB\n', 0o444, 'root'),
+        },
+        0o555,
+        'root'
+      ),
       tmp: dir({}, 0o777, 'root'),
     },
     0o755,
     'root'
   );
 }
+
+const baseProcs = () => [
+  { pid: 1, user: 'root', cmd: 'systemd' },
+  { pid: 101, user: 'aluno', cmd: 'bash' },
+  { pid: 150, user: 'aluno', cmd: 'firefox' },
+  { pid: 151, user: 'aluno', cmd: 'python3 servidor.py' },
+];
 
 export function createShell(): ShellState {
   return {
@@ -108,6 +124,7 @@ export function createShell(): ShellState {
     history: [],
     lastCode: 0,
     depth: 0,
+    procs: baseProcs(),
   };
 }
 
@@ -347,7 +364,8 @@ const COMMANDS: Record<string, Impl> = {
         '  arquivos ...... cat  head  tail  touch  mkdir [-p]  cp [-r]  mv  rm [-r -f]  rmdir',
         '  texto ......... echo  grep [-i -n -v -c]  wc [-l -w -c]  sort [-r -n]  uniq [-c]  cut -d -f',
         '  permissões .... chmod  (ex.: chmod 755 arq, chmod +x arq)  ls -l',
-        '  sistema ....... whoami  id  hostname  uname -a  date  env  ps  history  clear',
+        '  sistema ....... whoami  id  hostname  uname -a  date  uptime  w  free  du  df  ps  kill  history  clear',
+        '  rede (simul.) . ping  whois  dig  wget  curl  ssh      compactar ... tar cf/tf/xf      outros ... locate  whereis  man',
         '  extras ........ pipes (cmd | cmd), redirecionamento (> e >>), && e ;, ./script.sh, TAB completa, ↑ ↓ histórico',
         '  dica .......... use  reset  para voltar o sistema de arquivos ao início',
       ].join('\n') + '\n'
@@ -360,11 +378,9 @@ const COMMANDS: Record<string, Impl> = {
   date: () => ok(new Date().toString() + '\n'),
   env: (st) => ok(Object.entries(st.env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n'),
   printenv: (st, a) => (a[0] ? ok((st.env[a[0]] ?? '') + (st.env[a[0]] !== undefined ? '\n' : '')) : COMMANDS.env(st, [], '')),
-  ps: (st) => ok(`  PID TTY          TIME CMD\n  101 pts/0    00:00:00 bash\n  214 pts/0    00:00:00 ps\n`.replace('ps', st.user ? 'ps' : 'ps')),
   history: (st) => ok(st.history.map((h, i) => `${String(i + 1).padStart(4)}  ${h}`).join('\n') + (st.history.length ? '\n' : '')),
   sudo: (st) => bad(`${st.user} não está no arquivo sudoers. Este incidente será relatado.\n`),
   exit: () => ok('Para sair, é só fechar o terminal.\n'),
-  man: () => ok('Não há manual aqui. Use  help  para ver os comandos disponíveis.\n'),
   which: (_st, a) => ok(a.map((c) => (COMMANDS[c] ? `/usr/bin/${c}\n` : '')).join('')),
 
   echo: (_st, a) => {
@@ -465,7 +481,17 @@ const COMMANDS: Record<string, Impl> = {
     } catch {
       re = new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags.has('i') ? 'i' : '');
     }
-    const r = readInputs(st, rest.slice(1), stdin, 'grep');
+    let alvos = rest.slice(1);
+    if (flags.has('r') || flags.has('R')) {
+      const exp: string[] = [];
+      (alvos.length ? alvos : ['.']).forEach((t) => {
+        const n = nodeAt(st, resolvePath(st, t));
+        if (n && n.type === 'dir') walk(n, t.replace(/\/$/, ''), (p, x) => x.type === 'file' && exp.push(p));
+        else exp.push(t);
+      });
+      alvos = exp;
+    }
+    const r = readInputs(st, alvos, stdin, 'grep');
     const showName = r.named.length > 1;
     let out = '';
     let found = 0;
@@ -749,6 +775,176 @@ const COMMANDS: Record<string, Impl> = {
     return ok(out.join('\n') + `\n\n${dirs} diretórios, ${files} arquivos\n`);
   },
 };
+
+const MANUAL: Record<string, string> = {
+  ls: 'ls - lista o conteúdo de uma pasta. Opções: -l (detalhado), -a (inclui ocultos).',
+  cd: 'cd - muda de pasta. "cd" sozinho vai para a sua pasta pessoal; "cd .." sobe um nível.',
+  pwd: 'pwd - mostra a pasta em que você está.',
+  cat: 'cat - mostra o conteúdo de um arquivo.',
+  rm: 'rm - apaga arquivos. -r apaga pastas, -f não pergunta. Cuidado: não tem lixeira!',
+  cp: 'cp origem destino - copia arquivos (-r para pastas).',
+  mv: 'mv origem destino - move ou renomeia.',
+  mkdir: 'mkdir pasta - cria uma pasta (-p cria o caminho inteiro).',
+  touch: 'touch arquivo - cria um arquivo vazio ou atualiza a data dele.',
+  chmod: 'chmod modo arquivo - muda permissões. 4=ler, 2=escrever, 1=executar. Ex.: chmod 755 arq, chmod +x arq.',
+  grep: 'grep padrão arquivos - procura texto. -i ignora maiúsculas, -n mostra a linha, -r procura em pastas.',
+  tar: 'tar - agrupa arquivos. cf cria, tf lista, xf extrai. Ex.: tar cf backup.tar documentos',
+  ps: 'ps - lista processos. "ps aux" mostra todos, com detalhes.',
+  kill: 'kill PID - encerra o processo com aquele número.',
+  find: 'find pasta -name "*.txt" - procura arquivos pelo nome.',
+  df: 'df -h - mostra o espaço dos discos.',
+  du: 'du -sh pasta - mostra o tamanho de uma pasta.',
+};
+
+const NET_NOTE = '(simulado: este terminal não tem acesso à internet)\n';
+
+const EXTRA: Record<string, Impl> = {
+  uptime: () => ok(' 16:40:12 up 2:14,  1 user,  load average: 0,12, 0,08, 0,05\n'),
+  w: (st) => ok(` 16:40:12 up 2:14,  1 user,  load average: 0,12, 0,08, 0,05\nUSER     TTY      DESDE   COMANDO\n${st.user.padEnd(8)} pts/0    14:26   bash\n`),
+  free: (_st, a) => {
+    const h = a.includes('-h');
+    return ok(
+      h
+        ? '               total        usado       livre\nMem:           3,9Gi       1,2Gi       1,5Gi\nSwap:          2,0Gi          0B       2,0Gi\n'
+        : '               total        usado       livre\nMem:         4046848     1223636     1523212\nSwap:        2097148           0     2097148\n'
+    );
+  },
+  df: (_st, a) => ok(a.includes('-h') ? 'Sist. Arq.     Tam. Usado Disp. Uso% Montado em\n/dev/sda1       40G   12G   26G  32% /\ntmpfs          2,0G     0  2,0G   0% /tmp\n' : 'Sist. Arq.   1K-blocos     Usado Disponível Uso% Montado em\n/dev/sda1     41943040  12582912   27262976  32% /\n'),
+  du: (st, a) => {
+    const { flags, rest } = parseFlags(a);
+    const targets = rest.length ? rest : ['.'];
+    let out = '';
+    let err = '';
+    targets.forEach((t) => {
+      const n = nodeAt(st, resolvePath(st, t));
+      if (!n) {
+        err += `du: não foi possível acessar '${t}': Arquivo ou diretório inexistente\n`;
+        return;
+      }
+      let total = 0;
+      walk(n, '/', (_p, x) => {
+        total += sizeOf(x);
+      });
+      const hum = total >= 1024 ? `${(total / 1024).toFixed(1).replace('.', ',')}K` : `${total}`;
+      out += `${flags.has('h') || flags.has('s') ? hum : Math.ceil(total / 1024)}\t${t}\n`;
+    });
+    return { out, err, code: err ? 1 : 0 };
+  },
+  ps: (st, a) => {
+    const aux = a.some((x) => x.includes('a') || x.includes('u') || x.includes('x'));
+    const procs = [...st.procs, { pid: 300 + st.history.length, user: st.user, cmd: 'ps' }];
+    if (!aux) return ok('  PID TTY          TIME CMD\n' + procs.filter((p) => p.user === st.user).map((p) => `${String(p.pid).padStart(5)} pts/0    00:00:00 ${p.cmd.split(' ')[0]}`).join('\n') + '\n');
+    return ok('USUARIO   PID %CPU %MEM COMANDO\n' + procs.map((p) => `${p.user.padEnd(8)} ${String(p.pid).padStart(4)}  0,${p.pid % 9}  1,${p.pid % 7} ${p.cmd}`).join('\n') + '\n');
+  },
+  kill: (st, a) => {
+    if (!a.length) return bad('kill: uso: kill PID\n');
+    let err = '';
+    a.filter((x) => !x.startsWith('-')).forEach((x) => {
+      const pid = parseInt(x, 10);
+      const p = st.procs.find((q) => q.pid === pid);
+      if (!p) err += `kill: (${x}) - Nenhum processo encontrado\n`;
+      else if (p.user !== st.user) err += `kill: (${x}) - Operação não permitida (processo de ${p.user})\n`;
+      else if (p.cmd === 'bash') err += 'kill: este é o seu próprio terminal; deixe ele vivo :)\n';
+      else st.procs = st.procs.filter((q) => q.pid !== pid);
+    });
+    return { out: '', err, code: err ? 1 : 0 };
+  },
+  killall: (st, a) => {
+    if (!a[0]) return bad('killall: uso: killall nome\n');
+    const alvo = st.procs.filter((p) => p.cmd.split(' ')[0] === a[0]);
+    if (!alvo.length) return bad(`${a[0]}: nenhum processo encontrado\n`);
+    if (alvo.some((p) => p.user !== st.user || p.cmd === 'bash')) return bad(`${a[0]}: Operação não permitida\n`);
+    st.procs = st.procs.filter((p) => p.cmd.split(' ')[0] !== a[0]);
+    return ok();
+  },
+  ping: (_st, a) => {
+    const h = a.find((x) => !x.startsWith('-'));
+    if (!h) return bad('ping: uso: ping destino\n');
+    const t = [23.4, 21.9, 22.7, 24.1];
+    return ok(`PING ${h} (93.184.216.34) 56 bytes de dados\n` + t.map((x, i) => `64 bytes de ${h}: icmp_seq=${i + 1} ttl=57 tempo=${x} ms`).join('\n') + `\n\n--- estatísticas de ${h} ---\n4 pacotes enviados, 4 recebidos, 0% de perda\n${NET_NOTE}`);
+  },
+  whois: (_st, a) => (a[0] ? ok(`Domínio: ${a[0]}\nResponsável: Exemplo Instituição\nCriado em: 2010-05-12\nServidores DNS: ns1.${a[0]}\n${NET_NOTE}`) : bad('whois: uso: whois domínio\n')),
+  dig: (_st, a) => {
+    if (!a.length) return bad('dig: uso: dig domínio  (ou  dig -x IP)\n');
+    if (a[0] === '-x') return ok(`;; RESPOSTA: ${a[1] ?? ''}  PTR  servidor.exemplo.com.\n${NET_NOTE}`);
+    return ok(`;; RESPOSTA\n${a[0]}.   300  IN  A  93.184.216.34\n${NET_NOTE}`);
+  },
+  wget: (st, a) => {
+    const { flags, rest } = parseFlags(a);
+    const url = rest[0];
+    if (!url) return bad('wget: uso: wget URL\n');
+    const name = url.split('/').filter(Boolean).pop() || 'index.html';
+    const err = writeFile(st, name, `<html><body>Conteúdo simulado de ${url}</body></html>\n`, false);
+    return err ? bad(err) : ok(`${flags.has('c') ? 'Continuando download...\n' : ''}'${name}' salvo [46 bytes]\n${NET_NOTE}`);
+  },
+  curl: (st, a) => {
+    const { vals, rest } = parseFlags(a, ['o']);
+    const url = rest[0];
+    if (!url) return bad('curl: uso: curl URL  (ou  curl -o arquivo URL)\n');
+    const html = `<html><body>Conteúdo simulado de ${url}</body></html>\n`;
+    if (vals.o) {
+      const err = writeFile(st, vals.o, html, false);
+      return err ? bad(err) : ok(`Gravado em ${vals.o}\n`);
+    }
+    return ok(html);
+  },
+  ssh: (_st, a) => {
+    const alvo = a.find((x) => !x.startsWith('-') && /@|\./.test(x));
+    return bad(`ssh: não foi possível conectar${alvo ? ' em ' + alvo : ''}: ambiente simulado, sem rede.\n`, 255);
+  },
+  locate: (st, a) => {
+    if (!a[0]) return bad('locate: uso: locate nome\n');
+    const out: string[] = [];
+    walk(st.root, '/', (p, n) => {
+      if (n !== st.root && (p.split('/').pop() ?? '').includes(a[0])) out.push(p);
+    });
+    return out.length ? ok(withNl(out)) : { out: '', err: '', code: 1 };
+  },
+  whereis: (_st, a) => ok(a.map((c) => (COMMANDS[c] || ['cd', 'echo'].includes(c) ? `${c}: /usr/bin/${c}\n` : `${c}:\n`)).join('')),
+  man: (_st, a) => {
+    if (!a[0]) return bad('Qual manual você quer? Ex.: man ls\n');
+    return MANUAL[a[0]] ? ok(`MANUAL: ${MANUAL[a[0]]}\n`) : bad(`Sem manual para ${a[0]}. Use help.\n`);
+  },
+  tar: (st, a) => {
+    const flags = (a[0] ?? '').replace(/^-/, '');
+    const archive = a[1];
+    if (!flags || !archive) return bad('tar: uso: tar cf arquivo.tar pasta  |  tar tf arquivo.tar  |  tar xf arquivo.tar\n');
+    const verbose = flags.includes('v');
+    if (flags.includes('c')) {
+      const files: Record<string, FsNode> = {};
+      let err = '';
+      a.slice(2).forEach((t) => {
+        const n = nodeAt(st, resolvePath(st, t));
+        if (!n) err += `tar: ${t}: Arquivo ou diretório inexistente\n`;
+        else files[t] = n;
+      });
+      if (err) return bad(err);
+      const w = writeFile(st, archive, 'TARv1:' + JSON.stringify(files), false);
+      const lista = verbose ? Object.keys(files).map((f) => f + '\n').join('') : '';
+      return w ? bad(w) : ok(lista);
+    }
+    const n = nodeAt(st, resolvePath(st, archive));
+    if (!n || n.type !== 'file' || !n.content.startsWith('TARv1:')) return bad(`tar: ${archive}: não é um arquivo tar válido\n`);
+    const files = JSON.parse(n.content.slice(6)) as Record<string, FsNode>;
+    if (flags.includes('t')) {
+      const out: string[] = [];
+      Object.entries(files).forEach(([k, v]) => walk(v, k.replace(/\/$/, ''), (p) => out.push(p)));
+      return ok(withNl(out));
+    }
+    if (flags.includes('x')) {
+      let err = '';
+      Object.entries(files).forEach(([k, v]) => {
+        const { name } = splitParent(resolvePath(st, k));
+        const p = nodeAt(st, st.cwd)!;
+        if (!can(st, p, 2)) err += `tar: ${k}: Permissão negada\n`;
+        else p.children[name] = JSON.parse(JSON.stringify(v));
+      });
+      return err ? bad(err) : ok(verbose ? Object.keys(files).map((f) => f + '\n').join('') : '');
+    }
+    return bad('tar: use c (criar), t (listar) ou x (extrair)\n');
+  },
+};
+Object.assign(COMMANDS, EXTRA);
 
 // ---------- execução ----------
 
