@@ -61,10 +61,26 @@ function linhasLog(): string {
   return base.map(([h, n, m]) => `2026-11-11 ${h} [${n}] ${m}`).join('\n') + '\n';
 }
 
+function linhasAcesso(): string {
+  return [
+    '192.168.0.15 GET /index.html 200',
+    '192.168.0.22 GET /notas.html 200',
+    '192.168.0.15 GET /admin 403',
+    '10.0.0.9 GET /index.html 200',
+    '192.168.0.22 POST /login 200',
+    '192.168.0.31 GET /admin 403',
+    '192.168.0.15 GET /sobre.html 200',
+    '10.0.0.9 GET /logo.png 404',
+    '192.168.0.31 GET /admin 403',
+    '192.168.0.15 POST /login 401',
+  ].join('\n') + '\n';
+}
+
 export function createFs(): FsNode {
   return dir(
     {
       home: dir({
+        professor: dir({ 'provas.txt': file('Gabarito da prova de sexta\n', 0o600, 'professor') }, 0o755, 'professor'),
         aluno: dir({
           'notas.txt': file('Aula de Linux\nlistar: ls\nentrar na pasta: cd\nver o conteudo: cat\n'),
           'segredo.txt': file('A senha do wifi do laboratorio e: rali2026\n', 0o000),
@@ -89,11 +105,72 @@ export function createFs(): FsNode {
           hostname: file('rali-lab\n', 0o644, 'root'),
           passwd: file('root:x:0:0:root:/root:/bin/bash\naluno:x:1000:1000:Aluno:/home/aluno:/bin/bash\nprofessor:x:1001:1001:Professor:/home/professor:/bin/bash\n', 0o644, 'root'),
           'os-release': file('NAME="Rali Linux"\nVERSION="1.0"\n', 0o644, 'root'),
+          hosts: file('127.0.0.1 localhost\n192.168.0.10 servidor-escola\n', 0o644, 'root'),
         },
         0o755,
         'root'
       ),
-      var: dir({ log: dir({ 'sistema.log': file(linhasLog(), 0o644, 'root') }, 0o755, 'root') }, 0o755, 'root'),
+      var: dir(
+        {
+          log: dir({ 'sistema.log': file(linhasLog(), 0o644, 'root'), 'acesso.log': file(linhasAcesso(), 0o644, 'root') }, 0o755, 'root'),
+          www: dir(
+            {
+              html: dir(
+                {
+                  'index.html': file('<html>\n<body>Escola</body>\n</html>\n', 0o644, 'www-data'),
+                  'sobre.html': file('<html>\n<body>Sobre</body>\n</html>\n', 0o644, 'www-data'),
+                  'estilo.css': file('body { margin: 0; }\n', 0o644, 'www-data'),
+                  imagens: dir({ 'logo.png': file('PNG', 0o644, 'www-data') }, 0o755, 'www-data'),
+                },
+                0o755,
+                'www-data'
+              ),
+            },
+            0o755,
+            'root'
+          ),
+        },
+        0o755,
+        'root'
+      ),
+      srv: dir(
+        {
+          escola: dir(
+            {
+              'alunos.csv': file('nome,curso,faltas\nAna,Informatica,2\nBruno,Informatica,5\nCarla,Administracao,0\nDiego,Informatica,7\nElisa,Administracao,3\n', 0o644, 'root'),
+              'avisos.txt': file('Prova de Banco de Dados na sexta\nEntregar relatorio ate quarta\nLaboratorio 2 fechado para manutencao\nProva de Redes adiada\n', 0o644, 'root'),
+              turmas: dir(
+                {
+                  'info1.txt': file('Turma: Informatica 1\nAlunos: 32\nSala: Lab 01\n', 0o644, 'root'),
+                  'info2.txt': file('Turma: Informatica 2\nAlunos: 28\nSala: Lab 03\n', 0o644, 'root'),
+                  'adm1.txt': file('Turma: Administracao 1\nAlunos: 35\nSala: 12\n', 0o644, 'root'),
+                },
+                0o755,
+                'root'
+              ),
+            },
+            0o755,
+            'root'
+          ),
+        },
+        0o755,
+        'root'
+      ),
+      opt: dir(
+        {
+          rali: dir(
+            {
+              'versao.txt': file('Trilha Rali v8.0\n', 0o644, 'root'),
+              'config.ini': file('[servidor]\nporta=8080\nmodo=producao\n[banco]\nhost=localhost\nnome=escola_db\n', 0o644, 'root'),
+              '.chave': file('chave: ZEBRA42\n', 0o644, 'root'),
+            },
+            0o755,
+            'root'
+          ),
+        },
+        0o755,
+        'root'
+      ),
       proc: dir(
         {
           cpuinfo: file('processor\t: 0\nmodel name\t: Rali Virtual CPU @ 2.40GHz\ncpu cores\t: 2\n', 0o444, 'root'),
