@@ -186,7 +186,7 @@ export default function App() {
     setAppModule(next);
     try {
       const url = `${window.location.pathname}${window.location.search}${MODULE_HASH[next]}`;
-      window.history.replaceState(null, '', url);
+      window.history.pushState(null, '', url);
     } catch {
       // ignore
     }
@@ -201,10 +201,11 @@ export default function App() {
         return;
       }
       const m = moduleFromLocation(window.location.hash, window.location.search);
-      if (m) setAppModule(m);
+      setAppModule(m ?? 'home');
     };
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    window.addEventListener('popstate', onHash);
+    return () => { window.removeEventListener('hashchange', onHash); window.removeEventListener('popstate', onHash); };
   }, []);
 
   // Teacher Authentication Flow
