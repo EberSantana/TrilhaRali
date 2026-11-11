@@ -380,13 +380,13 @@ function doGet(e) {
             </div>
             <div>
               <span className="text-xs uppercase font-bold text-teal-400">Hospedagem no GitHub Pages</span>
-              <h3 className="text-lg font-bold text-white">EberSantana / ralibd</h3>
+              <h3 className="text-lg font-bold text-white">EberSantana / TrilhaRali</h3>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <a
-              href="https://github.com/EberSantana/ralibd"
+              href="https://github.com/EberSantana/TrilhaRali"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
@@ -395,7 +395,7 @@ function doGet(e) {
               <span>Ver no GitHub</span>
             </a>
             <a
-              href="https://ebersantana.github.io/ralibd/"
+              href="https://ebersantana.github.io/TrilhaRali/"
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-teal-600/20 transition"
@@ -408,10 +408,10 @@ function doGet(e) {
 
         <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-2">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-            Comandos para enviar ao repositório https://github.com/EberSantana/ralibd:
+            Comandos para enviar ao repositório https://github.com/EberSantana/TrilhaRali:
           </span>
           <pre className="font-mono text-xs text-emerald-300 leading-relaxed overflow-x-auto whitespace-pre-wrap">
-{`git remote add origin https://github.com/EberSantana/ralibd.git
+{`git remote add origin https://github.com/EberSantana/TrilhaRali.git
 git branch -M main
 git add .
 git commit -m "feat: Trilha Rali NFC - IFS Campus Tobias Barreto"

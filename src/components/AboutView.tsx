@@ -74,7 +74,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigateToTab }) => {
             </a>
 
             <a
-              href="https://github.com/EberSantana/ralibd"
+              href="https://github.com/EberSantana/TrilhaRali"
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm flex items-center justify-center gap-2 transition text-center"
