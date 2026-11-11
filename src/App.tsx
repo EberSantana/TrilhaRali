@@ -351,10 +351,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-dvh bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
 
       {appModule === 'home' ? (
-        <main className="flex-1 pb-16">
+        <main className="flex-1">
           <HomeLanding
             isTeacher={isTeacher}
             onOpenRali={() => handleChangeModule('rali')}

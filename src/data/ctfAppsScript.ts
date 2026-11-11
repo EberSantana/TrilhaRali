@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -24,7 +24,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -75,6 +75,7 @@ function route(req) {
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
+    case 'setTerminal': return setTerminal(req);
     case 'setTimer': return setTimer(req);
     case 'raliTimer': return raliTimer(req);
     case 'raliEstado': return raliEstado();
@@ -205,6 +206,7 @@ function roomInfo(room) {
     ordem: isLivre(room) ? 'livre' : 'sequencial',
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
+    terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
     agora: Date.now()
@@ -574,6 +576,14 @@ function setBanco(req) {
   var liberado = req.liberado === true;
   updateRow('CtfSalas', room._row, { banco_liberado: liberado });
   room.banco_liberado = liberado;
+  return { sala: roomInfo(room) };
+}
+
+function setTerminal(req) {
+  var room = requireAdmin(req);
+  var liberado = req.liberado === true;
+  updateRow('CtfSalas', room._row, { terminal_liberado: liberado });
+  room.terminal_liberado = liberado;
   return { sala: roomInfo(room) };
 }
 

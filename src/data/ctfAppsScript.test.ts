@@ -159,6 +159,15 @@ test('download do banco: oculto por padrão, só o professor libera e esconde', 
   assert.equal(call({ action: 'join', token: aberta.token, nome: 'Bia' }).sala.banco, true);
 });
 
+test('terminal Linux: oculto por padrão, só o professor libera', () => {
+  const { call } = createBackend();
+  const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
+  assert.equal(call({ action: 'join', token: room.token, nome: 'Ana' }).sala.terminal, false);
+  assert.match(call({ action: 'setTerminal', token: room.token, adminKey: 'errada', liberado: true }).error, /invalida/);
+  assert.equal(call({ action: 'setTerminal', token: room.token, adminKey: room.adminKey, liberado: true }).sala.terminal, true);
+  assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.terminal, true);
+});
+
 test('ranking, painel do professor, chave de admin e sala encerrada', () => {
   const { call } = createBackend();
   const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });

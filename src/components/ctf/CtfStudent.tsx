@@ -18,6 +18,7 @@ import { Top5Board } from './Top5Board';
 import { CtfChallenges } from './CtfChallenges';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
 import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
+import { LinuxTerminal } from './LinuxTerminal';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -411,6 +412,8 @@ export const CtfStudent: React.FC = () => {
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
 
           {sala.banco && <SqlConsole />}
+
+          {sala.terminal && <LinuxTerminal />}
 
           {sala.banco && (
             <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">

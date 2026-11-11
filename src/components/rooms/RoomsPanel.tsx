@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, Database, Download, Flag, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, Database, Download, Flag, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
@@ -238,6 +238,16 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     }
   };
 
+  const toggleTerminal = async () => {
+    if (!activeRoom || !view) return;
+    try {
+      await ctfCall('setTerminal', { token: activeRoom.token, adminKey: activeRoom.adminKey, liberado: !view.sala.terminal }, activeRoom.api);
+      loadView();
+    } catch (err) {
+      setMonitorError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const forgetRoom = (token: string) => {
     if (!window.confirm('Remover esta sala da lista deste navegador? (Os dados continuam na planilha.)')) return;
     persist(allRooms.filter((r) => r.token !== token));
@@ -461,6 +471,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                           Console SQL: {view?.sala.banco ? 'liberado' : 'oculto'}
                         </Btn>
                       )}
+                      <Btn size="sm" disabled={!view} onClick={toggleTerminal} icon={<Terminal className="w-4 h-4" />} title="Mostra ou esconde o terminal Linux simulado para os alunos">
+                        Terminal Linux: {view?.sala.terminal ? 'liberado' : 'oculto'}
+                      </Btn>
                       <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
                     </div>
                   </div>

@@ -11,6 +11,7 @@ import { StatusBanner } from '../common/StatusBanner';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
 import { Btn } from '../common/ui';
 import { applyServerTheme, useTheme } from '../../utils/theme';
+import { LinuxTerminal } from '../ctf/LinuxTerminal';
 import { parseTagFromLocation } from '../../utils/tagLink';
 
 
@@ -354,6 +355,8 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
           </div>
         </div>
       )}
+
+      {sala.terminal && <LinuxTerminal />}
     </div>
   );
 };
