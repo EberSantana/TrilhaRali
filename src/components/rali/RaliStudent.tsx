@@ -241,6 +241,8 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Confira o resultado final.</StatusBanner>}
       {!finished && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
+      {sala.terminal && <LinuxTerminal />}
+
       {finished ? (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">
           <FinalPodium rows={ranking} totalFases={sala.total} unit="missões" entity="equipes" me={equipe.nome} />
@@ -356,7 +358,6 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
         </div>
       )}
 
-      {sala.terminal && <LinuxTerminal />}
     </div>
   );
 };

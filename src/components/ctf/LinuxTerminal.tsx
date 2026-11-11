@@ -101,7 +101,7 @@ export function LinuxTerminal() {
       </div>
       <p className="mt-2 text-xs text-slate-400">Use <span className="font-mono">reset</span> para recomeçar. Clique em um comando do guia abaixo para colocá-lo no terminal.</p>
 
-      <details className="mt-4 group rounded-xl border border-slate-700 bg-slate-900/50" open>
+      <details className="mt-4 group rounded-xl border border-slate-700 bg-slate-900/50">
         <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-bold text-slate-100 select-none">
           <BookOpen className="h-4 w-4 text-emerald-400" /> Guia de comandos Linux
         </summary>
@@ -118,7 +118,7 @@ export function LinuxTerminal() {
                         setInput(it.cmd);
                         inp.current?.focus();
                       }}
-                      className="w-full rounded-lg px-2 py-1 text-left hover:bg-slate-800"
+                      className="min-h-[44px] w-full rounded-lg px-2 py-1.5 text-left hover:bg-slate-800"
                       title="Clique para colocar no terminal"
                     >
                       <code className="font-mono text-[12px] font-bold text-slate-100">{it.cmd}</code>

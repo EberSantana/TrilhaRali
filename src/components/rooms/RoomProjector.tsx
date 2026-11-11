@@ -106,7 +106,7 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
         <ProjectorHeader
           module={nfc ? 'nfc' : 'ctf'}
           title={<><Trophy className="w-9 h-9 text-amber-500" /> {finished ? 'Resultado final' : 'Ranking ao vivo'}</>}
-          subtitle={<>{room.nome} • {view ? view.alunos.length : '…'} {entity}</>}
+          subtitle={<>{room.nome} • {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? entity.replace(/s$/, '') : entity}</>}
           actions={
             <>
               <Btn onClick={() => setSound((s) => !s)} aria-pressed={sound} icon={sound ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} title="Alertas sonoros de 5 min, 1 min e fim">

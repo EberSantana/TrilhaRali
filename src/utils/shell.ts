@@ -468,20 +468,31 @@ const COMMANDS: Record<string, Impl> = {
   which: (_st, a) => ok(a.map((c) => (COMMANDS[c] ? `/usr/bin/${c}\n` : '')).join('')),
 
   echo: (_st, a) => {
-    const noNl = a[0] === '-n';
-    const text = (noNl ? a.slice(1) : a).join(' ');
+    let args = a;
+    let noNl = false;
+    let esc = false;
+    while (args[0] && /^-[neE]+$/.test(args[0])) {
+      if (args[0].includes('n')) noNl = true;
+      if (args[0].includes('e')) esc = true;
+      args = args.slice(1);
+    }
+    let text = args.join(' ');
+    if (esc) text = text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
     return ok(noNl ? text : text + '\n');
   },
 
   cd: (st, a) => {
-    const target = resolvePath(st, a[0] ?? '~');
+    if (a[0] === '-' && !st.env.OLDPWD) return bad('cd: OLDPWD não definido\n');
+    const target = resolvePath(st, a[0] === '-' ? st.env.OLDPWD : a[0] ?? '~');
+    const antes = st.cwd;
     const n = nodeAt(st, target);
     if (!n) return bad(`cd: ${a[0]}: Arquivo ou diretório inexistente\n`);
     if (n.type !== 'dir') return bad(`cd: ${a[0]}: Não é um diretório\n`);
     if (!can(st, n, 1)) return bad(`cd: ${a[0]}: Permissão negada\n`);
     st.cwd = target;
     st.env.PWD = target;
-    return ok();
+    st.env.OLDPWD = antes;
+    return a[0] === '-' ? ok(target + '\n') : ok();
   },
 
   ls: (st, a) => {
@@ -1169,6 +1180,32 @@ const EXTRA2: Record<string, Impl> = {
   },
 };
 Object.assign(COMMANDS, EXTRA2);
+COMMANDS.true = () => ok();
+COMMANDS.false = () => bad('', 1);
+
+// ls -R: lista as subpastas também
+const lsBase = COMMANDS.ls;
+COMMANDS.ls = (st, a, stdin) => {
+  const { flags, rest } = parseFlags(a);
+  if (!flags.has('R')) return lsBase(st, a, stdin);
+  const opts = a.filter((x) => x.startsWith('-')).map((x) => x.replace('R', '')).filter((x) => x !== '-');
+  let out = '';
+  let err = '';
+  const walk = (label: string, abs: string, depth: number) => {
+    const n = nodeAt(st, abs);
+    if (!n || n.type !== 'dir' || depth > 6) return;
+    const r = lsBase(st, [...opts, abs], stdin);
+    err += r.err;
+    out += `${label}:\n${r.out}\n`;
+    const all = flags.has('a') || flags.has('A');
+    Object.keys(n.children)
+      .filter((k) => n.children[k].type === 'dir' && (all || !k.startsWith('.')))
+      .sort()
+      .forEach((k) => walk(`${label === '/' ? '' : label}/${k}`.replace(/^\.\//, ''), `${abs === '/' ? '' : abs}/${k}`, depth + 1));
+  };
+  (rest.length ? rest : ['.']).forEach((t) => walk(t, resolvePath(st, t), 0));
+  return { out: out.replace(/\n+$/, '\n'), err, code: err ? 2 : 0 };
+};
 
 // ---------- execução ----------
 
@@ -1233,31 +1270,50 @@ function writeFile(st: ShellState, path: string, text: string, append: boolean):
 }
 
 /** Executa uma linha (com ; && | > >>). Devolve o que deve aparecer na tela. */
-function execLine(st: ShellState, line: string, record: boolean): ShellResult {
-  let toks: Tok[];
-  try {
-    toks = tokenize(st, line);
-  } catch (e) {
-    st.lastCode = 2;
-    return { out: `bash: erro de sintaxe: ${(e as Error).message}\n` };
-  }
-  // quebra em comandos por ; e &&
-  const groups: { toks: Tok[]; cond: boolean }[] = [];
-  let cur: Tok[] = [];
+/** Divide a linha em ; e && fora de aspas, para expandir $VAR só na hora de executar cada parte. */
+function splitSegments(line: string): { text: string; cond: boolean }[] {
+  const out: { text: string; cond: boolean }[] = [];
+  let cur = '';
   let cond = false;
-  toks.forEach((t) => {
-    if (t.op === ';' || t.op === '&&') {
-      groups.push({ toks: cur, cond });
-      cur = [];
-      cond = t.op === '&&';
-    } else cur.push(t);
-  });
-  groups.push({ toks: cur, cond });
+  let q = '';
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) {
+      cur += c;
+      if (c === q) q = '';
+    } else if (c === "'" || c === '"') {
+      q = c;
+      cur += c;
+    } else if (c === '\\' && i + 1 < line.length) {
+      cur += c + line[++i];
+    } else if (c === '#' && !cur.trim().length) {
+      break;
+    } else if (c === ';' || (c === '&' && line[i + 1] === '&')) {
+      out.push({ text: cur, cond });
+      cur = '';
+      cond = c === '&';
+      if (c === '&') i++;
+    } else cur += c;
+  }
+  out.push({ text: cur, cond });
+  return out;
+}
 
+function execLine(st: ShellState, line: string, record: boolean): ShellResult {
+  const segs = splitSegments(line);
   let screen = '';
   let clear = false;
-  for (const g of groups) {
-    if (g.cond && st.lastCode !== 0) continue;
+  for (const sg of segs) {
+    if (sg.cond && st.lastCode !== 0) continue;
+    let gt: Tok[];
+    try {
+      gt = tokenize(st, sg.text);
+    } catch (e) {
+      st.lastCode = 2;
+      screen += `bash: erro de sintaxe: ${(e as Error).message}\n`;
+      break;
+    }
+    const g = { toks: gt };
     if (g.toks.length === 0) continue;
     // pipeline
     const stages: Tok[][] = [[]];

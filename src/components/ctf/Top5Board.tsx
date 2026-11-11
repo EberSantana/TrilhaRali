@@ -111,7 +111,7 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
               </span>
               {big && (
                 <span className="h-4 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true">
-                  <span className="block h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.max(4, (r.xp / max) * 100)}%` }} />
+                  <span className="block h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0}%` }} />
                 </span>
               )}
               <span className={`shrink-0 font-mono ${big ? 'text-xl' : 'text-xs'} text-slate-300`}>

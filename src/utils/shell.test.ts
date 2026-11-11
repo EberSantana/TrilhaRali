@@ -116,3 +116,16 @@ test('módulo Linux 2: usuários, pacotes, disco, links e gzip', () => {
   assert.match(run(st, 'diff notas.txt notas.txt'), /^$/);
   assert.match(run(st, 'stat notas.txt'), /Dono: aluno/);
 });
+
+test('variável na mesma linha, cd -, echo -e, ls -R, true/false', () => {
+  const st = createShell();
+  assert.match(runLine(st, 'X=5; echo $X').out, /^5\n/);
+  assert.match(runLine(st, 'Y=ola && echo "$Y mundo"').out, /ola mundo/);
+  runLine(st, 'cd /etc');
+  assert.match(runLine(st, 'cd -').out, /^\/home\/aluno\n?|^\/home/);
+  assert.match(runLine(st, 'echo -e "a\\nb"').out, /a\nb/);
+  assert.match(runLine(st, 'ls -R /home').out, /\/home:/);
+  runLine(st, 'false');
+  assert.match(runLine(st, 'true && echo ok').out, /ok/);
+  assert.equal(runLine(st, 'false && echo nao').out.trim(), '');
+});
