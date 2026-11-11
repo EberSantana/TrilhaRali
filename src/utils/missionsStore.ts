@@ -2,6 +2,10 @@ import { useSyncExternalStore } from 'react';
 import { Mission } from '../types';
 import { PublishedSet } from '../types/bank';
 import { ALL_MISSIONS } from '../data/missions';
+import { LINUX_MISSIONS } from '../data/linuxMissions';
+
+/** Catálogo padrão: as 50 missões NTAG213 + as missões de Linux. */
+const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS];
 import { publishedToMission } from './bank';
 import { fetchNfcSet } from './bankApi';
 import { getCtfApiUrl } from './ctfApi';
@@ -20,12 +24,12 @@ function load(): PublishedSet | null {
 
 /** Junta as 50 missões padrão com o conjunto que o professor publicou (se houver). */
 export function mergeMissions(set: PublishedSet | null): Mission[] {
-  if (!set || set.missoes.length === 0) return ALL_MISSIONS;
+  if (!set || set.missoes.length === 0) return BASE;
   const custom = set.missoes.map(publishedToMission);
   if (set.somenteBanco) return custom;
   const byTag = new Map(custom.map((m) => [m.tag_id.toLowerCase(), m]));
-  const replaced = ALL_MISSIONS.map((m) => byTag.get(m.tag_id.toLowerCase()) ?? m);
-  const known = new Set(ALL_MISSIONS.map((m) => m.tag_id.toLowerCase()));
+  const replaced = BASE.map((m) => byTag.get(m.tag_id.toLowerCase()) ?? m);
+  const known = new Set(BASE.map((m) => m.tag_id.toLowerCase()));
   return [...replaced, ...custom.filter((m) => !known.has(m.tag_id.toLowerCase()))];
 }
 
