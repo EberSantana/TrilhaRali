@@ -303,24 +303,43 @@ export const CtfStudent: React.FC = () => {
               )}
 
               <div className="bg-slate-950 rounded-xl p-4 border border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Desafio no SQLite</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{missao.tag_id.startsWith('banco_') ? 'Desafio' : 'Desafio no SQLite'}</div>
                 <p className="text-base sm:text-lg font-bold text-white leading-relaxed whitespace-pre-wrap">{missao.pergunta}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3">
-                <label htmlFor="ctf-resposta" className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Resposta curta (saída da consulta)
-                </label>
-                <input
-                  id="ctf-resposta"
-                  ref={answerRef}
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  disabled={busy || closed}
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white focus:ring-2 focus:ring-orange-500 outline-none"
-                />
+                {missao.opcoes && missao.opcoes.length > 0 ? (
+                  <fieldset disabled={busy || closed} className="space-y-2">
+                    <legend className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">Escolha a alternativa correta</legend>
+                    {missao.opcoes.map((o) => (
+                      <label
+                        key={o}
+                        className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-base cursor-pointer transition ${
+                          answer === o ? 'border-orange-500 bg-orange-500/10 text-white' : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-500'
+                        }`}
+                      >
+                        <input type="radio" name="ctf-opcao" value={o} checked={answer === o} onChange={() => setAnswer(o)} className="h-4 w-4 accent-orange-500" />
+                        <span>{o}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <>
+                    <label htmlFor="ctf-resposta" className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {missao.tag_id.startsWith('banco_') ? 'Sua resposta' : 'Resposta curta (saída da consulta)'}
+                    </label>
+                    <input
+                      id="ctf-resposta"
+                      ref={answerRef}
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      disabled={busy || closed}
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </>
+                )}
                 <button
                   type="submit"
                   disabled={busy || closed || !answer.trim()}

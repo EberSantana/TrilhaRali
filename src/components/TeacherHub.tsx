@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { BankManager } from './bank/BankManager';
 import {
   BarChart3,
   BookOpenCheck,
@@ -83,6 +84,7 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 );
 
 export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
+  const [showBank, setShowBank] = useState(false);
   if (!p.isTeacher) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
@@ -104,6 +106,8 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
       </div>
     );
   }
+
+  if (showBank) return <BankManager onBack={() => setShowBank(false)} />;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
@@ -142,8 +146,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           title="Minhas perguntas e respostas"
           description="Cadastre perguntas por disciplina (resposta exata ou múltipla escolha) e use no NFC e no CTF."
           icon={<Library className="w-5 h-5" />}
-          disabled
-          badge="Próxima etapa"
+          onClick={() => setShowBank(true)}
         />
       </Section>
 

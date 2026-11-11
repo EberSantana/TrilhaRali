@@ -21,6 +21,9 @@ import {
   saveTeacherRooms,
 } from '../../utils/ctfApi';
 import { DEFAULT_CTF_API_URL } from '../../config';
+import { BankQuestion } from '../../types/bank';
+import { bankToCtfPayload } from '../../utils/bank';
+import { getBancoKey, listBanco } from '../../utils/bankApi';
 
 const POLL_MS = 10_000;
 
@@ -60,7 +63,26 @@ export const CtfTeacher: React.FC = () => {
     return Array.from(map.values());
   }, []);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(packages.filter((p) => isConsolePackage(p.id)).map((p) => p.id)));
-  const totalPhases = CTF_POOL.filter((m) => selected.has(m.package)).length;
+  // Perguntas do banco do professor (Google Sheets), escolhidas por disciplina
+  const [bank, setBank] = useState<BankQuestion[]>([]);
+  const [bankMsg, setBankMsg] = useState('');
+  const [bankDiscs, setBankDiscs] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!getBancoKey()) {
+      setBankMsg('Conecte o banco em Professor → Banco de perguntas para usar as suas perguntas aqui.');
+      return;
+    }
+    listBanco()
+      .then((list) => setBank(list.filter((q) => q.ativo)))
+      .catch((e) => setBankMsg(e instanceof Error ? e.message : String(e)));
+  }, []);
+  const bankByDisc = useMemo(() => {
+    const m = new Map<string, number>();
+    bank.forEach((q) => m.set(q.disciplina, (m.get(q.disciplina) || 0) + 1));
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+  }, [bank]);
+  const bankPool = useMemo(() => bank.filter((q) => bankDiscs.has(q.disciplina)), [bank, bankDiscs]);
+  const totalPhases = CTF_POOL.filter((m) => selected.has(m.package)).length + bankPool.length;
 
   const activeRoom = rooms.find((r) => r.token === activeToken) || null;
 
@@ -102,6 +124,7 @@ export const CtfTeacher: React.FC = () => {
         alternativas: m.alternatives || [],
         xp: m.xp_valor,
       }));
+      missions.push(...bankPool.map(bankToCtfPayload));
       const res = await ctfCall<{ token: string; adminKey: string }>(
         'createRoom',
         { nome: nome.trim() || `CTF ${new Date().toLocaleDateString('pt-BR')}`, modo, missions, bancoLiberado },
@@ -293,6 +316,32 @@ export const CtfTeacher: React.FC = () => {
             <p className="text-[11px] text-slate-500">
               Os pacotes “Console” (50 fases) são resolvidos inteiramente no Console SQLite. Os demais são as missões clássicas; “Subconjuntos SQL” depende de um diagrama no quadro.
             </p>
+            <div className="pt-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Do meu banco de perguntas</div>
+              {bankByDisc.length > 0 ? (
+                <div className="space-y-1">
+                  {bankByDisc.map(([d, n]) => (
+                    <label key={d} className="flex items-center gap-2 text-sm text-slate-200 bg-slate-950/70 border border-slate-800 rounded-lg px-3 py-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={bankDiscs.has(d)}
+                        onChange={(e) => {
+                          const next = new Set(bankDiscs);
+                          if (e.target.checked) next.add(d);
+                          else next.delete(d);
+                          setBankDiscs(next);
+                        }}
+                        className="accent-orange-500"
+                      />
+                      <span className="flex-1 truncate">{d}</span>
+                      <span className="text-xs font-mono text-slate-500">{n}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">{bankMsg || 'Seu banco não tem perguntas ativas ainda.'}</p>
+              )}
+            </div>
             {!bancoLiberado && [...selected].some(isConsolePackage) && (
               <p className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-2.5 py-1.5">
                 Atenção: os pacotes “Console” precisam do console liberado. Marque a opção de liberar o banco abaixo, ou use o botão “Banco” no monitor depois.

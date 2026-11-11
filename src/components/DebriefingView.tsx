@@ -12,18 +12,19 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { Mission, SubmissionLog } from '../types';
-import { ALL_MISSIONS } from '../data/missions';
+import { useMissions } from '../utils/missionsStore';
 
 interface DebriefingViewProps {
   logs: SubmissionLog[];
 }
 
 export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
-  const [selectedMission, setSelectedMission] = useState<Mission | null>(ALL_MISSIONS[0]);
+  const missions = useMissions();
+  const [selectedMission, setSelectedMission] = useState<Mission | null>(missions[0] ?? null);
   const [isProjectorModalOpen, setIsProjectorModalOpen] = useState(false);
 
   // Calculate statistics per tag
-  const tagStats = ALL_MISSIONS.map((mission) => {
+  const tagStats = missions.map((mission) => {
     const missionLogs = logs.filter((l) => l.tag_id === mission.tag_id);
     const correctCount = missionLogs.filter((l) => l.correto).length;
     const errorCount = missionLogs.filter((l) => !l.correto).length;

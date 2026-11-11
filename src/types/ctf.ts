@@ -29,6 +29,7 @@ export interface CtfMission {
   xp_base: number;
   xp_atual: number;
   capturas_anteriores: number;
+  opcoes?: string[]; // Múltipla escolha: alternativas (o gabarito nunca vem junto)
 }
 
 export interface CtfRankingRow {
@@ -78,6 +79,7 @@ export interface CtfMissionPayload {
   resposta: string;
   alternativas: string[];
   xp: number;
+  opcoes?: string[];
 }
 
 export interface CtfStoredRoom {

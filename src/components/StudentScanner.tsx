@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, Mission, ClassSessionState, SubmissionLog } from '../types';
-import { ALL_MISSIONS } from '../data/missions';
+import { useMissions } from '../utils/missionsStore';
 import { validateAnswer } from '../utils/validation';
 import { playSound } from '../utils/audio';
 import { getAppsScriptUrl } from '../utils/storage';
@@ -65,8 +65,9 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const missions = useMissions();
   const currentTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
-  const activeMission = ALL_MISSIONS.find((m) => m.tag_id === activeTagId) || customMission;
+  const activeMission = missions.find((m) => m.tag_id === activeTagId) || customMission;
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
   const solvedLogs = logs.filter((l) => l.tag_id === activeTagId && l.correto);
   const mySolve = currentTeam ? solvedLogs.find((l) => l.equipe_id === currentTeam.id) : undefined;
@@ -82,7 +83,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
       if (match) payload = match[0];
     }
 
-    const found = ALL_MISSIONS.find((m) => m.tag_id.toLowerCase() === payload.toLowerCase());
+    const found = missions.find((m) => m.tag_id.toLowerCase() === payload.toLowerCase());
     if (found) {
       setActiveTagId(found.tag_id);
       setCustomMission(null);
@@ -312,7 +313,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
     setIsSubmitting(false);
   };
 
-  const filteredMissions = ALL_MISSIONS.filter(
+  const filteredMissions = missions.filter(
     (m) =>
       m.tag_id.toLowerCase().includes(filterQuery.toLowerCase()) ||
       m.pergunta.toLowerCase().includes(filterQuery.toLowerCase()) ||
@@ -564,22 +565,43 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
                 </p>
               )}
               <div>
-                <label 
-                  htmlFor="resposta-input"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5"
-                >
-                  Digite a Resposta Curta (Gabarito / Saída da Query):
-                </label>
-                <input
-                  id="resposta-input"
-                  ref={inputRef}
-                  type="text"
-                  value={studentAnswer}
-                  onChange={(e) => setStudentAnswer(e.target.value)}
-                  placeholder=""
-                  disabled={sessionState.isSubmissionsLocked || isSubmitting}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition font-medium"
-                />
+                {activeMission?.opcoes && activeMission.opcoes.length > 0 ? (
+                  <fieldset disabled={sessionState.isSubmissionsLocked || isSubmitting} className="space-y-2">
+                    <legend className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Escolha a alternativa correta:
+                    </legend>
+                    {activeMission.opcoes.map((o) => (
+                      <label
+                        key={o}
+                        className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-base cursor-pointer transition ${
+                          studentAnswer === o ? 'border-emerald-500 bg-emerald-500/10 text-white' : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-500'
+                        }`}
+                      >
+                        <input type="radio" name="nfc-opcao" value={o} checked={studentAnswer === o} onChange={() => setStudentAnswer(o)} className="h-4 w-4 accent-emerald-500" />
+                        <span>{o}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="resposta-input"
+                      className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5"
+                    >
+                      {activeMission?.package === 'banco' ? 'Digite a sua resposta:' : 'Digite a Resposta Curta (Gabarito / Saída da Query):'}
+                    </label>
+                    <input
+                      id="resposta-input"
+                      ref={inputRef}
+                      type="text"
+                      value={studentAnswer}
+                      onChange={(e) => setStudentAnswer(e.target.value)}
+                      placeholder=""
+                      disabled={sessionState.isSubmissionsLocked || isSubmitting}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition font-medium"
+                    />
+                  </>
+                )}
               </div>
 
               <button

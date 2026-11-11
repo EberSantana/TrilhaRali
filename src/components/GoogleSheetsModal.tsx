@@ -12,7 +12,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { getAppsScriptUrl, saveAppsScriptUrl } from '../utils/storage';
-import { ALL_MISSIONS } from '../data/missions';
+import { getMissions } from '../utils/missionsStore';
 import { Team } from '../types';
 
 interface GoogleSheetsModalProps {
@@ -222,7 +222,7 @@ function doGet(e) {
     let filename = '';
     if (type === 'missoes') {
       content = 'Tag_ID,Pergunta,Resposta_Curta,XP\n' +
-        ALL_MISSIONS.map(m => `"${m.tag_id}","${m.pergunta.replace(/"/g, '""')}","${m.resposta_curta}",${m.xp_valor}`).join('\n');
+        getMissions().map(m => `"${m.tag_id}","${m.pergunta.replace(/"/g, '""')}","${m.resposta_curta}",${m.xp_valor}`).join('\n');
       filename = 'planilha_missoes.csv';
     } else {
       content = 'Nome_Equipe,XP_Total\n' +

@@ -13,7 +13,8 @@ export type MissionPackage =
   | 'console_join'
   | 'console_sub'
   | 'console_ddl'
-  | 'console_int';
+  | 'console_int'
+  | 'banco';
 
 export type SqlCategory = 
   | 'DDL' 
@@ -24,7 +25,8 @@ export type SqlCategory =
   | 'DCL' 
   | 'TCL'
   | 'Boss' 
-  | 'Sintaxe';
+  | 'Sintaxe'
+  | 'Geral';
 
 export interface Mission {
   id: number;
@@ -39,6 +41,7 @@ export interface Mission {
   location_suggestion: string; // Ex: "Mesa do Professor", "Monitor 03"
   explanation: string; // Explicação para o Debriefing (90-100 min)
   sample_query?: string; // Query SQL correspondente para projetar no telão
+  opcoes?: string[]; // Múltipla escolha: alternativas exibidas ao aluno (a resposta correta é uma delas)
 }
 
 export interface Team {

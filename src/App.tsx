@@ -40,7 +40,8 @@ import {
   isTeacherAuthenticated,
   setTeacherAuthenticated
 } from './utils/storage';
-import { ALL_MISSIONS, INITIAL_TEAMS } from './data/missions';
+import { INITIAL_TEAMS } from './data/missions';
+import { getMissions, refreshPublished } from './utils/missionsStore';
 import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/scoring';
 import { parseTagFromLocation } from './utils/tagLink';
 
@@ -79,6 +80,16 @@ export default function App() {
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null);
 
   // Sync state across multiple tabs or browser windows (Projector on PC + Scanner on phone)
+  // Perguntas que o professor publicou para o Rali NFC (vêm da planilha; sem internet vale a última cópia)
+  useEffect(() => {
+    refreshPublished();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshPublished();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   const refreshFromStorage = useCallback(() => {
     const allRooms = getRooms();
     const currId = getActiveRoomId();
@@ -217,7 +228,7 @@ export default function App() {
   // A posição de chegada e o XP são recalculados aqui, com o estado mais recente do armazenamento,
   // para que duas equipes enviando quase ao mesmo tempo não recebam a mesma posição.
   const handleValidSubmission = (teamId: string, tagId: string, baseXp: number, answer: string): CaptureScore | null => {
-    const mission = ALL_MISSIONS.find((m) => m.tag_id === tagId);
+    const mission = getMissions().find((m) => m.tag_id === tagId);
     const freshTeams = getTeams();
     const current = freshTeams.find((t) => t.id === teamId);
     if (!current || current.missoes_concluidas.includes(tagId)) return null;
@@ -271,7 +282,7 @@ export default function App() {
 
   // Handle invalid submission
   const handleInvalidSubmission = (teamId: string, tagId: string, answer: string) => {
-    const mission = ALL_MISSIONS.find((m) => m.tag_id === tagId);
+    const mission = getMissions().find((m) => m.tag_id === tagId);
     const updatedTeams = teams.map((team) => {
       if (team.id === teamId) {
         return {

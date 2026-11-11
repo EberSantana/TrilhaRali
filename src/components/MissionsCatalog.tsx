@@ -15,11 +15,12 @@ import {
   EyeOff
 } from 'lucide-react';
 import { Mission, MissionPackage } from '../types';
-import { ALL_MISSIONS } from '../data/missions';
+import { useMissions } from '../utils/missionsStore';
 import { IfsLogo } from './IfsLogo';
 import { TagLabels } from './TagLabels';
 
 export const MissionsCatalog: React.FC = () => {
+  const missions = useMissions();
   const [selectedPackage, setSelectedPackage] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
@@ -28,19 +29,20 @@ export const MissionsCatalog: React.FC = () => {
   const [showLabels, setShowLabels] = useState<boolean>(false);
 
   const packages: { id: string; label: string; count: number }[] = [
-    { id: 'all', label: 'Todas as 50 Missões', count: ALL_MISSIONS.length },
-    { id: 'mvp', label: '1. MVP Base', count: ALL_MISSIONS.filter(m => m.package === 'mvp').length },
-    { id: 'academia', label: '2. Academia (Modelagem)', count: ALL_MISSIONS.filter(m => m.package === 'academia').length },
-    { id: 'crud16', label: '3. 16 Comandos CRUD', count: ALL_MISSIONS.filter(m => m.package === 'crud16').length },
-    { id: 'biblioteca', label: '4. Biblioteca (JOINs)', count: ALL_MISSIONS.filter(m => m.package === 'biblioteca').length },
-    { id: 'supermercado', label: '5. Supermercado (Boss V/F)', count: ALL_MISSIONS.filter(m => m.package === 'supermercado').length },
-    { id: 'fechamento', label: '6. Fechamento (DTL/DCL)', count: ALL_MISSIONS.filter(m => m.package === 'fechamento').length },
-    { id: 'joins', label: '7. Rali dos JOINs', count: ALL_MISSIONS.filter(m => m.package === 'joins').length },
-    { id: 'dml', label: '8. Mutação DML', count: ALL_MISSIONS.filter(m => m.package === 'dml').length },
-    { id: 'diagrama', label: '9. Subconjuntos SQL', count: ALL_MISSIONS.filter(m => m.package === 'diagrama').length },
-  ];
+    { id: 'all', label: `Todas as ${missions.length} Missões`, count: missions.length },
+    { id: 'mvp', label: '1. MVP Base', count: missions.filter(m => m.package === 'mvp').length },
+    { id: 'academia', label: '2. Academia (Modelagem)', count: missions.filter(m => m.package === 'academia').length },
+    { id: 'crud16', label: '3. 16 Comandos CRUD', count: missions.filter(m => m.package === 'crud16').length },
+    { id: 'biblioteca', label: '4. Biblioteca (JOINs)', count: missions.filter(m => m.package === 'biblioteca').length },
+    { id: 'supermercado', label: '5. Supermercado (Boss V/F)', count: missions.filter(m => m.package === 'supermercado').length },
+    { id: 'fechamento', label: '6. Fechamento (DTL/DCL)', count: missions.filter(m => m.package === 'fechamento').length },
+    { id: 'joins', label: '7. Rali dos JOINs', count: missions.filter(m => m.package === 'joins').length },
+    { id: 'dml', label: '8. Mutação DML', count: missions.filter(m => m.package === 'dml').length },
+    { id: 'diagrama', label: '9. Subconjuntos SQL', count: missions.filter(m => m.package === 'diagrama').length },
+    { id: 'banco', label: 'Meu banco (publicadas)', count: missions.filter(m => m.package === 'banco').length },
+  ].filter((p) => p.id !== 'banco' || p.count > 0);
 
-  const filteredMissions = ALL_MISSIONS.filter((m) => {
+  const filteredMissions = missions.filter((m) => {
     const matchesPackage = selectedPackage === 'all' || m.package === selectedPackage;
     const matchesSearch =
       m.tag_id.toLowerCase().includes(searchQuery.toLowerCase()) ||

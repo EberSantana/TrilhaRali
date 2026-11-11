@@ -15,13 +15,16 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 
 var SHEET_HEADERS = {
   CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado'],
-  CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp'],
+  CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro'],
-  CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp']
+  CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
+  Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
+  NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -70,6 +73,13 @@ function route(req) {
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
+    case 'bancoPing': requireBancoKey(req); return { ok: true };
+    case 'bancoList': return bancoList(req);
+    case 'bancoSave': return bancoSave(req);
+    case 'bancoDelete': return bancoDelete(req);
+    case 'bancoImport': return bancoImport(req);
+    case 'nfcPublish': return nfcPublish(req);
+    case 'nfcSet': return nfcSet();
     default: fail('Acao desconhecida.');
   }
 }
@@ -82,7 +92,7 @@ function getSheet(name) {
   if (!sh) {
     sh = ss.insertSheet(name);
     sh.appendRow(SHEET_HEADERS[name]);
-    if (name === 'CtfMissoes') {
+    if (TEXT_SHEETS[name]) {
       // Evita que respostas como "007" ou "1.0" virem numeros
       sh.getRange(1, 1, sh.getMaxRows(), SHEET_HEADERS[name].length).setNumberFormat('@');
     }
@@ -239,6 +249,7 @@ function buildState(room, nomeKey) {
       categoria: m.categoria,
       pacote: m.pacote,
       pergunta: m.pergunta,
+      opcoes: parseList(m.opcoes),
       xp_base: base,
       xp_atual: pontos(base, anteriores + 1, room.modo),
       capturas_anteriores: anteriores
@@ -281,7 +292,7 @@ function createRoom(req) {
   var sh = getSheet('CtfMissoes');
   var rows = missions.map(function (m, i) {
     return [token, i + 1, m.tag_id, m.categoria || '', m.pacote || '', m.pergunta, m.resposta,
-      JSON.stringify(m.alternativas || []), m.xp || 10];
+      JSON.stringify(m.alternativas || []), m.xp || 10, JSON.stringify(m.opcoes || [])];
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.CtfMissoes.length).setValues(rows);
   return { token: token, adminKey: adminKey, total: missions.length };
@@ -394,5 +405,212 @@ function setStatus(req) {
   updateRow('CtfSalas', room._row, { status: status });
   room.status = status;
   return { sala: roomInfo(room) };
+}
+
+// ---------- Banco de perguntas do professor ----------
+// A chave do banco fica nas Propriedades do script (BANCO_KEY_HASH). Rode setupBanco() UMA vez no editor:
+// ela gera a chave, guarda so o hash e mostra a chave no Registro de execucao.
+
+function parseList(v) {
+  if (v === undefined || v === null || v === '') return [];
+  try {
+    var a = JSON.parse(v);
+    return Array.isArray(a) ? a.map(String) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function sha256hex(text) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(text), Utilities.Charset.UTF_8);
+  return bytes.map(function (b) { return ('0' + ((b < 0 ? b + 256 : b) & 255).toString(16)).slice(-2); }).join('');
+}
+
+function setupBanco() {
+  var key = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 20);
+  PropertiesService.getScriptProperties().setProperty('BANCO_KEY_HASH', sha256hex(key));
+  Logger.log('CHAVE DO BANCO (guarde com voce): ' + key);
+  return key;
+}
+
+function requireBancoKey(req) {
+  var hash = PropertiesService.getScriptProperties().getProperty('BANCO_KEY_HASH');
+  if (!hash) fail('O banco de perguntas ainda nao foi configurado. Rode setupBanco() no editor do Apps Script.');
+  if (sha256hex(String(req.chave || '')) !== hash) {
+    Utilities.sleep(1200);
+    fail('Chave do banco invalida.');
+  }
+}
+
+function cleanQuestion(q) {
+  q = q || {};
+  var disciplina = String(q.disciplina || '').replace(/\s+/g, ' ').trim();
+  var assunto = String(q.assunto || '').replace(/\s+/g, ' ').trim();
+  var pergunta = String(q.pergunta || '').trim();
+  var tipo = q.tipo === 'multipla' ? 'multipla' : 'exata';
+  var resposta = String(q.resposta === undefined || q.resposta === null ? '' : q.resposta).trim();
+  var xp = Number(q.xp);
+  if (!disciplina) fail('Informe a disciplina.');
+  if (disciplina.length > 80) fail('Disciplina muito longa.');
+  if (assunto.length > 80) fail('Assunto muito longo.');
+  if (pergunta.length < 5) fail('A pergunta precisa ter ao menos 5 caracteres.');
+  if (pergunta.length > 1500) fail('Pergunta muito longa (maximo 1500 caracteres).');
+  if (!resposta) fail('Informe a resposta correta.');
+  if (resposta.length > 300) fail('Resposta muito longa.');
+  if (!(xp >= 1 && xp <= 100)) xp = 10;
+  var aceitas = [];
+  var opcoes = [];
+  if (tipo === 'multipla') {
+    var seen = {};
+    parseListInput(q.opcoes).forEach(function (o) {
+      var k = norm(o);
+      if (k && !seen[k]) { seen[k] = true; opcoes.push(String(o).trim()); }
+    });
+    if (opcoes.length < 2 || opcoes.length > 6) fail('Multipla escolha precisa de 2 a 6 alternativas diferentes.');
+    if (!seen[norm(resposta)]) fail('A resposta correta precisa ser uma das alternativas.');
+  } else {
+    parseListInput(q.aceitas).forEach(function (a) {
+      var t = String(a).trim();
+      if (t && norm(t) !== norm(resposta) && aceitas.indexOf(t) < 0) aceitas.push(t);
+    });
+    if (aceitas.length > 10) fail('Maximo de 10 variacoes aceitas.');
+  }
+  return {
+    disciplina: disciplina, assunto: assunto, tipo: tipo, pergunta: pergunta, resposta: resposta,
+    aceitas: aceitas, opcoes: opcoes, xp: Math.round(xp), explicacao: String(q.explicacao || '').trim().substring(0, 1000),
+    ativo: q.ativo !== false
+  };
+}
+
+function parseListInput(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string') return v.split(/\r?\n/);
+  return [];
+}
+
+function bancoRowOut(r) {
+  return {
+    id: String(r.id), disciplina: r.disciplina, assunto: r.assunto, tipo: r.tipo === 'multipla' ? 'multipla' : 'exata',
+    pergunta: r.pergunta, resposta: String(r.resposta), aceitas: parseList(r.aceitas), opcoes: parseList(r.opcoes),
+    xp: Number(r.xp) || 10, explicacao: r.explicacao || '',
+    ativo: r.ativo === true || String(r.ativo).toLowerCase() === 'true',
+    atualizado_em: r.atualizado_em ? String(r.atualizado_em) : ''
+  };
+}
+
+function bancoToValues(id, c) {
+  return {
+    id: id, disciplina: c.disciplina, assunto: c.assunto, tipo: c.tipo, pergunta: c.pergunta, resposta: c.resposta,
+    aceitas: JSON.stringify(c.aceitas), opcoes: JSON.stringify(c.opcoes), xp: c.xp, explicacao: c.explicacao,
+    ativo: c.ativo, atualizado_em: new Date().toISOString()
+  };
+}
+
+function bancoList(req) {
+  requireBancoKey(req);
+  return { perguntas: readRows('Banco').filter(function (r) { return String(r.id) !== ''; }).map(bancoRowOut) };
+}
+
+function newBancoId(existing) {
+  var id;
+  do { id = 'Q' + randomFrom(TOKEN_CHARS, 6); } while (existing.indexOf(id) >= 0);
+  return id;
+}
+
+function bancoSave(req) {
+  requireBancoKey(req);
+  var c = cleanQuestion(req.pergunta);
+  var rows = readRows('Banco');
+  var id = req.pergunta && req.pergunta.id ? String(req.pergunta.id) : '';
+  var found = null;
+  for (var i = 0; i < rows.length; i++) { if (String(rows[i].id) === id && id) { found = rows[i]; break; } }
+  if (found) {
+    updateRow('Banco', found._row, bancoToValues(id, c));
+  } else {
+    id = newBancoId(rows.map(function (r) { return String(r.id); }));
+    appendObj('Banco', bancoToValues(id, c));
+  }
+  var saved = bancoToValues(id, c);
+  return { pergunta: bancoRowOut(saved) };
+}
+
+function bancoDelete(req) {
+  requireBancoKey(req);
+  var id = String(req.id || '');
+  var rows = readRows('Banco');
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].id) === id) {
+      getSheet('Banco').deleteRow(rows[i]._row);
+      return { ok: true };
+    }
+  }
+  fail('Pergunta nao encontrada.');
+}
+
+function bancoImport(req) {
+  requireBancoKey(req);
+  var list = req.perguntas || [];
+  if (!list.length) fail('Nada para importar.');
+  if (list.length > 300) fail('Maximo de 300 perguntas por importacao.');
+  var ids = readRows('Banco').map(function (r) { return String(r.id); });
+  var values = [];
+  var erros = [];
+  list.forEach(function (q, i) {
+    try {
+      var c = cleanQuestion(q);
+      var id = newBancoId(ids);
+      ids.push(id);
+      var o = bancoToValues(id, c);
+      values.push(SHEET_HEADERS.Banco.map(function (k) { return o[k]; }));
+    } catch (err) {
+      erros.push({ linha: i + 1, motivo: err && err.userMessage ? err.message : String(err) });
+    }
+  });
+  if (values.length) {
+    var sh = getSheet('Banco');
+    sh.getRange(sh.getLastRow() + 1, 1, values.length, SHEET_HEADERS.Banco.length).setValues(values);
+  }
+  return { importadas: values.length, erros: erros };
+}
+
+// ---------- Publicacao para o Rali NFC ----------
+
+function nfcPublish(req) {
+  requireBancoKey(req);
+  var list = req.missoes || [];
+  if (list.length > 200) fail('Maximo de 200 missoes publicadas.');
+  var now = new Date().toISOString();
+  var seen = {};
+  var values = list.map(function (m) {
+    var tag = String(m.tag_id || '').trim().toLowerCase();
+    if (!/^tag_[a-z0-9_]+$/.test(tag)) fail('Tag invalida: ' + tag);
+    if (seen[tag]) fail('Tag repetida: ' + tag);
+    seen[tag] = true;
+    var c = cleanQuestion(m);
+    var o = { tag_id: tag, disciplina: c.disciplina, assunto: c.assunto, tipo: c.tipo, pergunta: c.pergunta,
+      resposta: c.resposta, aceitas: JSON.stringify(c.aceitas), opcoes: JSON.stringify(c.opcoes), xp: c.xp,
+      explicacao: c.explicacao, publicada_em: now };
+    return SHEET_HEADERS.NfcPublicadas.map(function (k) { return o[k]; });
+  });
+  var sh = getSheet('NfcPublicadas');
+  if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
+  if (values.length) sh.getRange(2, 1, values.length, SHEET_HEADERS.NfcPublicadas.length).setValues(values);
+  PropertiesService.getScriptProperties().setProperty('NFC_SOMENTE_BANCO', req.somenteBanco === false ? 'false' : 'true');
+  return { total: values.length };
+}
+
+// Publico: os celulares dos alunos leem o conjunto publicado (o Rali NFC valida no aparelho, como as missoes padrao)
+function nfcSet() {
+  var rows = readRows('NfcPublicadas').filter(function (r) { return String(r.tag_id) !== ''; });
+  return {
+    somenteBanco: PropertiesService.getScriptProperties().getProperty('NFC_SOMENTE_BANCO') !== 'false',
+    missoes: rows.map(function (r) {
+      return {
+        tag_id: String(r.tag_id), disciplina: r.disciplina, assunto: r.assunto, tipo: r.tipo === 'multipla' ? 'multipla' : 'exata',
+        pergunta: r.pergunta, resposta: String(r.resposta), aceitas: parseList(r.aceitas), opcoes: parseList(r.opcoes),
+        xp: Number(r.xp) || 10, explicacao: r.explicacao || ''
+      };
+    })
+  };
 }
 `;
