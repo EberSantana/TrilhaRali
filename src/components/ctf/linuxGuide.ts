@@ -1,0 +1,101 @@
+export interface GuideItem {
+  cmd: string; // o que aparece e é inserido no terminal
+  desc: string;
+}
+export interface GuideGroup {
+  titulo: string;
+  itens: GuideItem[];
+}
+
+/** Guia de comandos básicos de Linux (em português), agrupado como na cola clássica. */
+export const LINUX_GUIDE: GuideGroup[] = [
+  {
+    titulo: 'Arquivos e navegação',
+    itens: [
+      { cmd: 'ls', desc: 'lista os arquivos e pastas do local atual' },
+      { cmd: 'ls -l', desc: 'lista detalhada (permissões, dono, tamanho)' },
+      { cmd: 'ls -la', desc: 'lista detalhada incluindo arquivos ocultos' },
+      { cmd: 'cd documentos', desc: 'entra na pasta "documentos"' },
+      { cmd: 'cd ..', desc: 'sobe para a pasta de cima' },
+      { cmd: 'cd', desc: 'volta para a sua pasta pessoal' },
+      { cmd: 'pwd', desc: 'mostra em que pasta você está' },
+      { cmd: 'mkdir nova_pasta', desc: 'cria uma pasta' },
+      { cmd: 'touch arquivo.txt', desc: 'cria um arquivo vazio (ou atualiza a data)' },
+      { cmd: 'cp notas.txt copia.txt', desc: 'copia um arquivo' },
+      { cmd: 'mv copia.txt renomeado.txt', desc: 'renomeia ou move um arquivo' },
+      { cmd: 'rm renomeado.txt', desc: 'apaga um arquivo' },
+      { cmd: 'rm -r nova_pasta', desc: 'apaga uma pasta e tudo dentro dela' },
+      { cmd: 'cat notas.txt', desc: 'mostra o conteúdo de um arquivo' },
+      { cmd: 'echo "ola" > teste.txt', desc: 'escreve texto em um arquivo (apaga o que tinha)' },
+      { cmd: 'echo "mais" >> teste.txt', desc: 'acrescenta texto no fim do arquivo' },
+      { cmd: 'tail -n 3 /var/log/sistema.log', desc: 'mostra as últimas linhas de um arquivo' },
+    ],
+  },
+  {
+    titulo: 'Informações do sistema',
+    itens: [
+      { cmd: 'date', desc: 'mostra data e hora' },
+      { cmd: 'uptime', desc: 'há quanto tempo o sistema está ligado' },
+      { cmd: 'whoami', desc: 'mostra com qual usuário você está logado' },
+      { cmd: 'w', desc: 'mostra quem está conectado' },
+      { cmd: 'cat /proc/cpuinfo', desc: 'informações do processador' },
+      { cmd: 'cat /proc/meminfo', desc: 'informações da memória' },
+      { cmd: 'free -h', desc: 'uso de memória (em unidades legíveis)' },
+      { cmd: 'du -sh documentos', desc: 'tamanho de uma pasta' },
+      { cmd: 'df -h', desc: 'espaço usado e livre nos discos' },
+      { cmd: 'uname -a', desc: 'informações do sistema operacional' },
+    ],
+  },
+  {
+    titulo: 'Rede (simulada)',
+    itens: [
+      { cmd: 'ping google.com', desc: 'testa se um computador responde' },
+      { cmd: 'whois ifs.edu.br', desc: 'dados de registro de um domínio' },
+      { cmd: 'dig ifs.edu.br', desc: 'consulta o DNS de um domínio' },
+      { cmd: 'wget https://exemplo.com/pagina.html', desc: 'baixa um arquivo da internet' },
+      { cmd: 'curl https://exemplo.com', desc: 'mostra o conteúdo de uma página' },
+      { cmd: 'curl -o pagina.html https://exemplo.com', desc: 'salva a página em um arquivo' },
+      { cmd: 'ssh usuario@servidor', desc: 'conecta em outro computador (aqui só de mentira)' },
+    ],
+  },
+  {
+    titulo: 'Processos',
+    itens: [
+      { cmd: 'ps', desc: 'lista os seus processos ativos' },
+      { cmd: 'ps aux', desc: 'lista todos os processos, com detalhes' },
+      { cmd: 'kill 150', desc: 'encerra o processo de número (PID) 150' },
+      { cmd: 'killall firefox', desc: 'encerra todos os processos com esse nome' },
+    ],
+  },
+  {
+    titulo: 'Compactar arquivos',
+    itens: [
+      { cmd: 'tar cf backup.tar documentos', desc: 'junta arquivos em um único .tar' },
+      { cmd: 'tar tf backup.tar', desc: 'lista o que tem dentro do .tar' },
+      { cmd: 'tar xf backup.tar', desc: 'extrai o conteúdo do .tar na pasta atual' },
+    ],
+  },
+  {
+    titulo: 'Permissões',
+    itens: [
+      { cmd: 'chmod 755 projetos/script.sh', desc: 'dono lê/escreve/executa; os outros leem/executam' },
+      { cmd: 'chmod 777 notas.txt', desc: 'todos podem ler, escrever e executar' },
+      { cmd: 'chmod +x projetos/script.sh', desc: 'torna o arquivo executável' },
+      { cmd: './projetos/script.sh', desc: 'executa um script' },
+      { cmd: 'cat segredo.txt', desc: 'tente ler: o que impede? use ls -l e chmod' },
+    ],
+  },
+  {
+    titulo: 'Outros úteis',
+    itens: [
+      { cmd: 'grep Erro documentos/relatorio.txt', desc: 'procura um texto dentro de arquivos' },
+      { cmd: 'grep -r Erro documentos', desc: 'procura em todos os arquivos de uma pasta' },
+      { cmd: 'find . -name "*.txt"', desc: 'procura arquivos pelo nome' },
+      { cmd: 'locate relatorio', desc: 'encontra todos os arquivos com esse nome' },
+      { cmd: 'whereis ls', desc: 'mostra onde fica um programa' },
+      { cmd: 'man chmod', desc: 'mostra o manual de um comando' },
+      { cmd: 'cat documentos/lista_compras.txt | sort | uniq', desc: 'combina comandos com pipe (|)' },
+      { cmd: 'history', desc: 'lista os comandos que você já digitou' },
+    ],
+  },
+];

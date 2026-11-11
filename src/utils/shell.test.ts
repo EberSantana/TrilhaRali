@@ -68,3 +68,26 @@ test('autocompletar', () => {
   assert.equal(complete(st, 'cd doc').line, 'cd documentos/');
   assert.equal(complete(st, 'pw').line, 'pwd ');
 });
+
+test('módulo Linux: sistema, processos, rede simulada e tar', () => {
+  const st = createShell();
+  assert.match(run(st, 'free -h'), /Mem:/);
+  assert.match(run(st, 'df -h'), /\/dev\/sda1/);
+  assert.match(run(st, 'cat /proc/meminfo'), /MemTotal/);
+  assert.match(run(st, 'ps aux'), /firefox/);
+  run(st, 'kill 150');
+  assert.doesNotMatch(run(st, 'ps aux'), /firefox/);
+  assert.match(run(st, 'kill 1'), /Operação não permitida/);
+  assert.match(run(st, 'ping google.com'), /4 recebidos/);
+  run(st, 'curl -o p.html https://exemplo.com');
+  assert.match(run(st, 'cat p.html'), /simulado/);
+  run(st, 'tar cf bk.tar documentos');
+  assert.match(run(st, 'tar tf bk.tar'), /documentos\/relatorio.txt/);
+  run(st, 'rm -r documentos');
+  run(st, 'tar xf bk.tar');
+  assert.match(run(st, 'ls documentos'), /relatorio.txt/);
+  assert.match(run(st, 'grep -r Erro documentos'), /relatorio.txt:Erro na linha 4/);
+  assert.match(run(st, 'locate relatorio'), /\/home\/aluno\/documentos\/relatorio.txt/);
+  assert.match(run(st, 'man chmod'), /MANUAL/);
+  assert.match(run(st, 'du -sh documentos'), /documentos/);
+});

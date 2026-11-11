@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Terminal } from 'lucide-react';
+import { BookOpen, Terminal } from 'lucide-react';
+import { LINUX_GUIDE } from './linuxGuide';
 import { complete, createShell, promptOf, runLine, type ShellState } from '../../utils/shell';
 
 interface Line {
@@ -98,7 +99,38 @@ export function LinuxTerminal() {
           />
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-400">Pratique comandos como ls, cd, cat, grep, chmod. Use reset para recomeçar.</p>
+      <p className="mt-2 text-xs text-slate-400">Use <span className="font-mono">reset</span> para recomeçar. Clique em um comando do guia abaixo para colocá-lo no terminal.</p>
+
+      <details className="mt-4 group rounded-xl border border-slate-700 bg-slate-900/50" open>
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-bold text-slate-100 select-none">
+          <BookOpen className="h-4 w-4 text-emerald-400" /> Guia de comandos Linux
+        </summary>
+        <div className="grid gap-4 border-t border-slate-700 p-3 sm:grid-cols-2">
+          {LINUX_GUIDE.map((g) => (
+            <div key={g.titulo}>
+              <h4 className="mb-1.5 text-xs font-black uppercase tracking-wider text-emerald-300">{g.titulo}</h4>
+              <ul className="space-y-1">
+                {g.itens.map((it) => (
+                  <li key={it.cmd}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInput(it.cmd);
+                        inp.current?.focus();
+                      }}
+                      className="w-full rounded-lg px-2 py-1 text-left hover:bg-slate-800"
+                      title="Clique para colocar no terminal"
+                    >
+                      <code className="font-mono text-[12px] font-bold text-slate-100">{it.cmd}</code>
+                      <span className="block text-[11px] leading-snug text-slate-400">{it.desc}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </details>
     </section>
   );
 }
