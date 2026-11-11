@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RankChip, StudentBar, XpChip } from './common/StudentBar';
+import { StatusBanner } from './common/StatusBanner';
 import { 
   Radio, 
   Send, 
@@ -67,6 +69,9 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
 
   const missions = useMissions();
   const currentTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
+  const rankPos = currentTeam
+    ? [...teams].sort((a, b) => b.xp_total - a.xp_total || (b.ultimo_acerto || 0) - (a.ultimo_acerto || 0)).findIndex((t) => t.id === currentTeam.id) + 1
+    : 0;
   const activeMission = missions.find((m) => m.tag_id === activeTagId) || customMission;
   const isAlreadySolved = currentTeam ? currentTeam.missoes_concluidas.includes(activeTagId) : false;
   const solvedLogs = logs.filter((l) => l.tag_id === activeTagId && l.correto);
@@ -342,24 +347,23 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
         </span>
       </div>
 
-      {/* Team Selection Banner */}
-      <div className="bg-slate-900/95 rounded-2xl p-5 border border-emerald-900/40 shadow-xl backdrop-blur">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Identificação do Scanner
-            </span>
-            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full ${currentTeam?.cor || 'bg-emerald-500'}`} />
-              {currentTeam?.nome || 'Selecione sua Equipe'}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+      {/* Cabeçalho da equipe (mesmo desenho do CTF Online) */}
+      <StudentBar
+        module="nfc"
+        context="Identificação do scanner"
+        name={
+          <>
+            <span className={`w-3.5 h-3.5 shrink-0 rounded-full ${currentTeam?.cor || 'bg-emerald-500'}`} />
+            <span className="truncate">{currentTeam?.nome || 'Selecione sua equipe'}</span>
+          </>
+        }
+        footer={
+          <div className="space-y-3">
             <select
+              aria-label="Equipe"
               value={selectedTeamId}
               onChange={(e) => onSelectTeam(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-medium focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-auto"
+              className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-medium focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-auto"
             >
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -367,41 +371,32 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
                 </option>
               ))}
             </select>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl text-emerald-400 font-mono font-bold text-sm whitespace-nowrap">
-              {currentTeam?.xp_total || 0} XP
-            </div>
+            {currentTeam && currentTeam.alunos && currentTeam.alunos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-slate-400 font-semibold">Integrantes da equipe:</span>
+                {currentTeam.alunos.map((aluno) => (
+                  <span
+                    key={aluno}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
+                      aluno === currentTeam.scanner_aluno
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
+                        : 'bg-slate-950 text-slate-300'
+                    }`}
+                  >
+                    {aluno} {aluno === currentTeam.scanner_aluno && '📱 (Scanner)'}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        }
+      >
+        <XpChip xp={currentTeam?.xp_total || 0} />
+        {currentTeam && <RankChip pos={rankPos} total={teams.length} />}
+      </StudentBar>
 
-        {/* Team Members List */}
-        {currentTeam && currentTeam.alunos && currentTeam.alunos.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-700/60 flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-slate-400 font-semibold">Integrantes da Equipe:</span>
-            {currentTeam.alunos.map((aluno) => (
-              <span
-                key={aluno}
-                className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
-                  aluno === currentTeam.scanner_aluno
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
-                    : 'bg-slate-900 text-slate-300'
-                }`}
-              >
-                {aluno} {aluno === currentTeam.scanner_aluno && '📱 (Scanner)'}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Lock Warning if Hard Stop is Active */}
       {sessionState.isSubmissionsLocked && (
-        <div className="bg-red-950/80 border border-red-500 rounded-2xl p-4 text-red-200 flex items-center gap-3 animate-pulse">
-          <Lock className="w-6 h-6 text-red-400 shrink-0" />
-          <div>
-            <h4 className="font-bold text-red-300">Respostas bloqueadas</h4>
-            <p className="text-xs text-red-300/80">O tempo acabou ou o professor travou o envio para apurar o ranking final no telão.</p>
-          </div>
-        </div>
+        <StatusBanner>Respostas bloqueadas: o tempo acabou ou o professor travou o envio para apurar o ranking no telão.</StatusBanner>
       )}
 
       {/* NFC Action Card */}

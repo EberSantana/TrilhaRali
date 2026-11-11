@@ -16,6 +16,8 @@ import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 import { SqlConsole } from './SqlConsole';
 import { Top5Board } from './Top5Board';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
+import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
+import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 
 const POLL_MS = 10_000;
@@ -234,43 +236,25 @@ export const CtfStudent: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-      {/* Cabeçalho */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-orange-400">CTF • {sala.nome}</div>
-          <div className="text-lg font-black text-white truncate">{aluno.nome}</div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
-          <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
-          <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-black">{aluno.xp} XP</span>
-          {aluno.fogos > 0 && (
-            <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
-          )}
-          <span className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 font-bold" title="Sua posição no ranking">
-            {aluno.posicao}º de {state.total_alunos}
-          </span>
-          <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+      <StudentBar
+        module="ctf"
+        context={sala.nome}
+        name={aluno.nome}
+      >
+        <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
+        <XpChip xp={aluno.xp} />
+        {aluno.fogos > 0 && (
+          <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
+        )}
+        <RankChip pos={aluno.posicao} total={state.total_alunos} />
+        <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
+          <LogOut className="w-4 h-4" />
+        </button>
+      </StudentBar>
 
-      {closed && (
-        <div className="rounded-2xl bg-red-950/70 border border-red-500/60 text-red-200 p-4 flex items-center gap-3 font-semibold text-sm">
-          <Lock className="w-5 h-5 text-red-400 shrink-0" /> A sala foi encerrada pelo professor. Veja o ranking final abaixo.
-        </div>
-      )}
-
-      {!closed && timeUp && (
-        <div className="rounded-2xl bg-red-950/70 border border-red-500/60 text-red-200 p-4 flex items-center gap-3 font-semibold text-sm" role="status">
-          <Lock className="w-5 h-5 text-red-400 shrink-0" /> Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.
-        </div>
-      )}
-      {!closed && waiting && (
-        <div className="rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 p-4 flex items-center gap-3 font-semibold text-sm" role="status">
-          <Lock className="w-5 h-5 text-amber-400 shrink-0" /> O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.
-        </div>
-      )}
+      {closed && <StatusBanner>A sala foi encerrada pelo professor. Veja o ranking final abaixo.</StatusBanner>}
+      {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.</StatusBanner>}
+      {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
       {/* Progresso por fase */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">

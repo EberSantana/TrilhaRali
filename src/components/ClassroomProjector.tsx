@@ -10,7 +10,6 @@ import {
   Trophy, 
   Medal, 
   Sparkles, 
-  Clock, 
   Flame, 
   CheckCircle2, 
   XCircle,
@@ -24,7 +23,13 @@ import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from 
 import { playSound } from '../utils/audio';
 import { TrilhaLogo } from './TrilhaLogo';
 import { normalizeScoringMode } from '../utils/scoring';
-import { clampMinutes, crossedAlert, CRITICAL_SECONDS, TIMER_MAX, WARN_SECONDS } from '../utils/timer';
+import { clampMinutes, crossedAlert, TIMER_MAX, timerPhase, TimerInfo } from '../utils/timer';
+import { useMissions } from '../utils/missionsStore';
+import { TimerDisplay } from './common/TimerDisplay';
+import { ProjectorHeader } from './common/ProjectorHeader';
+import { StatusBanner } from './common/StatusBanner';
+import { Top5Board } from './ctf/Top5Board';
+import { useTheme } from '../utils/theme';
 import { pushRaliTimer } from '../utils/raliSession';
 import { DurationPicker } from './common/DurationPicker';
 
@@ -164,53 +169,21 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   };
 
   // Sort teams by XP descending
+  const missions = useMissions();
+  const theme = useTheme();
   const sortedTeams = [...teams].sort((a, b) => b.xp_total - a.xp_total || (b.ultimo_acerto || 0) - (a.ultimo_acerto || 0));
   const maxScore = Math.max(sortedTeams[0]?.xp_total || 1, 100);
 
-  const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Podium (top 3)
-  const top1 = sortedTeams[0];
-  const top2 = sortedTeams[1];
-  const top3 = sortedTeams[2];
-  const getPhaseBadge = () => {
-    if (sessionState.isSubmissionsLocked) {
-      return {
-        label: sessionState.timerSecondsRemaining <= 0 ? 'TEMPO ESGOTADO • RESPOSTAS BLOQUEADAS' : 'RESPOSTAS BLOQUEADAS',
-        color: 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse',
-      };
-    }
-    switch (sessionState.activePhase) {
-      case 'briefing':
-        return { label: 'Briefing', color: 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
-      case 'sprint':
-        return { label: sessionState.isRunning ? 'Em andamento' : 'Parado', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
-      case 'hard_stop':
-        return { label: 'Tempo esgotado', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
-      case 'debriefing':
-        return { label: 'Debriefing', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
-      default:
-        return { label: 'Em Andamento', color: 'bg-slate-700 text-slate-300 border-slate-600' };
-    }
-  };
-
-  const phase = getPhaseBadge();
   const rem = sessionState.timerSecondsRemaining;
-  const clockTone =
-    rem <= 0
-      ? 'text-red-300 border-red-500/70'
-      : !sessionState.isRunning
-        ? 'text-slate-300 border-slate-700'
-        : rem <= CRITICAL_SECONDS
-          ? 'text-red-300 border-red-500/70 timer-critico'
-          : rem <= WARN_SECONDS
-            ? 'text-amber-300 border-amber-500/70'
-            : 'text-white border-emerald-500/30';
   const durationMin = clampMinutes(sessionState.totalSeconds / 60);
+  // Mesmo relógio do CTF: o estado local do Rali vira um TimerInfo para o componente padrão
+  const timerInfo: TimerInfo = {
+    duracaoMin: durationMin,
+    fimEm: sessionState.isRunning && rem > 0 ? 1 : 0,
+    restanteS: rem,
+    rodando: sessionState.isRunning && rem > 0,
+    esgotado: rem <= 0,
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -219,59 +192,22 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
         {/* Decorative corner accent with IFS red & green */}
         <div className="absolute top-0 right-0 w-32 h-1.5 bg-gradient-to-l from-red-600 via-emerald-500 to-transparent" />
         
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-          {/* Title, IFS Badge & Teacher Attribution */}
-          <div className="space-y-2 text-center lg:text-left">
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600/40 text-emerald-300 text-xs font-bold tracking-wide">
-                <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                <span>INSTITUTO FEDERAL DE SERGIPE</span>
-                <span className="text-emerald-500">•</span>
-                <span>CAMPUS TOBIAS BARRETO</span>
-              </div>
-              {sessionState.isSubmissionsLocked && (
-                <span className="text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse">
-                  MÃOS PARA CIMA (BLOQUEADO)
-                </span>
-              )}
-            </div>
+        <div className="space-y-5">
+          <ProjectorHeader
+            module="nfc"
+            leading={<TrilhaLogo height={72} className="hidden sm:block" />}
+            title={<><span>Trilha Rali</span><Flame className="w-7 h-7 text-amber-500 fill-amber-500" /></>}
+            subtitle={<>{activeRoomName ? `Sala: ${activeRoomName} • ` : ''}{teams.length} equipes • missões por tags NFC</>}
+          />
 
-            <div className="flex items-center justify-center lg:justify-start gap-3">
-              <TrilhaLogo height={72} className="hidden sm:block" />
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center justify-center lg:justify-start gap-2.5">
-                  <span>Trilha Rali</span>
-                  <Flame className="w-7 h-7 text-amber-500 fill-amber-500" />
-                </h1>
-                {/* Professor attribution */}
-                <div className="flex items-center justify-center lg:justify-start gap-1.5 text-xs text-emerald-300 font-semibold mt-1">
-                  <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Desenvolvido e Supervisionado pelo <strong>Professor Eber Santana</strong></span>
-                </div>
-              </div>
-            </div>
+          {sessionState.isSubmissionsLocked && (
+            <StatusBanner>{rem <= 0 ? 'Tempo esgotado! Respostas bloqueadas.' : 'Respostas bloqueadas pelo professor.'}</StatusBanner>
+          )}
 
-            <p className="text-xs sm:text-sm text-slate-400 font-medium">
-              {activeRoomName ? `📍 Sala: ${activeRoomName} • ` : ''}Atividade de {durationMin} min • Missões por tags NFC
-            </p>
-          </div>
-
-          {/* Big Projector Countdown Clock */}
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0.5 flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <span>Tempo restante</span>
-            </div>
-            <div className={`font-mono tabular-nums text-5xl sm:text-6xl font-black tracking-tight bg-slate-950 px-8 py-3 rounded-2xl border-2 ${clockTone}`} role="timer" aria-label={`Tempo restante: ${formatTimer(rem)}`}>
-              {formatTimer(sessionState.timerSecondsRemaining)}
-            </div>
-            <span className={`text-[11px] sm:text-xs px-3 py-0.5 rounded-full border font-bold ${phase.color}`}>
-              {phase.label}
-            </span>
-          </div>
+          <TimerDisplay timer={timerInfo} seconds={rem} phase={timerPhase(timerInfo, rem)} size="faixa" />
 
           {/* Instructor Quick Controls */}
-          <div className="flex items-center flex-wrap justify-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <button
               onClick={onOpenRoomsModal}
               className="p-3 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 rounded-xl font-bold flex items-center gap-2 transition shadow-lg text-sm"
@@ -392,91 +328,16 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Progresso do tempo da atividade */}
-        <div className="mt-6 pt-5 border-t border-slate-800">
-          <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
-            <span>Início</span>
-            <span>
-              Atividade de {durationMin} min • avisos nos últimos 5 min e no último minuto
-            </span>
-            <span>Fim</span>
-          </div>
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800" aria-hidden="true">
-            <div
-              className={`h-full rounded-full transition-all ${rem <= CRITICAL_SECONDS ? 'bg-red-500' : rem <= WARN_SECONDS ? 'bg-amber-500' : 'bg-emerald-500'}`}
-              style={{ width: `${Math.min(100, Math.max(0, (1 - rem / Math.max(sessionState.totalSeconds, rem, 1)) * 100))}%` }}
-            />
-          </div>
-        </div>
       </div>
 
-      {/* Podium for Top 3 Teams */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pt-4">
-        {/* 2nd Place */}
-        {top2 && (
-          <div className="order-2 md:order-1 bg-gradient-to-t from-slate-900 to-slate-800/80 rounded-3xl p-6 border border-slate-700/60 shadow-xl flex flex-col items-center text-center relative">
-            <div className="w-14 h-14 rounded-full bg-slate-300/20 text-slate-200 border-2 border-slate-300 flex items-center justify-center font-black text-2xl mb-3 shadow-lg">
-              2º
-            </div>
-            <div className={`w-4 h-4 rounded-full ${top2.cor} mb-2`} />
-            <h3 className="text-xl font-black text-white">{top2.nome}</h3>
-            <div className="font-mono text-3xl font-black text-slate-200 mt-2">
-              {top2.xp_total} <span className="text-xs font-semibold text-slate-400">XP</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-2">
-              {top2.missoes_concluidas.length} missões acertadas
-            </div>
-            <div className="text-[11px] text-slate-300 mt-1.5 font-medium line-clamp-1 px-2">
-              👥 {top2.alunos.length > 0 ? top2.alunos.join(', ') : 'Sem alunos'}
-            </div>
-          </div>
-        )}
-
-        {/* 1st Place - Champion */}
-        {top1 && (
-          <div className="order-1 md:order-2 bg-gradient-to-t from-amber-950/40 via-slate-900 to-slate-800 rounded-3xl p-8 border-2 border-amber-500/60 shadow-2xl flex flex-col items-center text-center relative -mt-4 transform hover:scale-[1.02] transition">
-            <div className="absolute -top-6 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 fill-slate-950" />
-              LÍDER DO RALI
-            </div>
-            <div className="w-20 h-20 rounded-full bg-amber-500/20 text-amber-300 border-4 border-amber-400 flex items-center justify-center font-black text-3xl mb-3 shadow-amber-500/20 shadow-xl">
-              1º
-            </div>
-            <div className={`w-4 h-4 rounded-full ${top1.cor} mb-2`} />
-            <h3 className="text-2xl font-black text-white">{top1.nome}</h3>
-            <div className="font-mono text-4xl sm:text-5xl font-black text-amber-300 mt-2">
-              {top1.xp_total} <span className="text-sm font-semibold text-amber-400/80">XP</span>
-            </div>
-            <div className="text-sm text-slate-300 mt-2 font-semibold">
-              🏆 {top1.missoes_concluidas.length} missões conquistadas
-            </div>
-            <div className="text-xs text-amber-200/90 mt-2 font-medium bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20 max-w-[280px] truncate" title={top1.alunos.join(', ')}>
-              👥 {top1.alunos.length > 0 ? top1.alunos.join(', ') : 'Sem alunos cadastrados'}
-            </div>
-          </div>
-        )}
-
-        {/* 3rd Place */}
-        {top3 && (
-          <div className="order-3 bg-gradient-to-t from-slate-900 to-slate-800/80 rounded-3xl p-6 border border-slate-700/60 shadow-xl flex flex-col items-center text-center relative">
-            <div className="w-14 h-14 rounded-full bg-amber-700/30 text-amber-400 border-2 border-amber-700 flex items-center justify-center font-black text-2xl mb-3 shadow-lg">
-              3º
-            </div>
-            <div className={`w-4 h-4 rounded-full ${top3.cor} mb-2`} />
-            <h3 className="text-xl font-black text-white">{top3.nome}</h3>
-            <div className="font-mono text-3xl font-black text-slate-200 mt-2">
-              {top3.xp_total} <span className="text-xs font-semibold text-slate-400">XP</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-2">
-              {top3.missoes_concluidas.length} missões acertadas
-            </div>
-            <div className="text-[11px] text-slate-300 mt-1.5 font-medium line-clamp-1 px-2">
-              👥 {top3.alunos.length > 0 ? top3.alunos.join(', ') : 'Sem alunos'}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Top 5 (mesmo quadro do CTF Online) */}
+      <Top5Board
+        rows={sortedTeams.map((t) => ({ nome: t.nome, xp: t.xp_total, fase: t.missoes_concluidas.length, fogos: 0 }))}
+        totalFases={missions.length}
+        size="big"
+        variant={theme === 'claro' ? 'bars' : 'podium'}
+        unit="missões"
+      />
 
       {/* Main Leaderboard Table and Live Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
