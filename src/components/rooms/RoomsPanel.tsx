@@ -250,6 +250,50 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     return () => clearInterval(id);
   }, [activeRoom, loadView]);
 
+  // Histórico guardado no servidor (Apps Script): traz salas de outros aparelhos e as estatísticas
+  type SrvRoom = { token: string; nome: string; tipo: 'ctf' | 'rali'; adminKey: string; status: 'aberta' | 'encerrada'; criada: number; encerrada: number; total: number; participantes: number; taxa_acerto: number; xp_medio: number };
+  const [srv, setSrv] = useState<Record<string, SrvRoom>>({});
+  const [syncMsg, setSyncMsg] = useState('');
+  const [syncBusy, setSyncBusy] = useState(false);
+  const syncServidor = async (silencioso = false) => {
+    const chave = getBancoKey();
+    if (!apiUrl || !isValidApiUrl(apiUrl)) return;
+    if (!chave) {
+      if (!silencioso) setSyncMsg('Conecte o banco (chave) no passo 1 para sincronizar o histórico com o servidor.');
+      return;
+    }
+    setSyncBusy(true);
+    try {
+      const r = await ctfCall<{ salas: SrvRoom[] }>('salasList', { chave }, apiUrl);
+      const mapa: Record<string, SrvRoom> = {};
+      r.salas.forEach((x) => (mapa[x.token] = x));
+      setSrv(mapa);
+      const locais = new Map(allRooms.map((x) => [x.token, x]));
+      let novas = 0;
+      const merged = [...allRooms.map((x) => {
+        const sv = mapa[x.token];
+        return sv ? { ...x, status: sv.status, encerradaEm: sv.encerrada || undefined } : x;
+      })];
+      r.salas.forEach((x) => {
+        if (locais.has(x.token)) return;
+        novas++;
+        merged.push({ tipo: x.tipo, token: x.token, nome: x.nome, adminKey: x.adminKey, api: apiUrl, criada: x.criada, status: x.status, encerradaEm: x.encerrada || undefined });
+      });
+      merged.sort((a, b) => b.criada - a.criada);
+      persist(merged);
+      setSyncMsg(novas > 0 ? `${novas} sala(s) do servidor adicionada(s) ao histórico.` : 'Histórico já está em dia com o servidor.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!silencioso) setSyncMsg(/desconhecida/i.test(msg) ? 'O servidor ainda não tem o histórico. Atualize o script do Apps Script (versão 11) e publique uma nova versão.' : msg);
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+  useEffect(() => {
+    void syncServidor(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiUrl]);
+
   const markStatus = (token: string, status: 'aberta' | 'encerrada') => {
     persist(
       allRooms.map((r) =>
@@ -773,9 +817,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </>
           )}
 
-          {historico.length > 0 && (
+          {(historico.length > 0 || Boolean(getBancoKey())) && (
             <section id="historico" className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-3" aria-label="Histórico de salas">
-              <h2 className="text-sm font-black text-white">Histórico · salas encerradas ({historico.length})</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-black text-white">Histórico · salas encerradas ({historico.length})</h2>
+                <Btn size="sm" variant="ghost" disabled={syncBusy} onClick={() => void syncServidor()} icon={syncBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}>Sincronizar com o servidor</Btn>
+              </div>
+              {syncMsg && <p className="text-xs text-slate-400" role="status">{syncMsg}</p>}
+              {historico.length === 0 && <p className="text-xs text-slate-500">Nenhuma sala encerrada ainda. Ao encerrar, ela fica aqui e o servidor guarda o resumo para análise.</p>}
               <ul className="divide-y divide-slate-800">
                 {historico.map((r) => (
                   <li key={r.token} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -783,6 +832,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                       <div className="text-sm font-bold text-slate-100 truncate">{r.nome}</div>
                       <div className="text-xs text-slate-400">
                         <span className="font-mono">{r.token}</span> · criada em {new Date(r.criada).toLocaleDateString('pt-BR')}
+                        {srv[r.token] ? ` · ${srv[r.token].participantes} ${nfc ? 'equipe(s)' : 'aluno(s)'} · ${srv[r.token].taxa_acerto}% de acerto · ${srv[r.token].xp_medio} XP médio` : ''}
                         {r.encerradaEm ? ` · encerrada em ${new Date(r.encerradaEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
                       </div>
                     </div>
@@ -793,7 +843,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-slate-500">Os dados de cada sala continuam salvos na planilha. “Remover” só tira da lista deste navegador.</p>
+              <p className="text-xs text-slate-500">Cada sala fica registrada no servidor: as abas CtfLog (eventos), CtfResumo (uma linha por sala) e CtfAnalise (acertos por pergunta) servem para análise. “Remover” só tira da lista deste navegador.</p>
             </section>
           )}
         </div>

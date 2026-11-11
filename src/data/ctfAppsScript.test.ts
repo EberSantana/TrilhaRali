@@ -362,3 +362,21 @@ test('v9: nome repetido só entra com a chave do aparelho original', () => {
   // o aparelho original volta com a chave
   assert.equal(call({ action: 'join', token: room.token, nome: 'Ana', chave: a.chave }).aluno.nome, 'Ana');
 });
+
+test('registro no servidor: log de eventos, resumo e análise por pergunta ao encerrar', () => {
+  const { call, sheets } = createBackend();
+  const room = call({ action: 'createRoom', nome: '=SOMA(1)', modo: 'fixed', missions });
+  call({ action: 'join', token: room.token, nome: 'Ana' });
+  call({ action: 'submit', token: room.token, nome: 'Ana', resposta: 'drop table' });
+  call({ action: 'setStatus', token: room.token, adminKey: room.adminKey, status: 'encerrada' });
+
+  const log = sheets.get('CtfLog')!.slice(1).map((r) => r[4]);
+  assert.deepEqual(log, ['criada', 'encerrada']);
+  assert.equal(sheets.get('CtfLog')![1][2], "'=SOMA(1)"); // nome começando com = não vira fórmula
+  const resumo = sheets.get('CtfResumo')![1];
+  assert.equal(resumo[0], room.token);
+  assert.equal(resumo[7], 1); // participantes
+  assert.equal(sheets.get('CtfAnalise')!.length - 1, missions.length);
+  assert.equal(sheets.get('CtfAnalise')![1][6], 1); // acertos da 1ª pergunta
+  assert.match(call({ action: 'salasList', chave: 'x' }).error, /banco/i);
+});

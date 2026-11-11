@@ -14,10 +14,13 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
+  CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
+  CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
+  CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
@@ -39,7 +42,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 10 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 11 });
 }
 
 function doPost(e) {
@@ -83,6 +86,7 @@ function route(req) {
     case 'raliTimer': return raliTimer(req);
     case 'raliEstado': return raliEstado();
     case 'setTema': return setTema(req);
+    case 'salasList': return salasList(req);
     case 'bancoPing': requireBancoKey(req); return { ok: true };
     case 'bancoList': return bancoList(req);
     case 'bancoSave': return bancoSave(req);
@@ -323,6 +327,8 @@ function createRoom(req) {
     tipo: tipo,
     ordem: ordem
   });
+
+  logEvento({ token: token, nome: nome, tipo: tipo }, 'criada', missions.length + ' perguntas; modo ' + modo + (tipo === 'ctf' ? '; ordem ' + ordem : ''));
 
   var sh = getSheet('CtfMissoes');
   var rows = missions.map(function (m, i) {
@@ -641,15 +647,93 @@ function setDebriefing(req) {
   var liberado = req.liberado === true;
   updateRow('CtfSalas', room._row, { debriefing_liberado: liberado });
   room.debriefing_liberado = liberado;
+  logEvento(room, liberado ? 'debriefing_liberado' : 'debriefing_oculto', '');
   return { sala: roomInfo(room) };
 }
 
 function setStatus(req) {
   var room = requireAdmin(req);
   var status = req.status === 'encerrada' ? 'encerrada' : 'aberta';
-  updateRow('CtfSalas', room._row, { status: status });
+  updateRow('CtfSalas', room._row, { status: status, encerrada_em: status === 'encerrada' ? new Date().toISOString() : '' });
   room.status = status;
+  if (status === 'encerrada') {
+    room.encerrada_em = new Date().toISOString();
+    gravarResumo(room);
+  }
+  logEvento(room, status === 'encerrada' ? 'encerrada' : 'reaberta', '');
   return { sala: roomInfo(room) };
+}
+
+// ---------- Registro (log) e analise ----------
+// CtfLog: um evento por linha. CtfResumo: uma linha por sala (atualizada ao encerrar).
+// CtfAnalise: uma linha por pergunta de cada sala encerrada (acertos e taxa), para estudar as perguntas.
+
+function safeText(v) {
+  var t = String(v === undefined || v === null ? '' : v);
+  return /^[=+\-@]/.test(t) ? "'" + t : t;
+}
+
+function logEvento(room, evento, detalhe) {
+  try {
+    appendObj('CtfLog', {
+      quando: new Date().toISOString(), token: room.token, sala: safeText(room.nome),
+      tipo: room.tipo === 'rali' ? 'rali' : 'ctf', evento: evento, detalhe: safeText(detalhe)
+    });
+  } catch (err) {}
+}
+
+function statsOf(room) {
+  var ps = playersOf(room.token);
+  var ac = 0, er = 0, xp = 0;
+  ps.forEach(function (a) { ac += Number(a.acertos) || 0; er += Number(a.erros) || 0; xp += Number(a.xp) || 0; });
+  return {
+    participantes: ps.length, acertos: ac, erros: er, xp_total: xp,
+    xp_medio: ps.length ? Math.round(xp / ps.length) : 0,
+    taxa_acerto: ac + er ? Math.round(100 * ac / (ac + er)) : 0
+  };
+}
+
+function gravarResumo(room) {
+  try {
+    var st = statsOf(room);
+    var ini = new Date(room.criada_em).getTime();
+    var fim = new Date(room.encerrada_em).getTime();
+    var obj = {
+      token: room.token, sala: safeText(room.nome), tipo: room.tipo === 'rali' ? 'rali' : 'ctf',
+      criada_em: room.criada_em, encerrada_em: room.encerrada_em,
+      duracao_min: ini && fim ? Math.round((fim - ini) / 60000) : '',
+      perguntas: Number(room.total_fases), participantes: st.participantes, acertos: st.acertos,
+      erros: st.erros, taxa_acerto: st.taxa_acerto, xp_total: st.xp_total, xp_medio: st.xp_medio
+    };
+    var found = readRows('CtfResumo').filter(function (r) { return String(r.token) === room.token; })[0];
+    if (found) updateRow('CtfResumo', found._row, obj); else appendObj('CtfResumo', obj);
+
+    var antigos = readRows('CtfAnalise').filter(function (r) { return String(r.token) === room.token; });
+    var sh = getSheet('CtfAnalise');
+    for (var i = antigos.length - 1; i >= 0; i--) sh.deleteRow(antigos[i]._row);
+    var d = debriefList(room);
+    var linhas = d.itens.map(function (it) {
+      return [room.token, safeText(room.nome), it.fase, it.tag_id, safeText(it.pacote), safeText(it.pergunta), it.acertos,
+        d.total_alunos, d.total_alunos ? Math.round(100 * it.acertos / d.total_alunos) : 0];
+    });
+    if (linhas.length) sh.getRange(sh.getLastRow() + 1, 1, linhas.length, SHEET_HEADERS.CtfAnalise.length).setValues(linhas);
+  } catch (err) {}
+}
+
+// Lista as salas guardadas no servidor (precisa da chave do banco). Serve de historico em qualquer aparelho.
+function salasList(req) {
+  requireBancoKey(req);
+  var salas = readRows('CtfSalas').slice(-200).reverse().map(function (r) {
+    var st = statsOf(r);
+    return {
+      token: String(r.token), nome: String(r.nome), tipo: r.tipo === 'rali' ? 'rali' : 'ctf',
+      adminKey: String(r.admin_key), status: r.status === 'encerrada' ? 'encerrada' : 'aberta',
+      criada: new Date(r.criada_em).getTime() || 0,
+      encerrada: r.encerrada_em ? new Date(r.encerrada_em).getTime() || 0 : 0,
+      total: Number(r.total_fases), participantes: st.participantes, taxa_acerto: st.taxa_acerto, xp_medio: st.xp_medio
+    };
+  });
+  return { salas: salas };
 }
 
 // ---------- Cronometro e tema ----------
