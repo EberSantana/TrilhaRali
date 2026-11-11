@@ -14,7 +14,11 @@ export type MissionPackage =
   | 'console_sub'
   | 'console_ddl'
   | 'console_int'
-  | 'banco';
+  | 'banco'
+  | 'linux_nav'
+  | 'linux_arq'
+  | 'linux_perm'
+  | 'linux_sys';
 
 export type SqlCategory = 
   | 'DDL' 
@@ -26,7 +30,8 @@ export type SqlCategory =
   | 'TCL'
   | 'Boss' 
   | 'Sintaxe'
-  | 'Geral';
+  | 'Geral'
+  | 'Linux';
 
 export interface Mission {
   id: number;

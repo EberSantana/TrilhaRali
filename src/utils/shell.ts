@@ -24,6 +24,7 @@ export interface ShellState {
   history: string[];
   lastCode: number;
   depth: number;
+  piped?: boolean; // saída vai para outro comando ou arquivo (ls passa a listar um por linha)
   procs: { pid: number; user: string; cmd: string }[];
 }
 
@@ -433,7 +434,7 @@ const COMMANDS: Record<string, Impl> = {
       if (!all) names = names.filter((x) => !x.startsWith('.'));
       const entries: [string, FsNode][] = all ? [['.', n], ['..', n], ...names.map((x) => [x, n.children[x]] as [string, FsNode])] : names.map((x) => [x, n.children[x]] as [string, FsNode]);
       if (long) out += `total ${Math.max(1, entries.length) * 4}\n` + entries.map(([nm, nd]) => lsLine(nm, nd)).join('\n') + (entries.length ? '\n' : '');
-      else out += entries.length ? entries.map(([nm]) => nm).join('  ') + '\n' : '';
+      else out += entries.length ? entries.map(([nm]) => nm).join(st.piped ? '\n' : '  ') + '\n' : '';
     });
     return { out, err, code: err ? 2 : 0 };
   },
@@ -1220,7 +1221,9 @@ function execLine(st: ShellState, line: string, record: boolean): ShellResult {
         code = 0;
         continue;
       }
+      st.piped = i < stages.length - 1 || redir !== null;
       const r = runCommand(st, words, stdin);
+      st.piped = false;
       err += r.err;
       code = r.code;
       if (redir) {
