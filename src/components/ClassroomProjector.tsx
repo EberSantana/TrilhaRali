@@ -31,7 +31,7 @@ import { StatusBanner } from './common/StatusBanner';
 import { Top5Board } from './ctf/Top5Board';
 import { useTheme } from '../utils/theme';
 import { pushRaliTimer } from '../utils/raliSession';
-import { DurationPicker } from './common/DurationPicker';
+import { DurationInline } from './common/DurationPicker';
 import { Btn, Toolbar, ToolbarDivider } from './common/ui';
 import { FinalPodium, useCelebrate } from './common/FinalPodium';
 
@@ -218,6 +218,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
               {sessionState.isSubmissionsLocked ? 'Destravar' : 'Travar'}
             </Btn>
             <Btn size="lg" onClick={() => addTimeMinutes(5)} title="Adicionar 5 minutos">+5 min</Btn>
+            {isTeacher && <DurationInline id="rali-duracao" value={durationMin} onChange={setDuration} disabled={sessionState.isRunning} />}
             <ToolbarDivider />
             <Btn size="lg" onClick={onOpenRoomsModal} icon={<Users className="w-5 h-5" />} title="Gerenciar salas do rali local e integrantes das equipes">Equipes</Btn>
             <Btn size="lg" onClick={onResetSession} icon={<RotateCcw className="w-5 h-5" />} aria-label="Reiniciar" title="Reiniciar dinâmica">Reiniciar</Btn>
@@ -226,15 +227,6 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
             </Btn>
           </Toolbar>
         </div>
-
-        {isTeacher && !sessionState.isRunning && (
-          <div className="mt-5 pt-4 border-t border-slate-800/80 max-w-md">
-            <DurationPicker id="rali-duracao" value={durationMin} onChange={setDuration} />
-            <p className="mt-2 text-[11px] text-slate-400">
-              Ao zerar, as respostas são bloqueadas. Com o banco de perguntas conectado, o relógio também aparece no celular dos alunos.
-            </p>
-          </div>
-        )}
 
         {/* Seletor do modo de pontuação (Painel do Professor) */}
         <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
