@@ -152,3 +152,7 @@ Se desejar replicar as notas ao vivo para uma planilha no seu Google Drive sem c
 2. Cole o código Apps Script (`doPost`) em **Extensões > Apps Script**.
 3. Clique em **Implantar > Nova Implantação > App da Web** (Acesso: *Qualquer pessoa*).
 4. Cole a URL no campo de configuração da aba **Sheets** do aplicativo.
+
+### Missões do Console SQLite (50 fases)
+
+O CTF Online traz um banco de 50 missões (`src/data/consoleMissions.ts`) que só se resolvem executando comandos no Console SQLite: consultas, agregações, JOINs, subconsultas, DDL e integridade. São os pacotes "Console" ao criar a sala (marcados por padrão). Cada resposta é verificada nos testes (`npx tsx --test src/data/*.test.ts`) executando a solução no banco entregue aos alunos.

@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Clipboard, Database, Flag, Link2, Loader2, Lock, Plus, Power, RefreshCw, Settings, Trash2, Unlock, Users } from 'lucide-react';
 import { ALL_MISSIONS } from '../../data/missions';
+import { CONSOLE_MISSIONS } from '../../data/consoleMissions';
+
+// Todas as missões que a sala pode usar: as clássicas + as 50 resolvíveis no Console SQLite
+const CTF_POOL = [...CONSOLE_MISSIONS, ...ALL_MISSIONS];
+const isConsolePackage = (id: string) => id.startsWith('console_');
 import { CTF_APPS_SCRIPT } from '../../data/ctfAppsScript';
 import { CtfMissionPayload, CtfStoredRoom, CtfTeacherView } from '../../types/ctf';
 import { ScoringMode } from '../../types';
@@ -45,15 +50,15 @@ export const CtfTeacher: React.FC = () => {
   const [bancoLiberado, setBancoLiberado] = useState(false);
   const packages = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; count: number }>();
-    ALL_MISSIONS.forEach((m) => {
+    CTF_POOL.forEach((m) => {
       const cur = map.get(m.package) || { id: m.package, nome: m.packageName, count: 0 };
       cur.count++;
       map.set(m.package, cur);
     });
     return Array.from(map.values());
   }, []);
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(packages.filter((p) => p.id !== 'diagrama').map((p) => p.id)));
-  const totalPhases = ALL_MISSIONS.filter((m) => selected.has(m.package)).length;
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(packages.filter((p) => isConsolePackage(p.id)).map((p) => p.id)));
+  const totalPhases = CTF_POOL.filter((m) => selected.has(m.package)).length;
 
   const activeRoom = rooms.find((r) => r.token === activeToken) || null;
 
@@ -86,7 +91,7 @@ export const CtfTeacher: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      const missions: CtfMissionPayload[] = ALL_MISSIONS.filter((m) => selected.has(m.package)).map((m) => ({
+      const missions: CtfMissionPayload[] = CTF_POOL.filter((m) => selected.has(m.package)).map((m) => ({
         tag_id: m.tag_id,
         categoria: m.category,
         pacote: m.packageName,
@@ -283,7 +288,14 @@ export const CtfTeacher: React.FC = () => {
                 </label>
               ))}
             </div>
-            <p className="text-[11px] text-slate-500">O pacote “Subconjuntos SQL” depende de um diagrama no quadro, por isso começa desmarcado.</p>
+            <p className="text-[11px] text-slate-500">
+              Os pacotes “Console” (50 fases) são resolvidos inteiramente no Console SQLite. Os demais são as missões clássicas; “Subconjuntos SQL” depende de um diagrama no quadro.
+            </p>
+            {!bancoLiberado && [...selected].some(isConsolePackage) && (
+              <p className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-2.5 py-1.5">
+                Atenção: os pacotes “Console” precisam do console liberado. Marque a opção de liberar o banco abaixo, ou use o botão “Banco” no monitor depois.
+              </p>
+            )}
           </fieldset>
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}

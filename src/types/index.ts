@@ -7,7 +7,13 @@ export type MissionPackage =
   | 'fechamento'
   | 'joins'
   | 'dml'
-  | 'diagrama';
+  | 'diagrama'
+  | 'console_dql'
+  | 'console_agg'
+  | 'console_join'
+  | 'console_sub'
+  | 'console_ddl'
+  | 'console_int';
 
 export type SqlCategory = 
   | 'DDL' 
