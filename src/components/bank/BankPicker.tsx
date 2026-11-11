@@ -41,6 +41,25 @@ export const BankPicker: React.FC<BankPickerProps> = ({ questions, selected, onC
     () => Array.from(new Set(filterBank(questions, { disciplina: disc, incluirInativas: inativas }).map((q) => q.assunto).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
     [questions, disc, inativas]
   );
+  // Assuntos como marcadores: um clique marca ou desmarca o assunto inteiro (respeita o filtro de disciplina)
+  const grupos = useMemo(() => {
+    const m = new Map<string, { disciplina: string; assunto: string; ids: string[] }>();
+    filterBank(questions, { disciplina: disc, incluirInativas: inativas }).forEach((q) => {
+      const assuntoNome = q.assunto || 'Sem assunto';
+      const k = `${q.disciplina}\u0000${assuntoNome}`;
+      const g = m.get(k) || { disciplina: q.disciplina, assunto: assuntoNome, ids: [] };
+      g.ids.push(q.id);
+      m.set(k, g);
+    });
+    return Array.from(m.values()).sort((a, b) => a.disciplina.localeCompare(b.disciplina, 'pt-BR') || a.assunto.localeCompare(b.assunto, 'pt-BR'));
+  }, [questions, disc, inativas]);
+  const toggleGrupo = (ids: string[]) => {
+    const todos = ids.every((id) => selected.has(id));
+    const n = new Set(selected);
+    ids.forEach((id) => (todos ? n.delete(id) : n.add(id)));
+    onChange(n);
+  };
+
   const visible = useMemo(() => filterBank(questions, { disciplina: disc, assunto, busca, incluirInativas: inativas }), [questions, disc, assunto, busca, inativas]);
   const allVisible = visible.length > 0 && visible.every((q) => selected.has(q.id));
 
@@ -64,6 +83,37 @@ export const BankPicker: React.FC<BankPickerProps> = ({ questions, selected, onC
           {assuntos.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
+      {grupos.length > 0 && (
+        <fieldset className="rounded-lg border border-slate-800 bg-slate-950/50 p-2">
+          <legend className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Marcar assunto inteiro</legend>
+          <div className="max-h-32 overflow-y-auto flex flex-wrap gap-1.5 pr-1">
+            {grupos.map((g) => {
+              const sel = g.ids.filter((id) => selected.has(id)).length;
+              const full = sel === g.ids.length;
+              return (
+                <label
+                  key={`${g.disciplina}|${g.assunto}`}
+                  title={`${g.disciplina} · ${g.assunto}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer transition ${
+                    full ? (accent === 'orange' ? 'border-orange-500 bg-orange-500/15 text-orange-100' : 'border-emerald-500 bg-emerald-500/15 text-emerald-100')
+                      : sel > 0 ? 'border-slate-500 bg-slate-800 text-slate-100' : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={full}
+                    ref={(el) => { if (el) el.indeterminate = sel > 0 && !full; }}
+                    onChange={() => toggleGrupo(g.ids)}
+                    className={ring}
+                  />
+                  {disc ? '' : <span className="text-slate-500">{g.disciplina} ·</span>} {g.assunto}
+                  <span className="text-slate-500">{sel > 0 ? `${sel}/` : ''}{g.ids.length}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
       <input aria-label="Buscar pergunta" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar pergunta, assunto ou resposta" className={`${field} w-full placeholder:text-slate-500`} />
 
       <label className="flex items-center gap-2 text-xs text-slate-300">
