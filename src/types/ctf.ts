@@ -5,10 +5,15 @@ import type { Theme } from '../utils/theme';
 /** ctf = CTF Online (individual, fase a fase) · rali = Rali NFC (equipes, missões por etiqueta) */
 export type RoomTipo = 'ctf' | 'rali';
 
+/** livre = painel de desafios · sequencial = fase a fase */
+export type CtfOrdem = 'livre' | 'sequencial';
+
 export interface CtfRoomInfo {
   token: string;
   /** ausente em backends anteriores à versão 6 (sempre CTF) */
   tipo?: RoomTipo;
+  /** CTF: 'livre' = painel de desafios (o aluno escolhe a ordem); 'sequencial' = fase a fase. Ausente em salas antigas (sequencial). */
+  ordem?: CtfOrdem;
   nome: string;
   status: 'aberta' | 'encerrada';
   modo: ScoringMode;
@@ -65,8 +70,10 @@ export interface CtfState {
   missao: CtfMission | null;
   ranking: CtfRankingRow[];
   total_alunos: number;
+  /** CTF livre: todos os desafios da sala (sem pergunta nem gabarito) */
+  missoes?: RaliMissionRef[];
   correto?: boolean;
-  premio?: CtfAward;
+  premio?: CtfAward & { tag_id?: string };
 }
 
 export interface CtfTeacherStudent {
@@ -125,6 +132,8 @@ export interface RaliMissionRef {
   categoria: string;
   pacote: string;
   xp_base: number;
+  /** quanto vale agora (cai conforme mais gente resolve) */
+  xp_atual?: number;
   capturas: number;
   concluida: boolean;
 }

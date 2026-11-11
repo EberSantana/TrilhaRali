@@ -66,9 +66,11 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
   const finished = Boolean(view) && (phase === 'fim' || view?.sala.status === 'encerrada');
   useCelebrate(finished && Boolean(view?.alunos.length));
 
+  const livre = !nfc && view?.sala.ordem === 'livre';
+  const unit = nfc ? 'missões' : livre ? 'desafios' : 'fases';
   const rows = useMemo(
-    () => (view?.alunos ?? []).map((a) => ({ nome: a.nome, xp: a.xp, fase: nfc ? a.acertos : a.fase_atual, fogos: a.fogos })),
-    [view, nfc]
+    () => (view?.alunos ?? []).map((a) => ({ nome: a.nome, xp: a.xp, fase: nfc || livre ? a.acertos : a.fase_atual, fogos: a.fogos })),
+    [view, nfc, livre]
   );
 
   const op = async (kind: TimerOp, minutos?: number) => {
@@ -150,12 +152,12 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
         {finished ? (
           <>
             <StatusBanner size="big">{phase === 'fim' ? 'Tempo esgotado! Respostas bloqueadas.' : 'Sala encerrada pelo professor.'}</StatusBanner>
-            <FinalPodium rows={rows} totalFases={view?.sala.total ?? 0} unit={nfc ? 'missões' : 'fases'} entity={entity} size="big" />
+            <FinalPodium rows={rows} totalFases={view?.sala.total ?? 0} unit={unit} entity={entity} size="big" />
           </>
         ) : (
           <div className={timer && theme === 'escuro' ? 'grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start' : 'space-y-6'}>
             {timer && <TimerDisplay timer={timer} seconds={seconds} phase={phase} size={theme === 'claro' ? 'faixa' : 'telao'} />}
-            <Top5Board rows={rows} totalFases={view?.sala.total ?? 0} size="big" variant={theme === 'claro' ? 'bars' : 'podium'} unit={nfc ? 'missões' : 'fases'} />
+            <Top5Board rows={rows} totalFases={view?.sala.total ?? 0} size="big" variant={theme === 'claro' ? 'bars' : 'podium'} unit={unit} />
           </div>
         )}
 

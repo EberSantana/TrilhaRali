@@ -13,7 +13,7 @@ interface Top5BoardProps {
   /** podium = três primeiros em destaque (tema escuro) · bars = lista com barras de pontos (tema claro) */
   variant?: 'podium' | 'bars';
   /** 'fases' (CTF, F3/10) ou 'missões' (Rali NFC, 3/50) */
-  unit?: 'fases' | 'missões';
+  unit?: 'fases' | 'missões' | 'desafios';
 }
 
 const CHANGE_MS = 9000;
@@ -78,7 +78,7 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
   }, [sig]);
 
   const top = rows.slice(0, 5);
-  const fase = (r: RankRow) => (unit === 'missões' ? `${r.fase}/${totalFases}` : r.fase > totalFases ? '✔' : `F${r.fase}/${totalFases}`);
+  const fase = (r: RankRow) => (unit !== 'fases' ? `${r.fase}/${totalFases}` : r.fase > totalFases ? '✔' : `F${r.fase}/${totalFases}`);
 
   if (top.length === 0) {
     return <p className={`${big ? 'text-2xl' : 'text-sm'} text-slate-500 text-center py-6`}>Aguardando os alunos entrarem…</p>;

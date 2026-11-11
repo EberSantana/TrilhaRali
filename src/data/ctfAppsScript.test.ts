@@ -203,7 +203,7 @@ test('Rali NFC online: sala por equipes, missões em qualquer ordem, XP e rankin
   assert.match(call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'zzz' }).error, /nao faz parte/);
   const ctfRoom = call({ action: 'createRoom', nome: 'C', missions });
   call({ action: 'join', token: ctfRoom.token, nome: 'Caio' });
-  assert.match(call({ action: 'raliTag', token: ctfRoom.token, nome: 'Caio', tag_id: 't1' }).error, /CTF Online/);
+  assert.match(call({ action: 'raliTag', token: ctfRoom.token, nome: 'Caio', tag_id: 't1' }).error, /CTF em ordem/);
 
   // ordem livre: começa pela t3
   const info = call({ action: 'raliTag', token: room.token, nome: 'Equipe Alfa', tag_id: 'T3' });
@@ -246,4 +246,65 @@ test('nomes que começam com = + - @ não viram fórmula na planilha', () => {
   const room = call({ action: 'createRoom', nome: 'Seg', modo: 'fixed', missions });
   const st = call({ action: 'join', token: room.token, nome: '=HYPERLINK("http://x","clique")' });
   assert.ok(!/^[=+\-@]/.test(st.aluno.nome), st.aluno.nome);
+});
+
+test('CTF livre: o aluno escolhe a ordem, ranking por pontos; em ordem e salas antigas seguem fase a fase', () => {
+  const { call, sheets } = createBackend();
+  assert.match(call({ action: 'createRoom', nome: 'X', ordem: 'livre', missions: [missions[0], missions[0]] }).error, /repetida/);
+
+  const room = call({ action: 'createRoom', nome: 'Livre', ordem: 'livre', modo: 'ctf_dynamic', missions });
+  assert.equal(room.tipo, 'ctf');
+  assert.equal(room.ordem, 'livre');
+  assert.equal(call({ action: 'teacherRoom', token: room.token, adminKey: room.adminKey }).sala.ordem, 'livre');
+
+  const a = call({ action: 'join', token: room.token, nome: 'Ana Lima' });
+  assert.equal(a.sala.ordem, 'livre');
+  assert.equal(a.aluno.nome, 'Ana Lima');
+  assert.equal(a.missoes.length, 3);
+  assert.equal(a.missoes[0].xp_atual, 10);
+  assert.equal(JSON.stringify(a).includes('DROP TABLE'), false, 'o gabarito não pode vazar');
+  assert.equal(JSON.stringify(a).includes('Q1?'), false, 'a pergunta só vem ao abrir o desafio');
+  call({ action: 'join', token: room.token, nome: 'Bruno Reis' });
+
+  // o envio por fase não vale numa sala livre
+  assert.match(call({ action: 'submit', token: room.token, nome: 'Ana Lima', resposta: 'x' }).error, /livre/);
+
+  // começa pelo último desafio
+  const info = call({ action: 'raliTag', token: room.token, nome: 'Ana Lima', tag_id: 't3' });
+  assert.equal(info.missao.pergunta, 'Q3?');
+  const ok = call({ action: 'raliSubmit', token: room.token, nome: 'Ana Lima', tag_id: 't3', resposta: 'verdadeiro' });
+  assert.equal(ok.correto, true);
+  assert.equal(ok.premio.isFogo, true);
+  assert.equal(ok.aluno.acertos, 1);
+  assert.equal(ok.aluno.xp, 30);
+  assert.equal(ok.missoes.find((m: Json) => m.tag_id === 't3').concluida, true);
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Ana Lima', tag_id: 't3', resposta: 'Verdadeiro' }).error, /Voce ja resolveu/);
+
+  // o 2º aluno ganha menos nesse desafio e o valor mostrado já cai
+  assert.equal(call({ action: 'state', token: room.token, nome: 'Bruno Reis' }).missoes.find((m: Json) => m.tag_id === 't3').xp_atual, 27);
+  const b = call({ action: 'raliSubmit', token: room.token, nome: 'Bruno Reis', tag_id: 't3', resposta: 'Verdadeiro' });
+  assert.equal(b.premio.xp, 27);
+
+  // ranking por pontos (desempate pelo primeiro a pontuar); o state devolve o ranking do aluno
+  const st = call({ action: 'state', token: room.token, nome: 'Bruno Reis' });
+  assert.equal(st.ranking[0].nome, 'Ana Lima');
+  assert.equal(st.ranking[0].fase, 1);
+  assert.equal(st.total_alunos, 2);
+  assert.equal(st.aluno.posicao, 2);
+
+  // sala encerrada bloqueia
+  call({ action: 'setStatus', token: room.token, adminKey: room.adminKey, status: 'encerrada' });
+  sheets.get('CtfAlunos')![2][10] = 0;
+  assert.match(call({ action: 'raliSubmit', token: room.token, nome: 'Ana Lima', tag_id: 't1', resposta: 'drop' }).error, /encerrada/);
+
+  // em ordem (e sala criada sem o campo, como as antigas) continuam sequenciais
+  const seq = call({ action: 'createRoom', nome: 'Seq', ordem: 'sequencial', missions });
+  assert.equal(seq.ordem, 'sequencial');
+  const legado = call({ action: 'createRoom', nome: 'Antiga', missions });
+  assert.equal(legado.ordem, 'sequencial');
+  const s1 = call({ action: 'join', token: legado.token, nome: 'Caio Alves' });
+  assert.equal(s1.sala.ordem, 'sequencial');
+  assert.equal(s1.missao.fase, 1);
+  assert.equal(s1.missoes, undefined);
+  assert.match(call({ action: 'raliTag', token: legado.token, nome: 'Caio Alves', tag_id: 't1' }).error, /CTF em ordem/);
 });
