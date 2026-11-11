@@ -51,7 +51,7 @@ export const BackendSetup: React.FC<BackendSetupProps> = ({ apiUrl, onApiUrl, op
             <li>Apague o código e cole o script abaixo (a mesma planilha serve para o Rali NFC e para o CTF Online).</li>
             <li><em>Implantar &gt; Nova implantação &gt; Aplicativo da Web</em>: executar como <strong>Eu</strong>, acesso <strong>Qualquer pessoa</strong>.</li>
             <li>Copie a URL do Web App (termina em <code>/exec</code>) e cole aqui.</li>
-            <li>Já tinha o script? Cole o código novo e use <em>Implantar &gt; Gerenciar implantações &gt; Editar &gt; Nova versão</em>: a URL não muda. As salas do Rali NFC exigem a versão 6 ou mais nova.</li>
+            <li>Já tinha o script? Cole o código novo e use <em>Implantar &gt; Gerenciar implantações &gt; Editar &gt; Nova versão</em>: a URL não muda. As salas do Rali NFC exigem a versão 6 ou mais nova; o CTF livre (painel de desafios) exige a versão 7.</li>
           </ol>
           <Btn onClick={copyScript} icon={copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Clipboard className="w-4 h-4" />}>
             Copiar script do servidor

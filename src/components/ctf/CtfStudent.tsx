@@ -15,6 +15,7 @@ import { playSound } from '../../utils/audio';
 import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 import { SqlConsole } from './SqlConsole';
 import { Top5Board } from './Top5Board';
+import { CtfChallenges } from './CtfChallenges';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
 import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { StatusBanner } from '../common/StatusBanner';
@@ -230,6 +231,7 @@ export const CtfStudent: React.FC = () => {
   const timeUp = Boolean(timer) && phase === 'fim';
   const waiting = Boolean(timer) && phase === 'parado';
   const locked = closed || timeUp || waiting;
+  const livre = sala.ordem === 'livre' && Boolean(state.missoes);
   const phases = Array.from({ length: sala.total }, (_, i) => i + 1);
   const finished = closed || timeUp;
 
@@ -255,7 +257,27 @@ export const CtfStudent: React.FC = () => {
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
-      {/* Progresso por fase */}
+      {/* Progresso */}
+      {livre ? (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+            <span>Escolha os desafios na ordem que quiser</span>
+            <span>
+              {aluno.acertos} de {sala.total} resolvidos
+            </span>
+          </div>
+          <div
+            className="h-2.5 rounded-full bg-slate-800 overflow-hidden"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={sala.total}
+            aria-valuenow={aluno.acertos}
+            aria-label="Desafios resolvidos"
+          >
+            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${sala.total ? Math.min(100, (aluno.acertos / sala.total) * 100) : 0}%` }} />
+          </div>
+        </div>
+      ) : (
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
         <div className="flex items-center justify-between text-xs font-bold text-slate-400">
           <span>
@@ -275,10 +297,11 @@ export const CtfStudent: React.FC = () => {
           ))}
         </div>
       </div>
+      )}
 
       {finished && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">
-          <FinalPodium rows={ranking} totalFases={sala.total} unit="fases" entity="alunos" me={aluno.nome} />
+          <FinalPodium rows={ranking} totalFases={sala.total} unit={livre ? 'desafios' : 'fases'} entity="alunos" me={aluno.nome} />
           <p className="mt-4 text-center text-sm text-slate-400">
             Você: <strong className="text-white">{aluno.posicao}º lugar</strong> • {aluno.xp} XP
           </p>
@@ -288,7 +311,9 @@ export const CtfStudent: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Missão atual */}
         <div className="lg:col-span-2 space-y-4">
-          {aluno.concluido || !missao ? (
+          {livre ? (
+            <CtfChallenges state={state} session={session} locked={locked} onState={setState} />
+          ) : aluno.concluido || !missao ? (
             <div className="bg-gradient-to-b from-amber-950/40 to-slate-900 border-2 border-amber-500/50 rounded-3xl p-8 text-center space-y-3">
               <Trophy className="w-14 h-14 mx-auto text-amber-400" />
               <h3 className="text-2xl font-black text-white">Todas as fases concluídas!</h3>
@@ -406,7 +431,8 @@ export const CtfStudent: React.FC = () => {
             rows={ranking}
             totalFases={sala.total}
             me={aluno.nome}
-            mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
+            mine={{ nome: aluno.nome, xp: aluno.xp, fase: livre ? aluno.acertos : aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
+            unit={livre ? 'desafios' : 'fases'}
             variant={theme === 'claro' ? 'bars' : 'podium'}
           />
           <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>

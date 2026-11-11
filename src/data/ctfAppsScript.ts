@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -190,6 +190,11 @@ function requireRoom(token) {
   return room;
 }
 
+// CTF livre: o aluno escolhe a ordem dos desafios (como o Rali, mas individual). Salas antigas (sem o campo) ficam em ordem.
+function isLivre(room) {
+  return room.tipo !== 'rali' && String(room.ordem) === 'livre';
+}
+
 function roomInfo(room) {
   return {
     token: room.token,
@@ -197,6 +202,7 @@ function roomInfo(room) {
     status: room.status,
     modo: room.modo,
     tipo: room.tipo === 'rali' ? 'rali' : 'ctf',
+    ordem: isLivre(room) ? 'livre' : 'sequencial',
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
@@ -288,7 +294,8 @@ function createRoom(req) {
   var nome = String(req.nome || 'Sala CTF').substring(0, 80);
   var modo = req.modo === 'ctf_dynamic' ? 'ctf_dynamic' : 'fixed';
   var tipo = req.tipo === 'rali' ? 'rali' : 'ctf';
-  if (tipo === 'rali') {
+  var ordem = tipo === 'ctf' && req.ordem === 'livre' ? 'livre' : 'sequencial';
+  if (tipo === 'rali' || ordem === 'livre') {
     var vistas = {};
     missions.forEach(function (m) {
       var id = String(m.tag_id);
@@ -307,7 +314,8 @@ function createRoom(req) {
     modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
     banco_liberado: req.bancoLiberado === true,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
-    tipo: tipo
+    tipo: tipo,
+    ordem: ordem
   });
 
   var sh = getSheet('CtfMissoes');
@@ -316,7 +324,7 @@ function createRoom(req) {
       JSON.stringify(m.alternativas || []), m.xp || 10, JSON.stringify(m.opcoes || [])];
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.CtfMissoes.length).setValues(rows);
-  return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo };
+  return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo, ordem: ordem };
 }
 
 function join(req) {
@@ -332,12 +340,12 @@ function join(req) {
       integrantes: room.tipo === 'rali' ? JSON.stringify(cleanMembers(req.integrantes)) : ''
     });
   }
-  return room.tipo === 'rali' ? raliBuildState(room, key) : buildState(room, key);
+  return room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
 }
 
 function stateFor(req) {
   var room = requireRoom(req.token);
-  return room.tipo === 'rali' ? raliBuildState(room, norm(req.nome)) : buildState(room, norm(req.nome));
+  return room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, norm(req.nome)) : buildState(room, norm(req.nome));
 }
 
 function submit(req) {
@@ -348,6 +356,7 @@ function submit(req) {
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   if (!me) fail('Aluno nao encontrado nesta sala. Entre novamente.');
 
+  if (isLivre(room)) fail('Esta sala e livre: escolha um desafio na lista.');
   var total = Number(room.total_fases);
   var fase = Number(me.fase_atual);
   if (fase > total) fail('Voce ja concluiu todas as fases!');
@@ -416,7 +425,7 @@ function raliBuildState(room, key) {
   for (var i = 0; i < ranked.length; i++) {
     if (ranked[i].nome_key === key) { me = ranked[i]; pos = i + 1; break; }
   }
-  if (!me) fail('Equipe nao encontrada nesta sala. Entre novamente.');
+  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' nao encontrado(a) nesta sala. Entre novamente.');
 
   var caps = readRows('CtfCapturas').filter(function (c) { return String(c.token) === room.token; });
   var minhas = {};
@@ -431,6 +440,7 @@ function raliBuildState(room, key) {
       var tag = String(m.tag_id);
       return {
         tag_id: tag, categoria: m.categoria, pacote: m.pacote, xp_base: Number(m.xp),
+        xp_atual: pontos(Number(m.xp), (porTag[tag] || 0) + 1, room.modo),
         capturas: porTag[tag] || 0, concluida: minhas[tag] === 1
       };
     });
@@ -440,11 +450,16 @@ function raliBuildState(room, key) {
       nome: me.nome, integrantes: parseList(me.integrantes), xp: Number(me.xp), acertos: Number(me.acertos),
       erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos
     },
+    aluno: {
+      nome: me.nome, fase: 1, xp: Number(me.xp), acertos: Number(me.acertos),
+      erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos, concluido: false
+    },
     missoes: missoes,
     ranking: ranked.slice(0, 15).map(function (a) {
       return { nome: a.nome, fase: Number(a.acertos), xp: Number(a.xp), fogos: Number(a.fogos) };
     }),
-    total_equipes: ranked.length
+    total_equipes: ranked.length,
+    total_alunos: ranked.length
   };
 }
 
@@ -459,13 +474,13 @@ function raliMission(room, tag) {
 function raliTeam(room, nome) {
   var key = norm(nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
-  if (!me) fail('Equipe nao encontrada nesta sala. Entre novamente.');
+  if (!me) fail((room.tipo === 'rali' ? 'Equipe' : 'Aluno') + ' nao encontrado(a) nesta sala. Entre novamente.');
   return me;
 }
 
 function raliTag(req) {
   var room = requireRoom(req.token);
-  if (room.tipo !== 'rali') fail('Esta sala e do CTF Online.');
+  if (room.tipo !== 'rali' && !isLivre(room)) fail('Esta sala e do CTF em ordem.');
   var me = raliTeam(room, req.nome);
   var m = raliMission(room, req.tag_id);
   var caps = readRows('CtfCapturas').filter(function (c) {
@@ -486,7 +501,7 @@ function raliTag(req) {
 
 function raliSubmit(req) {
   var room = requireRoom(req.token);
-  if (room.tipo !== 'rali') fail('Esta sala e do CTF Online.');
+  if (room.tipo !== 'rali' && !isLivre(room)) fail('Esta sala e do CTF em ordem.');
   if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
   requireTimerOpen(parseTimer(room.timer), Date.now());
   var me = raliTeam(room, req.nome);
@@ -496,7 +511,7 @@ function raliSubmit(req) {
   var caps = readRows('CtfCapturas').filter(function (c) {
     return String(c.token) === room.token && String(c.tag_id) === tag;
   });
-  if (caps.some(function (c) { return c.nome === me.nome; })) fail('Sua equipe ja resolveu esta missao.');
+  if (caps.some(function (c) { return c.nome === me.nome; })) fail(room.tipo === 'rali' ? 'Sua equipe ja resolveu esta missao.' : 'Voce ja resolveu este desafio.');
 
   var agora = Date.now();
   if (me.ultimo_erro && agora - Number(me.ultimo_erro) < ERROR_COOLDOWN_MS) {

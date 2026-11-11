@@ -29,7 +29,7 @@ interface FinalPodiumProps {
   rows: RankRow[];
   totalFases: number;
   /** 'fases' (CTF) ou 'missões' (Rali NFC) */
-  unit?: 'fases' | 'missões';
+  unit?: 'fases' | 'missões' | 'desafios';
   /** 'alunos' (CTF) ou 'equipes' (Rali NFC) */
   entity?: 'alunos' | 'equipes';
   /** destaca a linha de quem está olhando (celular) */
@@ -50,7 +50,7 @@ const STEP = [
  */
 export const FinalPodium: React.FC<FinalPodiumProps> = ({ rows, totalFases, unit = 'fases', entity = 'alunos', me, size = 'compact' }) => {
   const big = size === 'big';
-  const progress = (r: RankRow) => (unit === 'missões' ? `${r.fase} de ${totalFases} missões` : r.fase > totalFases ? 'todas as fases' : `${Math.max(0, r.fase - 1)} de ${totalFases} fases`);
+  const progress = (r: RankRow) => (unit !== 'fases' ? `${r.fase} de ${totalFases} ${unit}` : r.fase > totalFases ? 'todas as fases' : `${Math.max(0, r.fase - 1)} de ${totalFases} fases`);
   if (rows.length === 0) {
     return <p className={`${big ? 'text-2xl' : 'text-sm'} text-center text-slate-400 py-8`}>Nenhum participante pontuou nesta sala.</p>;
   }

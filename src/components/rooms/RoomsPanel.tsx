@@ -3,7 +3,7 @@ import { ArrowLeft, Check, Clipboard, Database, Download, Flag, Link2, Loader2, 
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
-import { CtfMissionPayload, CtfStoredRoom, CtfTeacherView, RoomTipo } from '../../types/ctf';
+import { CtfMissionPayload, CtfOrdem, CtfStoredRoom, CtfTeacherView, RoomTipo } from '../../types/ctf';
 import { ScoringMode } from '../../types';
 import { buildStudentLink, ctfCall, explainInvalidApiUrl, getCtfApiUrl, getTeacherRooms, isValidApiUrl, saveTeacherRooms } from '../../utils/ctfApi';
 import { BankQuestion } from '../../types/bank';
@@ -77,6 +77,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   // Passo 1: perguntas
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
+  const [ordem, setOrdem] = useState<CtfOrdem>('livre');
   const catalog = useMissions();
   const pool = useMemo(
     () => catalog.map((m) => ({ package: m.package as string, packageName: m.packageName, m })),
@@ -156,9 +157,12 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       }));
       missions.push(...bankPool.map(bankToCtfPayload));
       const nomeSala = nome.trim() || `${txt.nome} ${new Date().toLocaleDateString('pt-BR')}`;
-      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo }, apiUrl);
+      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo, ordem }, apiUrl);
       if (nfc && res.tipo !== 'rali') {
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
+      }
+      if (!nfc && ordem === 'livre' && res.ordem !== 'livre') {
+        throw new Error('O servidor está numa versão antiga e não tem o modo livre. Atualize o script do Apps Script (versão 7) e publique uma nova versão, ou escolha “Em ordem”.');
       }
       const stored: CtfStoredRoom = { tipo, token: res.token, adminKey: res.adminKey, nome: nomeSala, api: apiUrl, criada: Date.now() };
       persist([stored, ...allRooms]);
@@ -241,9 +245,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     if (!view || !activeRoom) return;
     // Planilhas executam células que começam com = + - @ : o apóstrofo as mantém como texto
     const esc = (v: string | number) => `"${String(v).replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"`;
-    const head = [txt.singular, ...(nfc ? ['integrantes'] : []), 'posicao', 'xp', nfc ? 'missoes_resolvidas' : 'fases_concluidas', 'erros', 'fogos'];
+    const head = [txt.singular, ...(nfc ? ['integrantes'] : []), 'posicao', 'xp', nfc ? 'missoes_resolvidas' : livre ? 'desafios_resolvidos' : 'fases_concluidas', 'erros', 'fogos'];
     const lines = view.alunos.map((a, i) =>
-      [a.nome, ...(nfc ? [(a.integrantes || []).join('; ')] : []), i + 1, a.xp, nfc ? a.acertos : Math.min(a.fase_atual - 1, view.sala.total), a.erros, a.fogos].map(esc).join(',')
+      [a.nome, ...(nfc ? [(a.integrantes || []).join('; ')] : []), i + 1, a.xp, porAcertos ? a.acertos : Math.min(a.fase_atual - 1, view.sala.total), a.erros, a.fogos].map(esc).join(',')
     );
     const blob = new Blob(['﻿' + [head.map(esc).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
@@ -253,6 +257,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     URL.revokeObjectURL(a.href);
   };
 
+  const livre = !nfc && view?.sala.ordem === 'livre';
+  const porAcertos = nfc || livre;
+  const unidade = livre ? 'desafios' : txt.unidade;
   const inviteLink = activeRoom ? buildStudentLink(activeRoom.token, activeRoom.api, tipo) : '';
   const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo}` : '';
   const Icon = nfc ? Radio : Flag;
@@ -317,6 +324,31 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               {modo === 'ctf_dynamic' ? 'Quanto mais participantes resolvem a mesma missão, menos ela vale (mínimo 40%). Quem resolve primeiro ganha 🔥.' : 'Cada missão vale sempre o XP original.'}
             </p>
           </div>
+
+          {!nfc && (
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Como os alunos avançam</span>
+              <div className="grid grid-cols-2 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
+                {([['livre', 'Livre'], ['sequencial', 'Em ordem']] as [CtfOrdem, string][]).map(([o, label]) => (
+                  <button
+                    key={o}
+                    type="button"
+                    role="radio"
+                    aria-checked={ordem === o}
+                    onClick={() => setOrdem(o)}
+                    className={`px-2 py-2 rounded-lg text-xs font-bold transition ${ordem === o ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500">
+                {ordem === 'livre'
+                  ? 'Painel de desafios: cada aluno escolhe a ordem e o ranking é por pontos.'
+                  : 'Fase a fase: o aluno só libera a próxima fase ao acertar a atual.'}
+              </p>
+            </div>
+          )}
 
           <fieldset className="space-y-1.5">
             <legend className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
@@ -444,7 +476,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 </div>
                 {monitorError && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{monitorError}</p>}
                 <div className="flex items-center gap-2 text-sm font-bold text-white">
-                  <Users className={`w-4 h-4 ${nfc ? 'text-emerald-400' : 'text-orange-400'}`} /> {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? txt.singular : txt.plural} · {view?.sala.total ?? '…'} {txt.unidade}
+                  <Users className={`w-4 h-4 ${nfc ? 'text-emerald-400' : 'text-orange-400'}`} /> {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? txt.singular : txt.plural} · {view?.sala.total ?? '…'} {unidade}
                 </div>
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="w-full text-sm">
@@ -461,7 +493,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                     <tbody className="divide-y divide-slate-800">
                       {(view?.alunos ?? []).map((a, i) => {
                         const tot = Math.max(1, view!.sala.total);
-                        const done = nfc ? Math.min(a.acertos, tot) : Math.min(a.fase_atual - 1, tot);
+                        const done = porAcertos ? Math.min(a.acertos, tot) : Math.min(a.fase_atual - 1, tot);
                         return (
                           <tr key={`${a.nome}-${i}`} className="hover:bg-slate-950/50">
                             <td className="px-3 py-2 font-mono text-slate-500">{i + 1}</td>
