@@ -60,7 +60,7 @@ export const PublishDialog: React.FC<PublishDialogProps> = ({ selected, onPublis
           No Rali NFC a resposta é conferida no celular, como nas missões padrão. Para provas ou notas, use o CTF Online, que confere no servidor (a mesma seleção pode ir para os dois).
           {inativas > 0 && ` ${inativas} pergunta(s) selecionada(s) estão inativas e serão publicadas mesmo assim.`}
         </p>
-        {error && <p role="alert" className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+        {error && <p role="alert" className="mt-3 whitespace-pre-line rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
 
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800">Cancelar</button>
