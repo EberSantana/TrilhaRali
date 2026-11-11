@@ -8,8 +8,8 @@ import { useTheme } from '../utils/theme';
 interface TrilhaLogoProps {
   /** 'mark' = só o símbolo (bandeira + estrada); 'full' = logo completa com o nome e o lema */
   variant?: 'mark' | 'full';
-  /** altura em px */
-  height?: number;
+  /** altura em px (ou qualquer valor CSS, ex.: clamp(...)) */
+  height?: number | string;
   className?: string;
 }
 
