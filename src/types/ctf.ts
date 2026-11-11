@@ -19,6 +19,7 @@ export interface CtfRoomInfo {
   modo: ScoringMode;
   total: number;
   terminal?: boolean; // professor liberou o terminal Linux simulado
+  debriefing?: boolean; // professor liberou o gabarito (debriefing) para os alunos
   banco: boolean; // professor liberou o download do banco de dados para os alunos
   /** cronômetro da sala (null = sala sem tempo); ausente em backends antigos */
   timer?: TimerInfo | null;
@@ -103,6 +104,7 @@ export interface CtfMissionPayload {
   alternativas: string[];
   xp: number;
   opcoes?: string[];
+  explicacao?: string;
 }
 
 export interface CtfStoredRoom {
@@ -164,4 +166,25 @@ export interface RaliTagInfo {
   sala: CtfRoomInfo;
   ja_resolvida: boolean;
   missao: RaliMission;
+}
+
+/** Item do debriefing da sala: pergunta, gabarito, explicação e quantos acertaram */
+export interface CtfDebriefItem {
+  fase: number;
+  tag_id: string;
+  categoria: string;
+  pacote: string;
+  pergunta: string;
+  resposta: string;
+  alternativas: string[];
+  opcoes: string[];
+  xp: number;
+  explicacao: string;
+  acertos: number;
+}
+
+export interface CtfDebrief {
+  sala: CtfRoomInfo;
+  itens: CtfDebriefItem[];
+  total_alunos: number;
 }

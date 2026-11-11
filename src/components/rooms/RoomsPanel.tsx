@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, Database, Download, Flag, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
-import { CtfMissionPayload, CtfOrdem, CtfStoredRoom, CtfTeacherView, RoomTipo } from '../../types/ctf';
+import { CtfDebrief, CtfMissionPayload, CtfOrdem, CtfStoredRoom, CtfTeacherView, RoomTipo } from '../../types/ctf';
 import { ScoringMode } from '../../types';
 import { buildStudentLink, ctfCall, explainInvalidApiUrl, apiTail, getCtfApiUrl, getTeacherRooms, isValidApiUrl, saveTeacherRooms } from '../../utils/ctfApi';
 import { BankQuestion } from '../../types/bank';
 import { bankToCtfPayload, takeCtfPrefill } from '../../utils/bank';
 import { BankPicker } from '../bank/BankPicker';
+import { DebriefList } from './DebriefList';
 import { getBancoKey, listBanco, pingBanco, saveBancoKey } from '../../utils/bankApi';
 import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
@@ -203,6 +204,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         resposta: m.resposta_curta,
         alternativas: m.alternatives || [],
         xp: m.xp_valor,
+        explicacao: m.explanation || '',
         ...(nfc && m.opcoes?.length ? { opcoes: m.opcoes } : {}),
       }));
       missions.push(...bankPool.map(bankToCtfPayload));
@@ -212,7 +214,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
       }
       if (!nfc && ordem === 'livre' && res.ordem !== 'livre') {
-        throw new Error('O servidor está numa versão antiga e não tem o modo livre. O servidor em uso termina em …' + apiTail(apiUrl) + '. Confira em Servidor (Apps Script) se é o da versão 9, ou escolha “Em ordem”.');
+        throw new Error('O servidor está numa versão antiga e não tem o modo livre. O servidor em uso termina em …' + apiTail(apiUrl) + '. Confira em Servidor (Apps Script) se é o da versão 10, ou escolha “Em ordem”.');
       }
       const stored: CtfStoredRoom = { tipo, token: res.token, adminKey: res.adminKey, nome: nomeSala, api: apiUrl, criada: Date.now() };
       persist([stored, ...allRooms]);
@@ -295,6 +297,38 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     }
   };
 
+  const [debrief, setDebrief] = useState<CtfDebrief | null>(null);
+  const [debriefErr, setDebriefErr] = useState('');
+  const [debriefBusy, setDebriefBusy] = useState(false);
+  const loadDebrief = useCallback(async () => {
+    if (!activeRoom) return;
+    setDebriefBusy(true);
+    try {
+      const d = await ctfCall<CtfDebrief>('debriefTeacher', { token: activeRoom.token, adminKey: activeRoom.adminKey }, activeRoom.api);
+      setDebrief(d);
+      setDebriefErr('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setDebriefErr(/desconhecida/i.test(msg) ? 'O servidor ainda não tem o debriefing. Atualize o script do Apps Script (versão 10) e publique uma nova versão.' : msg);
+    } finally {
+      setDebriefBusy(false);
+    }
+  }, [activeRoom]);
+  useEffect(() => {
+    setDebrief(null);
+    setDebriefErr('');
+  }, [activeRoom?.token]);
+
+  const toggleDebriefing = async () => {
+    if (!activeRoom || !view) return;
+    try {
+      await ctfCall('setDebriefing', { token: activeRoom.token, adminKey: activeRoom.adminKey, liberado: !view.sala.debriefing }, activeRoom.api);
+      loadView();
+    } catch (err) {
+      setDebriefErr(/desconhecida/i.test(err instanceof Error ? err.message : '') ? 'O servidor ainda não tem o debriefing. Atualize o script do Apps Script (versão 10) e publique uma nova versão.' : err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const forgetRoom = (token: string) => {
     if (!window.confirm('Remover esta sala da lista deste navegador? (Os dados continuam na planilha.)')) return;
     persist(allRooms.filter((r) => r.token !== token));
@@ -343,8 +377,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           </div>
           {tools && <div className="flex flex-wrap items-center gap-2">{tools}</div>}
         </div>
-        <ol className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" aria-label="Roteiro da aula">
-          {['Perguntas', 'Turma', 'Ao vivo', 'Resultados'].map((l, i) => {
+        <ol className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs" aria-label="Roteiro da aula">
+          {['Perguntas', 'Turma', 'Ao vivo', 'Resultados', 'Debriefing'].map((l, i) => {
             const disabled = i > 0 && !activeRoom;
             return (
               <li key={l}>
@@ -650,6 +684,32 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   </table>
                 </div>
                 <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 10 segundos. A chave de administração desta sala fica salva só neste navegador.</p>
+              </section>
+
+              <section id="passo-5" className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Debriefing">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <StepTitle n={5} title="Debriefing" hint={`Gabarito com explicações. Só ${nfc ? 'as equipes' : 'os alunos'} veem depois que você liberar.`} tone={tone} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Btn size="sm" onClick={loadDebrief} disabled={debriefBusy} icon={<RefreshCw className="w-4 h-4" />}>
+                      {debrief ? 'Atualizar gabarito' : 'Ver gabarito'}
+                    </Btn>
+                    <Btn
+                      size="sm"
+                      variant={view?.sala.debriefing ? 'warn' : nfc ? 'primary' : 'orange'}
+                      disabled={!view}
+                      onClick={toggleDebriefing}
+                      icon={<GraduationCap className="w-4 h-4" />}
+                      title={`Mostra ou esconde o gabarito para ${nfc ? 'as equipes' : 'os alunos'}`}
+                    >
+                      {view?.sala.debriefing ? `Esconder dos ${nfc ? 'equipes' : 'alunos'}` : `Liberar para ${nfc ? 'as equipes' : 'os alunos'}`}
+                    </Btn>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Gabarito para {nfc ? 'as equipes' : 'os alunos'}: <strong className={view?.sala.debriefing ? 'text-emerald-300' : 'text-slate-200'}>{view?.sala.debriefing ? 'liberado' : 'oculto'}</strong>
+                </p>
+                {debriefErr && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{debriefErr}</p>}
+                {debrief && <DebriefList data={debrief} quem={nfc ? 'equipes' : 'alunos'} accent={nfc ? 'emerald' : 'orange'} />}
               </section>
             </>
           )}

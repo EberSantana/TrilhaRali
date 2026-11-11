@@ -63,6 +63,7 @@ A **Trilha Rali** transforma uma aula de laboratório em uma competição organi
 O topo do site alterna entre os módulos. Os endereços `#/rali`, `#/ctf` e `#/professor` abrem cada um direto.
 
 > **Novo (script v9):** nome repetido na sala só entra pelo aparelho original, mensagens do servidor com acento e publicação NFC aceita tags `linux_NN`. Cole o script v9 e publique uma **nova versão**.
+> **Novo (script v10):** passo 5 "Debriefing" nas salas de CTF e NFC: o professor vê o gabarito com explicações e libera para alunos/equipes. Cole o script v10 e publique uma **nova versão**.
 
 > **Script v8:** o professor pode liberar um **Terminal Linux simulado** (botão "Terminal Linux" na sala, igual ao Console SQL). Cole o script v8 e publique uma **nova versão**.
 

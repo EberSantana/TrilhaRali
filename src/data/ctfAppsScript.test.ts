@@ -176,6 +176,32 @@ test('terminal Linux: oculto por padrão, só o professor libera', () => {
   assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.terminal, true);
 });
 
+test('debriefing: gabarito só para o professor até ele liberar; mostra explicação e acertos', () => {
+  const { call } = createBackend();
+  const ms = [{ ...missions[0], explicacao: 'DROP TABLE remove a tabela inteira.' }, ...missions.slice(1)];
+  const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions: ms });
+  call({ action: 'join', token: room.token, nome: 'Ana' });
+  call({ action: 'submit', token: room.token, nome: 'Ana', resposta: 'drop table' });
+
+  assert.equal(call({ action: 'state', token: room.token, nome: 'Ana' }).sala.debriefing, false);
+  assert.match(call({ action: 'debriefStudent', token: room.token }).error, /não liberou/);
+  assert.match(call({ action: 'debriefTeacher', token: room.token, adminKey: 'errada' }).error, /inválida/);
+
+  const prof = call({ action: 'debriefTeacher', token: room.token, adminKey: room.adminKey });
+  assert.equal(prof.itens.length, ms.length);
+  assert.equal(prof.itens[0].resposta, ms[0].resposta);
+  assert.equal(prof.itens[0].explicacao, 'DROP TABLE remove a tabela inteira.');
+  assert.equal(prof.itens[0].acertos, 1);
+  assert.equal(prof.total_alunos, 1);
+  assert.equal(JSON.stringify(prof).includes('admin_key'), false);
+
+  assert.match(call({ action: 'setDebriefing', token: room.token, adminKey: 'x', liberado: true }).error, /inválida/);
+  assert.equal(call({ action: 'setDebriefing', token: room.token, adminKey: room.adminKey, liberado: true }).sala.debriefing, true);
+  const aluno = call({ action: 'debriefStudent', token: room.token });
+  assert.equal(aluno.itens[0].resposta, ms[0].resposta);
+  assert.equal(JSON.stringify(aluno).includes('admin_key'), false);
+});
+
 test('ranking, painel do professor, chave de admin e sala encerrada', () => {
   const { call } = createBackend();
   const room = call({ action: 'createRoom', nome: 'T', modo: 'fixed', missions });
