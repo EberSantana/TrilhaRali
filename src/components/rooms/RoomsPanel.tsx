@@ -11,6 +11,7 @@ import { bankToCtfPayload, takeCtfPrefill } from '../../utils/bank';
 import { BankPicker } from '../bank/BankPicker';
 import { getBancoKey, listBanco } from '../../utils/bankApi';
 import { TimerControl } from '../common/TimerControl';
+import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 
@@ -78,6 +79,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
   const [ordem, setOrdem] = useState<CtfOrdem>('livre');
+  const [usarTimer, setUsarTimer] = useState(false);
+  const [minutos, setMinutos] = useState(60);
   const catalog = useMissions();
   const pool = useMemo(
     () => catalog.map((m) => ({ package: m.package as string, packageName: m.packageName, m })),
@@ -157,7 +160,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       }));
       missions.push(...bankPool.map(bankToCtfPayload));
       const nomeSala = nome.trim() || `${txt.nome} ${new Date().toLocaleDateString('pt-BR')}`;
-      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo, ordem }, apiUrl);
+      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo, ...(tipo === 'ctf' ? { ordem } : {}), ...(usarTimer ? { minutos } : {}) }, apiUrl);
       if (nfc && res.tipo !== 'rali') {
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
       }
@@ -350,6 +353,22 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </div>
           )}
 
+          <div className="space-y-2">
+            <label className="flex items-start gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 cursor-pointer">
+              <input type="checkbox" checked={usarTimer} onChange={(e) => setUsarTimer(e.target.checked)} className={`${accentCheck} mt-1`} />
+              <span>
+                Usar cronômetro
+                <span className="block text-[11px] text-slate-500">Ao zerar, a sala trava as respostas sozinha. Você inicia, pausa e ajusta o tempo no passo 3.</span>
+              </span>
+            </label>
+            {usarTimer && (
+              <div className="flex items-center gap-3">
+                <DurationInline id="sala-duracao" value={minutos} onChange={setMinutos} />
+                <span className="text-xs text-slate-400">de 5 a 120 min</span>
+              </div>
+            )}
+          </div>
+
           <fieldset className="space-y-1.5">
             <legend className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
               Missões do catálogo: {total}
@@ -416,7 +435,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
           {!activeRoom ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-10 text-center text-sm text-slate-400">
-              Crie uma sala para gerar o token. {nfc ? 'As equipes' : 'Os alunos'} abrem <span className="font-mono text-slate-300">{siteLink || `…/#/${tipo}`}</span>, digitam o token e {nfc ? 'o nome da equipe' : 'o nome'} e começam.
+              Crie uma sala para gerar o token. O cronômetro, o telão e o ranking aparecem aqui depois. {nfc ? 'As equipes' : 'Os alunos'} abrem <span className="font-mono text-slate-300">{siteLink || `…/#/${tipo}`}</span>, digitam o token e {nfc ? 'o nome da equipe' : 'o nome'} e começam.
             </div>
           ) : (
             <>
