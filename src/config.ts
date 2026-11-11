@@ -4,4 +4,4 @@
  * Deixe vazia para depender do link de convite gerado no Painel do Professor.
  */
 export const DEFAULT_CTF_API_URL =
-  'https://script.google.com/macros/s/AKfycbzeFKw63nXlkhYOf5UNEpr0eDONDtwbZrcwxYt2OYfw8oFTa40IFueN3ng8oCfPTanbQA/exec';
+  'https://script.google.com/macros/s/AKfycbzKvxe2-Wt1vJH6MgvuPPgIl8MN-Xvm7KnLStltSgug9cukW6F9qpeIDugvIOjvRcNawQ/exec';
