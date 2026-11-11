@@ -115,6 +115,9 @@ export interface CtfStoredRoom {
   adminKey: string;
   api: string;
   criada: number;
+  /** guardado neste navegador para montar o histórico; a fonte da verdade é a planilha */
+  status?: 'aberta' | 'encerrada';
+  encerradaEm?: number;
 }
 
 // ---------- Rali NFC online (salas com equipes) ----------

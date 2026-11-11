@@ -177,6 +177,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const total = chosen.length + bankPool.length;
 
   const activeRoom = rooms.find((r) => r.token === activeToken) || null;
+  const emAndamento = rooms.filter((r) => r.status !== 'encerrada' || r.token === activeToken);
+  const historico = rooms.filter((r) => r.status === 'encerrada' && r.token !== activeToken).sort((a, b) => (b.encerradaEm ?? b.criada) - (a.encerradaEm ?? a.criada));
   const persist = (next: CtfStoredRoom[]) => {
     setAllRooms(next);
     saveTeacherRooms(next);
@@ -248,12 +250,37 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     return () => clearInterval(id);
   }, [activeRoom, loadView]);
 
+  const markStatus = (token: string, status: 'aberta' | 'encerrada') => {
+    persist(
+      allRooms.map((r) =>
+        r.token !== token ? r : { ...r, status, encerradaEm: status === 'encerrada' ? r.encerradaEm ?? Date.now() : undefined }
+      )
+    );
+  };
+  // mantém o histórico em dia mesmo se a sala foi encerrada por outro aparelho
+  useEffect(() => {
+    if (!view || !activeRoom || view.sala.token !== activeRoom.token) return;
+    if ((activeRoom.status ?? 'aberta') !== view.sala.status) markStatus(activeRoom.token, view.sala.status);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view?.sala.status, view?.sala.token]);
+
+  const novaSala = () => {
+    setActiveToken(null);
+    setView(null);
+    setTimeout(() => {
+      const f = document.getElementById('passo-1');
+      f?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      (f?.querySelector('input') as HTMLInputElement | null)?.focus();
+    }, 50);
+  };
+
   const toggleStatus = async () => {
     if (!activeRoom || !view) return;
     const next = view.sala.status === 'aberta' ? 'encerrada' : 'aberta';
     if (next === 'encerrada' && !window.confirm(`Encerrar a sala? ${nfc ? 'As equipes' : 'Os alunos'} não poderão mais enviar respostas e o resultado final será exibido.`)) return;
     try {
       await ctfCall('setStatus', { token: activeRoom.token, adminKey: activeRoom.adminKey, status: next }, activeRoom.api);
+      markStatus(activeRoom.token, next);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
@@ -549,32 +576,64 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
         {/* 2 · Turma · 3 · Ao vivo · 4 · Resultados */}
         <div className="lg:col-span-2 space-y-4">
-          {rooms.length > 0 && (
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Salas">
-              {rooms.map((r) => (
-                <button
-                  key={r.token}
-                  role="tab"
-                  aria-selected={r.token === activeToken}
-                  onClick={() => setActiveToken(r.token)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-                    r.token === activeToken
-                      ? nfc ? 'bg-emerald-600/15 border-emerald-500 text-emerald-200' : 'bg-orange-600/15 border-orange-500 text-orange-200'
-                      : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <span className="font-mono">{r.token}</span> · {r.nome}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Salas em andamento">
+            {emAndamento.map((r) => (
+              <button
+                key={r.token}
+                role="tab"
+                aria-selected={r.token === activeToken}
+                onClick={() => setActiveToken(r.token)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                  r.token === activeToken
+                    ? nfc ? 'bg-emerald-600/15 border-emerald-500 text-emerald-200' : 'bg-orange-600/15 border-orange-500 text-orange-200'
+                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <span className="font-mono">{r.token}</span> · {r.nome}
+              </button>
+            ))}
+            <Btn size="sm" variant={nfc ? 'primary' : 'orange'} onClick={novaSala} icon={<Plus className="w-4 h-4" />} title="Começar uma nova sala (a atual continua salva)">
+              Nova sala
+            </Btn>
+          </div>
 
           {!activeRoom ? (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-10 text-center text-sm text-slate-400">
-              Crie uma sala para gerar o token. O cronômetro, o telão e o ranking aparecem aqui depois. {nfc ? 'As equipes' : 'Os alunos'} abrem <span className="font-mono text-slate-300">{siteLink || `…/#/${tipo}`}</span>, digitam o token e {nfc ? 'o nome da equipe' : 'o nome'} e começam.
+              {historico.length > 0 ? 'Nenhuma sala em andamento. Crie uma nova no passo 1 ou abra uma do histórico abaixo.' : 'Crie uma sala para gerar o token.'} O cronômetro, o telão e o ranking aparecem aqui depois. {nfc ? 'As equipes' : 'Os alunos'} abrem <span className="font-mono text-slate-300">{siteLink || `…/#/${tipo}`}</span>, digitam o token e {nfc ? 'o nome da equipe' : 'o nome'} e começam.
             </div>
           ) : (
             <>
+              <div
+                className={`rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3 ${
+                  view?.sala.status === 'encerrada' ? 'border-red-500/40 bg-red-500/10' : 'border-slate-800 bg-slate-900'
+                }`}
+                role="status"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${view?.sala.status === 'encerrada' ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/15 text-emerald-300'}`}>
+                    {view?.sala.status === 'encerrada' ? <Lock className="w-5 h-5" /> : <Power className="w-5 h-5" />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-black text-white truncate">{activeRoom.nome}</div>
+                    <div className="text-xs text-slate-400">
+                      {view?.sala.status === 'encerrada'
+                        ? 'Sala encerrada e salva no histórico. Os resultados e o debriefing continuam disponíveis.'
+                        : 'Sala em andamento. Ao encerrar, ela fica salva no histórico e você pode criar outra.'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {view?.sala.status === 'encerrada' ? (
+                    <>
+                      <Btn size="sm" variant="ghost" disabled={!view} onClick={toggleStatus} icon={<Unlock className="w-4 h-4" />}>Reabrir</Btn>
+                      <Btn size="sm" variant={nfc ? 'primary' : 'orange'} onClick={novaSala} icon={<Plus className="w-4 h-4" />}>Criar nova sala</Btn>
+                    </>
+                  ) : (
+                    <Btn size="sm" variant="danger" disabled={!view} onClick={toggleStatus} icon={<Lock className="w-4 h-4" />}>Encerrar sala</Btn>
+                  )}
+                </div>
+              </div>
+
               <section id="passo-2" className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4" aria-label="Turma">
                 <StepTitle n={2} title="Turma" hint={`Passe o token, o link ou o QR code para ${nfc ? 'as equipes' : 'os alunos'}.`} tone={tone} />
                 <div className="flex flex-wrap items-center justify-between gap-5">
@@ -712,6 +771,30 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 {debrief && <DebriefList data={debrief} quem={nfc ? 'equipes' : 'alunos'} accent={nfc ? 'emerald' : 'orange'} />}
               </section>
             </>
+          )}
+
+          {historico.length > 0 && (
+            <section id="historico" className="rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-3" aria-label="Histórico de salas">
+              <h2 className="text-sm font-black text-white">Histórico · salas encerradas ({historico.length})</h2>
+              <ul className="divide-y divide-slate-800">
+                {historico.map((r) => (
+                  <li key={r.token} className="py-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-slate-100 truncate">{r.nome}</div>
+                      <div className="text-xs text-slate-400">
+                        <span className="font-mono">{r.token}</span> · criada em {new Date(r.criada).toLocaleDateString('pt-BR')}
+                        {r.encerradaEm ? ` · encerrada em ${new Date(r.encerradaEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Btn size="sm" onClick={() => { setActiveToken(r.token); setTimeout(() => document.getElementById('passo-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }}>Ver resultados</Btn>
+                      <Btn size="sm" variant="ghost" onClick={() => forgetRoom(r.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-500">Os dados de cada sala continuam salvos na planilha. “Remover” só tira da lista deste navegador.</p>
+            </section>
           )}
         </div>
       </div>
