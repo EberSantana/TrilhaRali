@@ -14,7 +14,7 @@ import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { RoomsAndTeamsModal } from './components/RoomsAndTeamsModal';
 import { TeacherAuthModal } from './components/TeacherAuthModal';
 import { AboutView } from './components/AboutView';
-import { ModuleSwitcher, AppModule } from './components/ModuleSwitcher';
+import type { AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
@@ -351,9 +351,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
-      {appModule !== 'home' && (
-        <ModuleSwitcher module={appModule} isTeacher={isTeacher} onChange={handleChangeModule} />
-      )}
 
       {appModule === 'home' ? (
         <main className="flex-1 pb-16">
@@ -406,6 +403,7 @@ export default function App() {
         <main className="flex-1 pb-16">
           <TeacherHub
             isTeacher={isTeacher}
+            onHome={() => handleChangeModule('home')}
             onRequireTeacher={() => handleOpenTeacherAuth('Área do Professor')}
             onOpenProjector={() => { setActiveTab('projector'); handleChangeModule('local'); }}
             onOpenMissions={() => { setActiveTab('missions'); handleChangeModule('local'); }}
@@ -419,6 +417,12 @@ export default function App() {
         </main>
       ) : (
         <>
+      {/* Rali local (sem servidor): volta ao painel do professor */}
+      <div className="bg-slate-900 border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
+          <button onClick={() => handleChangeModule('professor')} className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white">← Painel do professor</button>
+        </div>
+      </div>
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
