@@ -421,7 +421,12 @@ export default function App() {
       {/* Rali local (sem servidor): volta ao painel do professor */}
       <div className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
-          <button onClick={() => handleChangeModule('professor')} className="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white">← Painel do professor</button>
+          <button
+            onClick={() => handleChangeModule('professor')}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1 text-xs font-bold text-slate-200 transition hover:bg-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <span aria-hidden>←</span> Painel do professor
+          </button>
         </div>
       </div>
       {/* Top Navbar */}

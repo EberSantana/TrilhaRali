@@ -10,6 +10,7 @@ import {
   Lock,
   MonitorPlay,
   Radio,
+  ArrowLeft,
   Sheet,
   ShieldCheck,
   Users,
@@ -142,7 +143,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           Entrar com PIN
         </button>
         <div className="mt-4">
-          <button type="button" onClick={p.onHome} className="text-xs font-semibold text-slate-400 hover:text-white">← Início</button>
+          <button type="button" onClick={p.onHome} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-800"><ArrowLeft className="w-3.5 h-3.5" />Início</button>
         </div>
       </div>
     );
@@ -152,16 +153,23 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <button type="button" onClick={p.onHome} className="mb-2 text-xs font-semibold text-slate-400 hover:text-white">← Início</button>
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-300">
-            <ShieldCheck className="w-4 h-4" />
+      <header>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={p.onHome}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 shadow-sm transition hover:bg-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Início
+          </button>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
+            <ShieldCheck className="w-3.5 h-3.5" />
             Modo professor ativo
-          </div>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-white">Painel do professor</h1>
-          <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
+          </span>
         </div>
+        <h1 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight text-white">Painel do professor</h1>
+        <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
       </header>
 
       <Section title="1 · Conteúdo (compartilhado)">
