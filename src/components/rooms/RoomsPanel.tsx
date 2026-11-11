@@ -97,8 +97,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   }, [pool]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   useEffect(() => {
-    // os dois ambientes começam com todo o catálogo marcado
-    setSelected(new Set(packages.map((p) => p.id)));
+    // começam marcadas só as missões publicadas do banco; os pacotes prontos você escolhe no menu de disciplinas
+    setSelected(new Set(nfc ? packages.filter((p) => p.id === 'banco').map((p) => p.id) : []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo, packages.length]);
 
@@ -124,8 +124,34 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       })
       .catch((e) => setBankMsg(e instanceof Error ? e.message : String(e)));
   }, [nfc]);
+  // Pacotes prontos do catálogo (Linux, Banco de Dados NTAG…) entram no mesmo menu de disciplinas do banco.
+  // As missões publicadas a partir do banco ('banco') já aparecem como perguntas do banco.
+  const catalogAsBank = useMemo<BankQuestion[]>(
+    () =>
+      pool
+        .filter((p) => p.package !== 'banco')
+        .map(({ m }) => ({
+          id: `cat:${m.tag_id}`,
+          disciplina: m.packageName,
+          assunto: String(m.category || 'Geral'),
+          tipo: m.opcoes?.length ? ('multipla' as const) : ('exata' as const),
+          pergunta: m.pergunta,
+          resposta: m.resposta_curta,
+          aceitas: m.alternatives || [],
+          opcoes: m.opcoes || [],
+          xp: m.xp_valor,
+          explicacao: m.explanation || '',
+          ativo: true,
+        })),
+    [pool]
+  );
+  const pickerQuestions = useMemo(() => [...bank, ...catalogAsBank], [bank, catalogAsBank]);
   const bankPool = useMemo(() => bank.filter((q) => bankSel.has(q.id)), [bank, bankSel]);
-  const chosen = pool.filter((p) => selected.has(p.package));
+  const catalogPicked = useMemo(
+    () => catalogAsBank.filter((q) => bankSel.has(q.id)).map((q) => pool.find((p) => `cat:${p.m.tag_id}` === q.id)!),
+    [catalogAsBank, bankSel, pool]
+  );
+  const chosen = [...pool.filter((p) => selected.has(p.package)), ...catalogPicked];
   const total = chosen.length + bankPool.length;
 
   const activeRoom = rooms.find((r) => r.token === activeToken) || null;
@@ -395,9 +421,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               🎯 Missões do catálogo
               <span className={`rounded-full px-2 py-0.5 text-xs font-black text-white ${nfc ? 'bg-emerald-600' : 'bg-orange-500'}`}>{total}</span>
             </legend>
-            <p className="text-[11px] text-slate-400">Pacotes prontos (Linux, Banco de Dados, Redes…). Marque os que entram nesta sala.</p>
+            <p className="text-[11px] text-slate-400">Escolha as disciplinas no menu abaixo: Linux, Banco de Dados, Redes e as do seu banco, tudo no mesmo lugar.</p>
             <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
-              {packages.map((p) => (
+              {nfc && packages.filter((p) => p.id === 'banco').map((p) => (
                 <label key={p.id} className="flex items-center gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -417,10 +443,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </div>
             <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950/40 p-2.5">
               <div className={`text-xs font-black uppercase tracking-wider mb-1.5 ${accentText}`}>
-                📚 Do meu banco de perguntas {bankPool.length > 0 && <span className={accentText}>· {bankPool.length} escolhida(s)</span>}
+                📚 Todas as disciplinas {bankPool.length + catalogPicked.length > 0 && <span className={accentText}>· {bankPool.length + catalogPicked.length} escolhida(s)</span>}
               </div>
-              {bank.length > 0 ? (
-                <BankPicker questions={bank} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
+              {pickerQuestions.length > 0 ? (
+                <BankPicker questions={pickerQuestions} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
               ) : (
                 <p className="text-[11px] text-slate-500">{bankMsg || 'Seu banco de perguntas está vazio.'}</p>
               )}
