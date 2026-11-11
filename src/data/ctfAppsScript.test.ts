@@ -42,6 +42,7 @@ function createBackend() {
         },
       }),
     },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null, setProperty: () => {} }) },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
     ContentService: {
       MimeType: { JSON: 'json' },

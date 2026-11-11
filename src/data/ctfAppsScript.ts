@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -24,7 +24,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, setStatus: 1, setBanco: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -73,6 +73,10 @@ function route(req) {
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
+    case 'setTimer': return setTimer(req);
+    case 'raliTimer': return raliTimer(req);
+    case 'raliEstado': return raliEstado();
+    case 'setTema': return setTema(req);
     case 'bancoPing': requireBancoKey(req); return { ok: true };
     case 'bancoList': return bancoList(req);
     case 'bancoSave': return bancoSave(req);
@@ -191,7 +195,10 @@ function roomInfo(room) {
     status: room.status,
     modo: room.modo,
     total: Number(room.total_fases),
-    banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true'
+    banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
+    timer: timerOut(parseTimer(room.timer), Date.now()),
+    tema: getTema(),
+    agora: Date.now()
   };
 }
 
@@ -286,7 +293,8 @@ function createRoom(req) {
   appendObj('CtfSalas', {
     token: token, nome: nome, admin_key: adminKey, status: 'aberta',
     modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
-    banco_liberado: req.bancoLiberado === true
+    banco_liberado: req.bancoLiberado === true,
+    timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : ''
   });
 
   var sh = getSheet('CtfMissoes');
@@ -321,6 +329,7 @@ function stateFor(req) {
 function submit(req) {
   var room = requireRoom(req.token);
   if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
+  requireTimerOpen(parseTimer(room.timer), Date.now());
   var key = norm(req.nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   if (!me) fail('Aluno nao encontrado nesta sala. Entre novamente.');
@@ -405,6 +414,117 @@ function setStatus(req) {
   updateRow('CtfSalas', room._row, { status: status });
   room.status = status;
   return { sala: roomInfo(room) };
+}
+
+// ---------- Cronometro e tema ----------
+// O cronometro e guardado como {d: duracao em minutos, f: fim em ms (0 = parado), r: segundos restantes}.
+// Com cronometro configurado, as respostas so valem enquanto ele esta rodando.
+
+var TIMER_MIN = 5;
+var TIMER_MAX = 120;
+
+function clampMin(m) {
+  var n = Math.round(Number(m) / 5) * 5;
+  if (!(n >= TIMER_MIN)) n = TIMER_MIN;
+  if (n > TIMER_MAX) n = TIMER_MAX;
+  return n;
+}
+
+function parseTimer(v) {
+  try {
+    var t = typeof v === 'string' && v ? JSON.parse(v) : null;
+    if (t && Number(t.d) > 0) return { d: Number(t.d), f: Number(t.f) || 0, r: Number(t.r) || 0 };
+  } catch (err) {}
+  return null;
+}
+
+function timerLeft(t, now) {
+  return t.f > 0 ? Math.max(0, Math.ceil((t.f - now) / 1000)) : Math.max(0, t.r);
+}
+
+function timerApply(t, op, minutos, now) {
+  if (op === 'off') return null;
+  if (op === 'config') {
+    var d = clampMin(minutos);
+    return { d: d, f: 0, r: d * 60 };
+  }
+  if (op === 'sync') {
+    // O telao do Rali NFC espelha aqui o relogio que roda no aparelho do professor
+    var seg = Math.max(0, Math.min(TIMER_MAX * 60, Math.round(Number(req_segundos(minutos)))));
+    var dur = clampMin(minutos && minutos.duracao ? minutos.duracao : Math.ceil(seg / 60));
+    return minutos && minutos.rodando && seg > 0 ? { d: dur, f: now + seg * 1000, r: seg } : { d: dur, f: 0, r: seg };
+  }
+  if (!t) fail('Defina primeiro a duracao do cronometro.');
+  var left = timerLeft(t, now);
+  if (op === 'start') {
+    if (left <= 0) fail('O tempo acabou. Adicione tempo ou reinicie o cronometro.');
+    return { d: t.d, f: now + left * 1000, r: left };
+  }
+  if (op === 'pause') return { d: t.d, f: 0, r: left };
+  if (op === 'reset') return { d: t.d, f: 0, r: t.d * 60 };
+  if (op === 'add') {
+    var delta = Math.round(Number(minutos) || 5) * 60;
+    var next = Math.max(0, Math.min(TIMER_MAX * 60, left + delta));
+    return t.f > 0 ? { d: t.d, f: now + next * 1000, r: next } : { d: t.d, f: 0, r: next };
+  }
+  fail('Operacao de cronometro desconhecida.');
+}
+
+function req_segundos(o) {
+  return o && typeof o === 'object' ? o.segundos : 0;
+}
+
+function timerOut(t, now) {
+  if (!t) return null;
+  var left = timerLeft(t, now);
+  return { duracaoMin: t.d, fimEm: t.f, restanteS: left, rodando: t.f > 0 && left > 0, esgotado: left <= 0 };
+}
+
+function requireTimerOpen(t, now) {
+  if (!t) return;
+  if (timerLeft(t, now) <= 0) fail('Tempo esgotado! As respostas foram bloqueadas.');
+  if (!(t.f > 0)) fail('O cronometro esta parado. Aguarde o professor iniciar.');
+}
+
+function getTema() {
+  var v = PropertiesService.getScriptProperties().getProperty('TEMA');
+  return v === 'claro' || v === 'escuro' ? v : '';
+}
+
+function setTimer(req) {
+  var room = requireAdmin(req);
+  var t = timerApply(parseTimer(room.timer), req.op, req.minutos, Date.now());
+  var raw = t ? JSON.stringify(t) : '';
+  updateRow('CtfSalas', room._row, { timer: raw });
+  room.timer = raw;
+  return { sala: roomInfo(room) };
+}
+
+// Cronometro do Rali NFC: um so por planilha, controlado pelo professor (chave do banco)
+function raliTimer(req) {
+  requireBancoKey(req);
+  var props = PropertiesService.getScriptProperties();
+  var arg = req.op === 'sync' ? { segundos: req.segundos, duracao: req.minutos, rodando: req.rodando === true } : req.minutos;
+  var t = timerApply(parseTimer(props.getProperty('RALI_TIMER')), req.op, arg, Date.now());
+  props.setProperty('RALI_TIMER', t ? JSON.stringify(t) : '');
+  return raliEstado();
+}
+
+// Publico: os celulares dos alunos leem o cronometro do Rali NFC e o tema escolhido pelo professor
+function raliEstado() {
+  var now = Date.now();
+  return {
+    timer: timerOut(parseTimer(PropertiesService.getScriptProperties().getProperty('RALI_TIMER')), now),
+    tema: getTema(),
+    agora: now
+  };
+}
+
+function setTema(req) {
+  requireBancoKey(req);
+  var tema = req.tema === 'claro' ? 'claro' : 'escuro';
+  PropertiesService.getScriptProperties().setProperty('TEMA', tema);
+  return { tema: tema };
 }
 
 // ---------- Banco de perguntas do professor ----------

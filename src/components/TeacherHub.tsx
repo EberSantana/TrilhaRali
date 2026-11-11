@@ -14,6 +14,8 @@ import {
   Users,
 } from 'lucide-react';
 
+import { ThemePicker } from './common/ThemePicker';
+
 interface TeacherHubProps {
   isTeacher: boolean;
   activeRoomName?: string;
@@ -148,6 +150,10 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           icon={<Library className="w-5 h-5" />}
           onClick={() => setShowBank(true)}
         />
+      </Section>
+
+      <Section title="Aparência">
+        <ThemePicker />
       </Section>
 
       <Section title="Conta">

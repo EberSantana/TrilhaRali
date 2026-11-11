@@ -42,6 +42,8 @@ import {
 } from './utils/storage';
 import { INITIAL_TEAMS } from './data/missions';
 import { getMissions, refreshPublished } from './utils/missionsStore';
+import { useRaliSession } from './utils/raliSession';
+import { RaliTimerBar, useRaliLocked } from './components/common/RaliTimerBar';
 import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/scoring';
 import { parseTagFromLocation } from './utils/tagLink';
 
@@ -72,6 +74,9 @@ export default function App() {
   const [logs, setLogs] = useState<SubmissionLog[]>(getLogs);
   const [sessionState, setSessionState] = useState<ClassSessionState>(getSessionState);
   const [isRoomsModalOpen, setIsRoomsModalOpen] = useState(false);
+  // Cronômetro do Rali NFC e tema escolhidos pelo professor (lidos do servidor)
+  const raliSession = useRaliSession();
+  const raliLocked = useRaliLocked(raliSession);
 
   // Professor Mode & Access Control State
   const [isTeacher, setIsTeacher] = useState<boolean>(() => isTeacherAuthenticated());
@@ -407,6 +412,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
+        {activeTab === 'scanner' && <RaliTimerBar session={raliSession} />}
         {activeTab === 'scanner' && (
           <StudentScanner
             teams={teams}
@@ -414,7 +420,7 @@ export default function App() {
             onSelectTeam={setSelectedTeamId}
             onValidSubmission={handleValidSubmission}
             onFailedSubmission={handleInvalidSubmission}
-            sessionState={sessionState}
+            sessionState={raliLocked && !sessionState.isSubmissionsLocked ? { ...sessionState, isSubmissionsLocked: true } : sessionState}
             logs={logs}
             pendingTag={pendingTag}
             onTagConsumed={() => {

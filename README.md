@@ -166,3 +166,11 @@ Na tela do aluno, o ranking mostra o Top 5 com pódio, setas de subida/descida (
 - **Link da tag:** `https://…/ralibd/#/tag/tag_07` abre o app direto no Scanner, já com a missão carregada. Grave esse link na tag NFC como registro URL (NFC Tools) para o aluno só encostar o celular; funciona no Android e no iPhone. O mesmo link vira um QR code de reserva.
 - **Etiquetas:** em "50 Missões" → "Etiquetas NFC/QR" o professor escolhe a quantidade de tags, copia a lista de links, baixa o CSV e imprime as etiquetas (QR + código + categoria + XP; sem pergunta nem resposta).
 - **Tag repetida:** se a equipe abre uma tag que já resolveu, aparece "⚠️ Atenção: tag já resolvida", com quem resolveu e a hora, e não pontua de novo. Também informa quais outras equipes já resolveram (neste aparelho).
+
+## ⏲️ Cronômetro compartilhado e temas
+
+- **Cronômetro (5 a 120 min, de 5 em 5)** nos dois módulos. No CTF Online o tempo fica no Apps Script (`setTimer`): as respostas só valem com o relógio rodando e a sala trava sozinha ao zerar; `+5 min` reabre. No Rali NFC o telão do professor espelha o relógio no servidor (`raliTimer`, exige a chave do banco) e os celulares leem por `raliEstado`.
+- **Alertas**: o relógio fica âmbar nos últimos 5 minutos e vermelho no último minuto; o telão e o painel do professor tocam o aviso.
+- **Telão**: Top 5 + cronômetro; ao zerar vira **pódio final**.
+- **Temas**: *Arena escura* e *Quadro claro*, escolhidos em **Área do professor › Aparência**. Com o banco de perguntas conectado, a escolha é salva no servidor (`setTema`) e chega aos alunos.
+- Depois de atualizar o app, cole o novo código do Apps Script e publique uma **nova versão** da implantação (a URL não muda).

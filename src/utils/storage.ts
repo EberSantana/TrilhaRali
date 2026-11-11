@@ -8,8 +8,8 @@ const STORAGE_KEY_TEACHER_PIN = 'rali_sql_teacher_pin_v1';
 const STORAGE_KEY_TEACHER_AUTH = 'rali_sql_teacher_auth_v1';
 
 export const DEFAULT_SESSION_STATE: ClassSessionState = {
-  totalSeconds: 100 * 60, // 100 minutos total
-  timerSecondsRemaining: 85 * 60, // 70 min de sprint
+  totalSeconds: 60 * 60, // duração da atividade (o professor ajusta de 5 a 120 min no telão)
+  timerSecondsRemaining: 60 * 60,
   isRunning: false,
   isSubmissionsLocked: false,
   activePhase: 'sprint',

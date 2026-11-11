@@ -24,6 +24,8 @@ import { DEFAULT_CTF_API_URL } from '../../config';
 import { BankQuestion } from '../../types/bank';
 import { bankToCtfPayload } from '../../utils/bank';
 import { getBancoKey, listBanco } from '../../utils/bankApi';
+import { TimerControl } from '../common/TimerControl';
+import { TimerOp } from '../../utils/timer';
 
 const POLL_MS = 10_000;
 
@@ -46,6 +48,8 @@ export const CtfTeacher: React.FC = () => {
   const [view, setView] = useState<CtfTeacherView | null>(null);
   const [projecting, setProjecting] = useState(false);
   const [monitorError, setMonitorError] = useState('');
+  const [timerBusy, setTimerBusy] = useState(false);
+  const [timerError, setTimerError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -177,6 +181,25 @@ export const CtfTeacher: React.FC = () => {
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  // relógio local − relógio do servidor, para o painel contar igual aos celulares
+  const skewMs = useMemo(() => (view?.sala.agora ? Date.now() - view.sala.agora : 0), [view]);
+
+  const handleTimer = async (op: TimerOp, minutos?: number) => {
+    if (!activeRoom) return;
+    if (op === 'off' && !window.confirm('Desligar o cronômetro? A sala fica sem limite de tempo.')) return;
+    setTimerBusy(true);
+    setTimerError('');
+    try {
+      const r = await ctfCall<Pick<CtfTeacherView, 'sala'>>('setTimer', { token: activeRoom.token, adminKey: activeRoom.adminKey, op, minutos }, activeRoom.api);
+      setView((v) => (v ? { ...v, sala: r.sala } : v));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTimerError(/desconhecida/i.test(msg) ? 'O backend desta sala é de uma versão anterior. Atualize o código do Apps Script (Configuração do backend) e publique uma nova versão.' : msg);
+    } finally {
+      setTimerBusy(false);
     }
   };
 
@@ -409,9 +432,9 @@ export const CtfTeacher: React.FC = () => {
                   <button
                     onClick={() => setProjecting(true)}
                     className="px-3 py-2 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500 text-amber-200 text-xs font-bold flex items-center gap-1.5"
-                    title="Abre o top 5 em tela cheia para projetar"
+                    title="Abre o telão: Top 5 e cronômetro em tela cheia"
                   >
-                    <Trophy className="w-4 h-4" /> Projetar ranking
+                    <Trophy className="w-4 h-4" /> Abrir telão
                   </button>
                   <button onClick={loadView} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700" title="Atualizar agora" aria-label="Atualizar">
                     <RefreshCw className="w-4 h-4" />
@@ -442,6 +465,8 @@ export const CtfTeacher: React.FC = () => {
               </p>
 
               {monitorError && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{monitorError}</p>}
+
+              <TimerControl timer={view?.sala.timer} skewMs={skewMs} busy={timerBusy || !view} error={timerError} onOp={handleTimer} />
 
               <div className="flex items-center gap-2 text-sm font-bold text-white">
                 <Users className="w-4 h-4 text-emerald-400" /> {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? 'aluno' : 'alunos'} • {view?.sala.total ?? '…'} fases

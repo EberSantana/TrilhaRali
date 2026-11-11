@@ -200,3 +200,98 @@ test('publicação NFC: só o professor publica, qualquer celular lê, e vazio r
   assert.equal(call({ action: 'nfcPublish', chave, missoes: [] }).total, 0);
   assert.equal(call({ action: 'nfcSet' }).missoes.length, 0);
 });
+
+// ---------- Cronômetro e tema ----------
+
+function withClock() {
+  const b = ready();
+  let now = 1_800_000_000_000;
+  b.ctx.Date = Object.assign(function (...a: any[]) { return new (Date as any)(...(a.length ? a : [now])); }, { now: () => now });
+  return { ...b, tick: (s: number) => void (now += s * 1000) };
+}
+
+const fases = [
+  { tag_id: 't1', categoria: 'DDL', pacote: 'P1', pergunta: 'Q1?', resposta: 'A', alternativas: [], xp: 10 },
+  { tag_id: 't2', categoria: 'DQL', pacote: 'P1', pergunta: 'Q2?', resposta: 'B', alternativas: [], xp: 10 },
+];
+
+test('cronômetro do CTF: duração de 5 a 120 em passos de 5, iniciar, pausar e tempo extra', () => {
+  const { call, tick } = withClock();
+  const sala = call({ action: 'createRoom', nome: 'S', modo: 'fixed', missions: fases });
+  const adm = { token: sala.token, adminKey: sala.adminKey };
+  assert.equal(call({ action: 'teacherRoom', ...adm }).sala.timer, null);
+
+  assert.equal(call({ action: 'setTimer', ...adm, op: 'config', minutos: 3 }).sala.timer.duracaoMin, 5);
+  assert.equal(call({ action: 'setTimer', ...adm, op: 'config', minutos: 500 }).sala.timer.duracaoMin, 120);
+  let t = call({ action: 'setTimer', ...adm, op: 'config', minutos: 12 }).sala.timer;
+  assert.deepEqual([t.duracaoMin, t.restanteS, t.rodando, t.esgotado], [10, 600, false, false]);
+
+  t = call({ action: 'setTimer', ...adm, op: 'start' }).sala.timer;
+  assert.equal(t.rodando, true);
+  tick(90);
+  t = call({ action: 'setTimer', ...adm, op: 'pause' }).sala.timer;
+  assert.deepEqual([t.restanteS, t.rodando], [510, false]);
+  tick(600); // pausado: o tempo não corre
+  assert.equal(call({ action: 'teacherRoom', ...adm }).sala.timer.restanteS, 510);
+  t = call({ action: 'setTimer', ...adm, op: 'add', minutos: 5 }).sala.timer;
+  assert.equal(t.restanteS, 810);
+  assert.equal(call({ action: 'setTimer', ...adm, op: 'reset' }).sala.timer.restanteS, 600);
+  assert.equal(call({ action: 'setTimer', ...adm, op: 'off' }).sala.timer, null);
+  assert.match(call({ action: 'setTimer', token: sala.token, adminKey: 'x', op: 'start' }).error, /Chave de professor invalida/);
+});
+
+test('com cronômetro, o CTF só aceita respostas enquanto ele roda e bloqueia ao zerar', () => {
+  const { call, tick } = withClock();
+  const sala = call({ action: 'createRoom', nome: 'S', modo: 'fixed', missions: fases, minutos: 5 });
+  const adm = { token: sala.token, adminKey: sala.adminKey };
+  const eu = { token: sala.token, nome: 'Ana' };
+  assert.equal(call({ action: 'join', ...eu }).sala.timer.restanteS, 300);
+  assert.match(call({ action: 'submit', ...eu, resposta: 'A' }).error, /cronometro esta parado/);
+
+  call({ action: 'setTimer', ...adm, op: 'start' });
+  assert.equal(call({ action: 'submit', ...eu, resposta: 'A' }).correto, true);
+  tick(301);
+  const st = call({ action: 'state', ...eu });
+  assert.deepEqual([st.sala.timer.esgotado, st.sala.timer.rodando, st.sala.timer.restanteS], [true, false, 0]);
+  assert.match(call({ action: 'submit', ...eu, resposta: 'B' }).error, /Tempo esgotado/);
+  assert.match(call({ action: 'setTimer', ...adm, op: 'start' }).error, /tempo acabou/);
+
+  // tempo extra reabre a sala
+  assert.equal(call({ action: 'setTimer', ...adm, op: 'add', minutos: 5 }).sala.timer.rodando, true);
+  assert.equal(call({ action: 'submit', ...eu, resposta: 'B' }).correto, true);
+});
+
+test('sala sem cronômetro continua aceitando respostas como antes', () => {
+  const { call } = withClock();
+  const sala = call({ action: 'createRoom', nome: 'S', modo: 'fixed', missions: fases });
+  const eu = { token: sala.token, nome: 'Ana' };
+  call({ action: 'join', ...eu });
+  assert.equal(call({ action: 'submit', ...eu, resposta: 'A' }).correto, true);
+});
+
+test('cronômetro do Rali NFC e tema: só o professor altera, qualquer aluno lê', () => {
+  const { call, chave, tick } = withClock();
+  assert.deepEqual(call({ action: 'raliEstado' }).timer, null);
+  assert.equal(call({ action: 'raliEstado' }).tema, '');
+  assert.match(call({ action: 'raliTimer', chave: 'x', op: 'config', minutos: 60 }).error, /Chave do banco invalida/);
+  assert.match(call({ action: 'setTema', chave: 'x', tema: 'claro' }).error, /Chave do banco invalida/);
+  assert.match(call({ action: 'raliTimer', chave, op: 'start' }).error, /Defina primeiro a duracao/);
+
+  assert.equal(call({ action: 'raliTimer', chave, op: 'config', minutos: 60 }).timer.restanteS, 3600);
+  call({ action: 'raliTimer', chave, op: 'start' });
+  tick(600);
+  const e = call({ action: 'raliEstado' });
+  assert.deepEqual([e.timer.restanteS, e.timer.rodando, typeof e.agora], [3000, true, 'number']);
+
+  // o telão do professor espelha o relógio local (segundos exatos, rodando ou parado)
+  let s = call({ action: 'raliTimer', chave, op: 'sync', segundos: 754, minutos: 45, rodando: true }).timer;
+  assert.deepEqual([s.duracaoMin, s.restanteS, s.rodando], [45, 754, true]);
+  s = call({ action: 'raliTimer', chave, op: 'sync', segundos: 0, minutos: 45, rodando: true }).timer;
+  assert.deepEqual([s.restanteS, s.rodando, s.esgotado], [0, false, true]);
+  s = call({ action: 'raliTimer', chave, op: 'sync', segundos: 99999, minutos: 120, rodando: false }).timer;
+  assert.deepEqual([s.restanteS, s.rodando], [7200, false]);
+
+  assert.equal(call({ action: 'setTema', chave, tema: 'claro' }).tema, 'claro');
+  assert.equal(call({ action: 'raliEstado' }).tema, 'claro');
+  assert.equal(call({ action: 'setTema', chave, tema: 'qualquer' }).tema, 'escuro');
+});

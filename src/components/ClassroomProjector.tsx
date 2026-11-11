@@ -24,6 +24,9 @@ import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from 
 import { playSound } from '../utils/audio';
 import { TrilhaLogo } from './TrilhaLogo';
 import { normalizeScoringMode } from '../utils/scoring';
+import { clampMinutes, crossedAlert, CRITICAL_SECONDS, TIMER_MAX, WARN_SECONDS } from '../utils/timer';
+import { pushRaliTimer } from '../utils/raliSession';
+import { DurationPicker } from './common/DurationPicker';
 
 interface ClassroomProjectorProps {
   teams: Team[];
@@ -82,36 +85,22 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
     onUpdateSession({ scoringMode: mode });
   };
 
-  // Timer Tick
+  // Cronômetro da atividade: conta até zero e, ao zerar, bloqueia as respostas
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (sessionState.isRunning && sessionState.timerSecondsRemaining > 0) {
       timer = setInterval(() => {
-        const next = sessionState.timerSecondsRemaining - 1;
-        
-        // Auto-detect phase based on 100-min timeline
-        // 0 to 15 min: Briefing (rem: 100 to 85m)
-        // 15 to 85 min: Sprint (rem: 85 to 15m)
-        // 85 to 90 min: Hard Stop (rem: 15 to 10m)
-        // 90 to 100 min: Debriefing (rem: 10 to 0m)
-        const elapsedSeconds = 6000 - next;
-        const elapsedMinutes = elapsedSeconds / 60;
-        let newPhase: ClassPhase = 'sprint';
-        if (elapsedMinutes < 15) newPhase = 'briefing';
-        else if (elapsedMinutes < 85) newPhase = 'sprint';
-        else if (elapsedMinutes < 90) newPhase = 'hard_stop';
-        else newPhase = 'debriefing';
-
+        const prev = sessionState.timerSecondsRemaining;
+        const next = prev - 1;
+        const done = next <= 0;
         onUpdateSession({
-          timerSecondsRemaining: next,
-          activePhase: newPhase,
-          isSubmissionsLocked: newPhase === 'hard_stop' || newPhase === 'debriefing' ? true : sessionState.isSubmissionsLocked,
+          timerSecondsRemaining: Math.max(0, next),
+          activePhase: (done ? 'hard_stop' : 'sprint') as ClassPhase,
+          ...(done ? { isRunning: false, isSubmissionsLocked: true } : {}),
         });
-
-        if (next === 15 * 60) {
-          // Sprint ends, trigger gong
-          playSound('gong', sessionState.soundEnabled);
-        }
+        const alert = crossedAlert(prev, next);
+        if (alert === 'fim') playSound('gong', sessionState.soundEnabled);
+        else if (alert) playSound('tick', sessionState.soundEnabled);
       }, 1000);
     }
     return () => {
@@ -119,7 +108,26 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
     };
   }, [sessionState.isRunning, sessionState.timerSecondsRemaining, sessionState.soundEnabled]);
 
+  // Espelha o relógio no servidor para os celulares dos alunos (quando o banco do professor está conectado):
+  // a cada mudança feita pelo professor e, rodando, uma vez por minuto para corrigir desvios.
+  const lastSync = useRef<{ run: boolean; rem: number; total: number } | null>(null);
+  useEffect(() => {
+    if (!isTeacher) return;
+    const cur = { run: sessionState.isRunning, rem: sessionState.timerSecondsRemaining, total: sessionState.totalSeconds };
+    const prev = lastSync.current;
+    lastSync.current = cur;
+    const step = prev ? cur.rem - prev.rem : 0;
+    const changed = !prev || prev.run !== cur.run || prev.total !== cur.total || (step !== 0 && step !== -1) || (cur.run && cur.rem % 60 === 0);
+    if (changed) pushRaliTimer(cur.rem, cur.run, clampMinutes(cur.total / 60));
+  }, [isTeacher, sessionState.isRunning, sessionState.timerSecondsRemaining, sessionState.totalSeconds]);
+
+  const setDuration = (minutes: number) => {
+    const secs = clampMinutes(minutes) * 60;
+    onUpdateSession({ totalSeconds: secs, timerSecondsRemaining: secs, isRunning: false, isSubmissionsLocked: false, activePhase: 'sprint' });
+  };
+
   const toggleTimer = () => {
+    if (!sessionState.isRunning && sessionState.timerSecondsRemaining <= 0) return;
     onUpdateSession({ isRunning: !sessionState.isRunning });
   };
 
@@ -149,8 +157,10 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   };
 
   const addTimeMinutes = (mins: number) => {
-    const next = Math.max(0, sessionState.timerSecondsRemaining + mins * 60);
-    onUpdateSession({ timerSecondsRemaining: next });
+    const wasOver = sessionState.timerSecondsRemaining <= 0;
+    const next = Math.min(TIMER_MAX * 60, Math.max(0, sessionState.timerSecondsRemaining + mins * 60));
+    // tempo extra depois de zerar reabre as respostas e volta a contar
+    onUpdateSession({ timerSecondsRemaining: next, ...(wasOver && next > 0 ? { isSubmissionsLocked: false, isRunning: true, activePhase: 'sprint' as ClassPhase } : {}) });
   };
 
   // Sort teams by XP descending
@@ -170,25 +180,37 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   const getPhaseBadge = () => {
     if (sessionState.isSubmissionsLocked) {
       return {
-        label: 'MÃOS PARA CIMA (BLOQUEADO)',
+        label: sessionState.timerSecondsRemaining <= 0 ? 'TEMPO ESGOTADO • RESPOSTAS BLOQUEADAS' : 'RESPOSTAS BLOQUEADAS',
         color: 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse',
       };
     }
     switch (sessionState.activePhase) {
       case 'briefing':
-        return { label: 'Fase 1: Briefing (0-15m)', color: 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
+        return { label: 'Briefing', color: 'bg-sky-500/20 text-sky-300 border-sky-500/30' };
       case 'sprint':
-        return { label: 'Fase 2: Sprint SQL (15-85m)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+        return { label: sessionState.isRunning ? 'Em andamento' : 'Parado', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
       case 'hard_stop':
-        return { label: 'Fase 3: Hard Stop (85-90m)', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+        return { label: 'Tempo esgotado', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
       case 'debriefing':
-        return { label: 'Fase 4: Debriefing (90-100m)', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+        return { label: 'Debriefing', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
       default:
         return { label: 'Em Andamento', color: 'bg-slate-700 text-slate-300 border-slate-600' };
     }
   };
 
   const phase = getPhaseBadge();
+  const rem = sessionState.timerSecondsRemaining;
+  const clockTone =
+    rem <= 0
+      ? 'text-red-300 border-red-500/70'
+      : !sessionState.isRunning
+        ? 'text-slate-300 border-slate-700'
+        : rem <= CRITICAL_SECONDS
+          ? 'text-red-300 border-red-500/70 timer-critico'
+          : rem <= WARN_SECONDS
+            ? 'text-amber-300 border-amber-500/70'
+            : 'text-white border-emerald-500/30';
+  const durationMin = clampMinutes(sessionState.totalSeconds / 60);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -230,7 +252,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
             </div>
 
             <p className="text-xs sm:text-sm text-slate-400 font-medium">
-              {activeRoomName ? `📍 Sala: ${activeRoomName} • ` : ''}Dinâmica de 100 Minutos • 50 Missões NTAG213 NFC
+              {activeRoomName ? `📍 Sala: ${activeRoomName} • ` : ''}Atividade de {durationMin} min • Missões por tags NFC
             </p>
           </div>
 
@@ -238,9 +260,9 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
           <div className="flex flex-col items-center gap-1.5">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0.5 flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-emerald-400" />
-              <span>Cronômetro da Aula</span>
+              <span>Tempo restante</span>
             </div>
-            <div className="font-mono text-5xl sm:text-6xl font-black tracking-tight text-white bg-slate-950 px-8 py-3 rounded-2xl border-2 border-emerald-500/30 shadow-inner shadow-emerald-500/10">
+            <div className={`font-mono tabular-nums text-5xl sm:text-6xl font-black tracking-tight bg-slate-950 px-8 py-3 rounded-2xl border-2 ${clockTone}`} role="timer" aria-label={`Tempo restante: ${formatTimer(rem)}`}>
               {formatTimer(sessionState.timerSecondsRemaining)}
             </div>
             <span className={`text-[11px] sm:text-xs px-3 py-0.5 rounded-full border font-bold ${phase.color}`}>
@@ -280,12 +302,12 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                   ? 'bg-emerald-600 hover:bg-emerald-500'
                   : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30'
               }`}
-              title={sessionState.isSubmissionsLocked ? 'Liberar Respostas' : 'Hard Stop (Travar Respostas)'}
+              title={sessionState.isSubmissionsLocked ? 'Liberar respostas' : 'Travar respostas agora'}
               aria-label="Travar Respostas"
             >
               {sessionState.isSubmissionsLocked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
               <span className="text-sm">
-                {sessionState.isSubmissionsLocked ? 'Destravar' : 'Hard Stop'}
+                {sessionState.isSubmissionsLocked ? 'Destravar' : 'Travar'}
               </span>
             </button>
 
@@ -316,6 +338,15 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
             </button>
           </div>
         </div>
+
+        {isTeacher && !sessionState.isRunning && (
+          <div className="mt-5 pt-4 border-t border-slate-800/80 max-w-md">
+            <DurationPicker id="rali-duracao" value={durationMin} onChange={setDuration} />
+            <p className="mt-2 text-[11px] text-slate-400">
+              Ao zerar, as respostas são bloqueadas. Com o banco de perguntas conectado, o relógio também aparece no celular dos alunos.
+            </p>
+          </div>
+        )}
 
         {/* Seletor do modo de pontuação (Painel do Professor) */}
         <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -362,28 +393,20 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
           </div>
         </div>
 
-        {/* 100-min Timeline Progress Bar */}
+        {/* Progresso do tempo da atividade */}
         <div className="mt-6 pt-5 border-t border-slate-800">
           <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
-            <span className={sessionState.activePhase === 'briefing' ? 'text-sky-400' : ''}>
-              0-15m: Briefing
+            <span>Início</span>
+            <span>
+              Atividade de {durationMin} min • avisos nos últimos 5 min e no último minuto
             </span>
-            <span className={sessionState.activePhase === 'sprint' ? 'text-emerald-400 font-extrabold' : ''}>
-              15-85m: Sprint de Código (70m)
-            </span>
-            <span className={sessionState.activePhase === 'hard_stop' ? 'text-amber-400 font-extrabold' : ''}>
-              85-90m: Premiação
-            </span>
-            <span className={sessionState.activePhase === 'debriefing' ? 'text-purple-400' : ''}>
-              90-100m: Debriefing
-            </span>
+            <span>Fim</span>
           </div>
-
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex p-0.5 border border-slate-800">
-            <div className="h-full bg-sky-500/60 rounded-l-full" style={{ width: '15%' }} title="0-15m Briefing" />
-            <div className="h-full bg-emerald-500 rounded-none" style={{ width: '70%' }} title="15-85m Sprint" />
-            <div className="h-full bg-amber-500 rounded-none" style={{ width: '5%' }} title="85-90m Hard Stop" />
-            <div className="h-full bg-purple-500 rounded-r-full" style={{ width: '10%' }} title="90-100m Debriefing" />
+          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800" aria-hidden="true">
+            <div
+              className={`h-full rounded-full transition-all ${rem <= CRITICAL_SECONDS ? 'bg-red-500' : rem <= WARN_SECONDS ? 'bg-amber-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, Math.max(0, (1 - rem / Math.max(sessionState.totalSeconds, rem, 1)) * 100))}%` }}
+            />
           </div>
         </div>
       </div>

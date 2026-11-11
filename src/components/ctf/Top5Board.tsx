@@ -10,6 +10,8 @@ interface Top5BoardProps {
   /** posição do aluno quando ele está fora do top 5 */
   mine?: (RankRow & { posicao: number }) | null;
   size?: 'compact' | 'big';
+  /** podium = três primeiros em destaque (tema escuro) · bars = lista com barras de pontos (tema claro) */
+  variant?: 'podium' | 'bars';
 }
 
 const CHANGE_MS = 9000;
@@ -37,7 +39,7 @@ const Gain: React.FC<{ c?: RankChange; big: boolean }> = ({ c, big }) =>
     </span>
   ) : null;
 
-export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine, size = 'compact' }) => {
+export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine, size = 'compact', variant = 'podium' }) => {
   const big = size === 'big';
   const prev = useRef<RankRow[] | null>(null);
   const [changes, setChanges] = useState<Map<string, RankChange>>(new Map());
@@ -78,6 +80,58 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
 
   if (top.length === 0) {
     return <p className={`${big ? 'text-2xl' : 'text-sm'} text-slate-500 text-center py-6`}>Aguardando os alunos entrarem…</p>;
+  }
+
+  if (variant === 'bars') {
+    const max = Math.max(top[0]?.xp || 0, 1);
+    return (
+      <ol className={big ? 'space-y-2' : 'space-y-1.5'}>
+        {top.map((r, i) => {
+          const c = changes.get(r.nome);
+          return (
+            <li
+              key={r.nome}
+              className={`grid items-center gap-3 rounded-xl border ${big ? 'grid-cols-[3.5rem_minmax(0,16rem)_minmax(0,1fr)_auto] px-5 py-3 text-2xl' : 'grid-cols-[2rem_minmax(0,1fr)_auto] px-3 py-2 text-sm'} ${
+                r.nome === me ? 'bg-orange-500/15 border-orange-500/50' : i === 0 ? 'bg-slate-900 border-emerald-500' : 'bg-slate-900 border-slate-800'
+              }`}
+            >
+              <span
+                className={`flex items-center justify-center rounded-full font-black ${big ? 'w-12 h-12' : 'w-7 h-7 text-xs'} ${
+                  i === 0 ? 'bg-emerald-600 text-white' : i < 3 ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-200'
+                }`}
+              >
+                {i + 1}
+              </span>
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="truncate font-bold text-white">{r.nome}</span>
+                <Delta c={c} big={big} />
+                <Gain c={c} big={big} />
+              </span>
+              {big && (
+                <span className="h-4 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true">
+                  <span className="block h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.max(4, (r.xp / max) * 100)}%` }} />
+                </span>
+              )}
+              <span className={`shrink-0 font-mono ${big ? 'text-xl' : 'text-xs'} text-slate-300`}>
+                {r.fogos > 0 && <span className="mr-1.5">🔥{r.fogos}</span>}
+                {fase(r)} • <strong className={`text-white ${big ? 'text-3xl' : ''}`}>{r.xp}</strong>
+              </span>
+            </li>
+          );
+        })}
+        {mine && mine.posicao > 5 && (
+          <li className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="font-mono font-black text-orange-300 shrink-0">{mine.posicao}º</span>
+              <span className="truncate font-semibold text-slate-100">Você</span>
+            </span>
+            <span className="shrink-0 font-mono text-xs text-slate-300">
+              {fase(mine)} • <strong className="text-emerald-300">{mine.xp}</strong>
+            </span>
+          </li>
+        )}
+      </ol>
+    );
   }
 
   const podium = [top[1], top[0], top[2]]; // 2º, 1º, 3º (o 1º no centro)

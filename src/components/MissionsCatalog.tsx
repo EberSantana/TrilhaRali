@@ -173,7 +173,7 @@ export const MissionsCatalog: React.FC = () => {
             {filteredMissions.map((m) => (
               <div
                 key={m.tag_id}
-                className="bg-white text-slate-900 p-5 rounded-2xl border-2 border-dashed border-slate-400 flex flex-col justify-between space-y-3 shadow-md print:break-inside-avoid"
+                className="papel bg-white text-slate-900 p-5 rounded-2xl border-2 border-dashed border-slate-400 flex flex-col justify-between space-y-3 shadow-md print:break-inside-avoid"
               >
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="font-mono font-black text-xl text-emerald-700">

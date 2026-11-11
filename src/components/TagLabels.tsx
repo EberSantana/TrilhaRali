@@ -105,7 +105,7 @@ export const TagLabels: React.FC<TagLabelsProps> = ({ missions }) => {
 
       <div id="tag-labels" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {chosen.map((m) => (
-          <div key={m.tag_id} className="bg-white text-slate-900 rounded-xl border-2 border-dashed border-slate-400 p-3 flex flex-col items-center gap-1.5 print:break-inside-avoid">
+          <div key={m.tag_id} className="papel bg-white text-slate-900 rounded-xl border-2 border-dashed border-slate-400 p-3 flex flex-col items-center gap-1.5 print:break-inside-avoid">
             {qrs[m.tag_id] ? (
               <img src={qrs[m.tag_id]} alt={`QR da ${m.tag_id}`} className="w-full max-w-[140px] aspect-square" />
             ) : (

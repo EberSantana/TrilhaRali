@@ -1,4 +1,6 @@
 import { ScoringMode } from './index';
+import type { TimerInfo } from '../utils/timer';
+import type { Theme } from '../utils/theme';
 
 export interface CtfRoomInfo {
   token: string;
@@ -7,6 +9,12 @@ export interface CtfRoomInfo {
   modo: ScoringMode;
   total: number;
   banco: boolean; // professor liberou o download do banco de dados para os alunos
+  /** cronômetro da sala (null = sala sem tempo); ausente em backends antigos */
+  timer?: TimerInfo | null;
+  /** tema escolhido pelo professor ('' = não definido) */
+  tema?: Theme | '';
+  /** relógio do servidor no momento da resposta (ms) */
+  agora?: number;
 }
 
 export interface CtfPlayer {

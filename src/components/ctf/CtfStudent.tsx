@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CtfState } from '../../types/ctf';
@@ -15,6 +15,8 @@ import { playSound } from '../../utils/audio';
 import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 import { SqlConsole } from './SqlConsole';
 import { Top5Board } from './Top5Board';
+import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
+import { applyServerTheme, useTheme } from '../../utils/theme';
 
 const POLL_MS = 10_000;
 
@@ -60,6 +62,15 @@ export const CtfStudent: React.FC = () => {
     }, POLL_MS);
     return () => clearInterval(id);
   }, [session, refresh]);
+
+  // Cronômetro da sala: conta no aparelho a partir do fim informado pelo servidor
+  const timer = state?.sala.timer ?? null;
+  const skewMs = useMemo(() => (state?.sala.agora ? Date.now() - state.sala.agora : 0), [state]);
+  const { seconds, phase } = useCountdown(timer, skewMs);
+  const theme = useTheme();
+  useEffect(() => {
+    applyServerTheme(state?.sala.tema);
+  }, [state?.sala.tema]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,6 +227,9 @@ export const CtfStudent: React.FC = () => {
   // ---------- Jogo ----------
   const { sala, aluno, missao, ranking } = state;
   const closed = sala.status === 'encerrada';
+  const timeUp = Boolean(timer) && phase === 'fim';
+  const waiting = Boolean(timer) && phase === 'parado';
+  const locked = closed || timeUp || waiting;
   const phases = Array.from({ length: sala.total }, (_, i) => i + 1);
 
   return (
@@ -226,12 +240,15 @@ export const CtfStudent: React.FC = () => {
           <div className="text-[11px] font-bold uppercase tracking-wider text-orange-400">CTF • {sala.nome}</div>
           <div className="text-lg font-black text-white truncate">{aluno.nome}</div>
         </div>
-        <div className="flex items-center gap-2 font-mono text-sm">
+        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
+          <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
           <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-black">{aluno.xp} XP</span>
           {aluno.fogos > 0 && (
             <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
           )}
-          <span className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 font-bold">#{aluno.posicao}</span>
+          <span className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 font-bold" title="Sua posição no ranking">
+            {aluno.posicao}º de {state.total_alunos}
+          </span>
           <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
             <LogOut className="w-4 h-4" />
           </button>
@@ -241,6 +258,17 @@ export const CtfStudent: React.FC = () => {
       {closed && (
         <div className="rounded-2xl bg-red-950/70 border border-red-500/60 text-red-200 p-4 flex items-center gap-3 font-semibold text-sm">
           <Lock className="w-5 h-5 text-red-400 shrink-0" /> A sala foi encerrada pelo professor. Veja o ranking final abaixo.
+        </div>
+      )}
+
+      {!closed && timeUp && (
+        <div className="rounded-2xl bg-red-950/70 border border-red-500/60 text-red-200 p-4 flex items-center gap-3 font-semibold text-sm" role="status">
+          <Lock className="w-5 h-5 text-red-400 shrink-0" /> Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.
+        </div>
+      )}
+      {!closed && waiting && (
+        <div className="rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 p-4 flex items-center gap-3 font-semibold text-sm" role="status">
+          <Lock className="w-5 h-5 text-amber-400 shrink-0" /> O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.
         </div>
       )}
 
@@ -309,7 +337,7 @@ export const CtfStudent: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 {missao.opcoes && missao.opcoes.length > 0 ? (
-                  <fieldset disabled={busy || closed} className="space-y-2">
+                  <fieldset disabled={busy || locked} className="space-y-2">
                     <legend className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">Escolha a alternativa correta</legend>
                     {missao.opcoes.map((o) => (
                       <label
@@ -333,7 +361,7 @@ export const CtfStudent: React.FC = () => {
                       ref={answerRef}
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
-                      disabled={busy || closed}
+                      disabled={busy || locked}
                       autoComplete="off"
                       autoCapitalize="none"
                       className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white focus:ring-2 focus:ring-orange-500 outline-none"
@@ -342,7 +370,7 @@ export const CtfStudent: React.FC = () => {
                 )}
                 <button
                   type="submit"
-                  disabled={busy || closed || !answer.trim()}
+                  disabled={busy || locked || !answer.trim()}
                   className="w-full py-3.5 rounded-xl font-black bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center gap-2 transition active:scale-[0.98]"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -391,6 +419,7 @@ export const CtfStudent: React.FC = () => {
             totalFases={sala.total}
             me={aluno.nome}
             mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
+            variant={theme === 'claro' ? 'bars' : 'podium'}
           />
           <p className="text-[11px] text-slate-500">Atualiza sozinho a cada 10 segundos.</p>
         </div>

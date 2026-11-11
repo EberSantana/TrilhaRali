@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+/*
+ * Tema "Quadro claro" (proposta B). O app é escrito com as classes do tema escuro;
+ * aqui a escala neutra é invertida e os tons de destaque usados como texto ficam escuros,
+ * para manter contraste de leitura em fundo claro. Escolha do professor em Área do professor › Aparência.
+ */
+:root[data-theme="claro"] {
+  color-scheme: light;
+
+  --color-slate-950: #f4f6f8;
+  --color-slate-900: #ffffff;
+  --color-slate-800: #d5dbe3;
+  --color-slate-700: #b3bdca;
+  --color-slate-600: #8a96a8;
+  --color-slate-500: #5d6b7e;
+  --color-slate-400: #475467;
+  --color-slate-300: #344054;
+  --color-slate-200: #1d2939;
+  --color-slate-100: #101828;
+  --color-white: #101828;
+
+  /* tons claros usados como texto no tema escuro */
+  --color-emerald-200: #0b4f24; --color-emerald-300: #116932; --color-emerald-400: #1f7a33;
+  --color-teal-200: #0b4a45;    --color-teal-300: #0f5f58;    --color-teal-400: #12766d;
+  --color-orange-200: #7c2d12;  --color-orange-300: #9a3412;  --color-orange-400: #c2410c;
+  --color-amber-100: #6b3a05;   --color-amber-200: #7a4306;   --color-amber-300: #92400e; --color-amber-400: #b45309;
+  --color-yellow-400: #a16207;
+  --color-rose-200: #881337;    --color-rose-300: #9f1239;    --color-rose-400: #be123c;
+  --color-red-200: #7f1d1d;     --color-red-300: #991b1b;     --color-red-400: #b42318;
+  --color-sky-200: #0c4a6e;     --color-sky-300: #075985;     --color-sky-400: #0369a1;
+  --color-indigo-300: #3730a3;  --color-indigo-400: #4338ca;
+  --color-purple-300: #6b21a8;  --color-purple-400: #7e22ce;
+
+  /* fundos escuros de avisos viram tintas claras */
+  --color-emerald-950: #e3f3e6; --color-emerald-900: #cfe9d5; --color-emerald-800: #a9d6b4;
+  --color-amber-950: #fdf0d5;   --color-amber-800: #f3d08a;
+  --color-orange-950: #fde8d8;
+  --color-rose-950: #fde4e8;    --color-rose-900: #f9c9d2;
+  --color-red-950: #fde3e1;
+  --color-sky-950: #e0f0fb;     --color-sky-800: #a9d3ee;
+  --color-purple-950: #f1e6fb;  --color-purple-800: #d3b5ee;
+
+  /* botões cheios: um tom acima para o texto escuro passar no contraste */
+  --color-emerald-700: #5cc490; --color-amber-700: #f2bd55; --color-sky-700: #7cc3ee; --color-purple-700: #cfa5f5; --color-teal-700: #63cdc2;
+  --color-emerald-600: #34b877; --color-emerald-500: #2faa6c;
+  --color-orange-600: #fb8a3c;  --color-orange-500: #f97316;
+  --color-amber-600: #f0a92a;
+  --color-rose-600: #f77a93;
+  --color-red-600: #f8817a;
+  --color-sky-600: #4fb0e8;
+  --color-indigo-600: #8f97f5;
+  --color-purple-600: #c08af2;
+  --color-teal-600: #3bbdb0;
+  --color-blue-600: #6ba4f5;
+}
+
+/* Relógio compartilhado: pulsa no último minuto (sem animação para quem prefere menos movimento) */
+@keyframes trilha-pulse {
+  50% { opacity: 0.55; }
+}
+.timer-critico { animation: trilha-pulse 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .timer-critico { animation: none; }
+}
+
+/* Etiquetas para imprimir: sempre papel branco com tinta escura, em qualquer tema */
+:root[data-theme="claro"] .papel {
+  --color-white: #ffffff;
+  --color-slate-950: #020617; --color-slate-900: #0f172a; --color-slate-800: #1e293b; --color-slate-700: #334155;
+  --color-slate-600: #475569; --color-slate-500: #64748b; --color-slate-400: #94a3b8; --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0; --color-slate-100: #f1f5f9;
+  --color-emerald-700: #047857; --color-emerald-600: #059669; --color-emerald-500: #10b981;
+}

@@ -398,8 +398,8 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
         <div className="bg-red-950/80 border border-red-500 rounded-2xl p-4 text-red-200 flex items-center gap-3 animate-pulse">
           <Lock className="w-6 h-6 text-red-400 shrink-0" />
           <div>
-            <h4 className="font-bold text-red-300">Recepção de Respostas Encerrada (Hard Stop)</h4>
-            <p className="text-xs text-red-300/80">O professor travou o envio para apuração do ranking final no telão.</p>
+            <h4 className="font-bold text-red-300">Respostas bloqueadas</h4>
+            <p className="text-xs text-red-300/80">O tempo acabou ou o professor travou o envio para apurar o ranking final no telão.</p>
           </div>
         </div>
       )}
