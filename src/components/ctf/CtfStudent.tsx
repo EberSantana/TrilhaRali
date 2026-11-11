@@ -122,7 +122,7 @@ export const CtfStudent: React.FC = () => {
         setTimeout(() => answerRef.current?.focus(), 50);
       } else {
         playSound('error', true);
-        setFeedback({ ok: false, text: 'Resposta incorreta. Revise a consulta e tente novamente.' });
+        setFeedback({ ok: false, text: 'Resposta incorreta. Releia a pergunta e tente de novo.' });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -323,7 +323,7 @@ export const CtfStudent: React.FC = () => {
               )}
 
               <div className="bg-slate-950 rounded-xl p-4 border border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{missao.tag_id.startsWith('banco_') ? 'Desafio' : 'Desafio no SQLite'}</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Desafio</div>
                 <p className="text-base sm:text-lg font-bold text-white leading-relaxed whitespace-pre-wrap">{missao.pergunta}</p>
               </div>
 
@@ -346,7 +346,7 @@ export const CtfStudent: React.FC = () => {
                 ) : (
                   <>
                     <label htmlFor="ctf-resposta" className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                      {missao.tag_id.startsWith('banco_') ? 'Sua resposta' : 'Resposta curta (saída da consulta)'}
+                      Sua resposta
                     </label>
                     <input
                       id="ctf-resposta"
@@ -387,14 +387,10 @@ export const CtfStudent: React.FC = () => {
 
           {sala.banco && <SqlConsole />}
 
-          {sala.banco ? (
+          {sala.banco && (
             <button onClick={downloadSql} className="text-xs font-semibold text-sky-300 hover:text-sky-200 underline flex items-center gap-1.5">
               <Download className="w-3.5 h-3.5" /> Baixar o banco de dados (banco_rali.sql) para rodar no seu SQLite
             </button>
-          ) : (
-            <p className="text-xs text-slate-500 flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> O banco de dados e o console SQLite serão liberados pelo professor.
-            </p>
           )}
         </div>
 

@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, Clipboard, Database, Download, Flag, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Trash2, Unlock, Users } from 'lucide-react';
-import { ALL_MISSIONS } from '../../data/missions';
-import { CONSOLE_MISSIONS } from '../../data/consoleMissions';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
@@ -17,10 +15,6 @@ import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 
 const POLL_MS = 10_000;
-
-// Missões que uma sala de CTF pode usar: as 50 resolvíveis no Console SQLite + as clássicas
-const CTF_POOL = [...CONSOLE_MISSIONS, ...ALL_MISSIONS];
-const isConsolePackage = (id: string) => id.startsWith('console_');
 
 const COPY: Record<RoomTipo, { nome: string; tagline: string; plural: string; singular: string; unidade: string; entrada: string }> = {
   rali: {
@@ -83,14 +77,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   // Passo 1: perguntas
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
-  const [bancoLiberado, setBancoLiberado] = useState(false);
   const catalog = useMissions();
   const pool = useMemo(
-    () =>
-      nfc
-        ? catalog.map((m) => ({ package: m.package as string, packageName: m.packageName, m }))
-        : CTF_POOL.map((m) => ({ package: m.package as string, packageName: m.packageName, m })),
-    [nfc, catalog]
+    () => catalog.map((m) => ({ package: m.package as string, packageName: m.packageName, m })),
+    [catalog]
   );
   const packages = useMemo(() => {
     const map = new Map<string, { id: string; nome: string; count: number }>();
@@ -103,8 +93,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   }, [pool]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   useEffect(() => {
-    // CTF começa com os pacotes "Console" marcados; o Rali começa com todo o catálogo
-    setSelected(new Set(packages.filter((p) => (nfc ? true : isConsolePackage(p.id))).map((p) => p.id)));
+    // os dois ambientes começam com todo o catálogo marcado
+    setSelected(new Set(packages.map((p) => p.id)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo, packages.length]);
 
@@ -166,7 +156,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       }));
       missions.push(...bankPool.map(bankToCtfPayload));
       const nomeSala = nome.trim() || `${txt.nome} ${new Date().toLocaleDateString('pt-BR')}`;
-      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: !nfc && bancoLiberado, tipo }, apiUrl);
+      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo }, apiUrl);
       if (nfc && res.tipo !== 'rali') {
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
       }
@@ -328,19 +318,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </p>
           </div>
 
-          {!nfc && (
-            <label className="flex items-start gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 cursor-pointer">
-              <input type="checkbox" checked={bancoLiberado} onChange={(e) => setBancoLiberado(e.target.checked)} className={`${accentCheck} mt-1`} />
-              <span>
-                Liberar o banco de dados SQL e o console já na entrada
-                <span className="block text-[11px] text-slate-500">Desmarcado: os alunos só veem o console quando você liberar.</span>
-              </span>
-            </label>
-          )}
-
           <fieldset className="space-y-1.5">
             <legend className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-              {nfc ? 'Missões do catálogo' : 'Fases (uma missão por fase, em ordem)'}: {total}
+              Missões do catálogo: {total}
             </legend>
             <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
               {packages.map((p) => (
@@ -361,7 +341,6 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 </label>
               ))}
             </div>
-            {!nfc && <p className="text-[11px] text-slate-500">Os pacotes “Console” (50 fases) são resolvidos inteiramente no Console SQLite.</p>}
             <div className="pt-2">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Do meu banco de perguntas {bankPool.length > 0 && <span className={accentText}>· {bankPool.length} escolhida(s)</span>}
@@ -372,11 +351,6 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 <p className="text-[11px] text-slate-500">{bankMsg || 'Seu banco de perguntas está vazio.'}</p>
               )}
             </div>
-            {!nfc && !bancoLiberado && [...selected].some(isConsolePackage) && (
-              <p className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-2.5 py-1.5">
-                Os pacotes “Console” precisam do console liberado: marque a opção acima ou use o botão “Console SQL” na sala depois.
-              </p>
-            )}
           </fieldset>
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
