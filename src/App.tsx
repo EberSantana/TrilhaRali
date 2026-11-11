@@ -559,7 +559,7 @@ export default function App() {
 
       {/* Footer Institucional IFS */}
       <footer className="border-t border-emerald-950/80 bg-slate-950 py-6 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
           <div className="flex items-center gap-3">
             <IfsLogo size="sm" />
             <div className="flex flex-col text-left">
@@ -570,10 +570,6 @@ export default function App() {
                 Desenvolvido e Supervisionado pelo Professor Eber Santana
               </span>
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-right font-mono text-[11px] text-slate-400">
-            <span className="text-red-400 font-bold">IFS 2026</span>
           </div>
         </div>
       </footer>
