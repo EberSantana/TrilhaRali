@@ -151,9 +151,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         .filter((p) => p.package !== 'banco')
         .map(({ m }) => ({
           id: `cat:${m.tag_id}`,
-          // Linux entra em Fundamentos de Sistemas Operacionais; todas as missões Linux têm o assunto "Linux"
-          disciplina: String(m.package).startsWith('linux') ? 'Fundamentos de Sistemas Operacionais' : m.packageName,
-          assunto: String(m.package).startsWith('linux') ? 'Linux' : String(m.category || 'Geral'),
+          // Linux entra em Fundamentos de Sistemas Operacionais (assunto "Linux");
+          // todos os pacotes de SQL entram em Banco de Dados, cada pacote como um assunto.
+          disciplina: String(m.package).startsWith('linux') ? 'Fundamentos de Sistemas Operacionais' : 'Banco de Dados',
+          assunto: String(m.package).startsWith('linux') ? 'Linux' : m.packageName,
           tipo: m.opcoes?.length ? ('multipla' as const) : ('exata' as const),
           pergunta: m.pergunta,
           resposta: m.resposta_curta,
