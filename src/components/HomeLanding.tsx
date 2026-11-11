@@ -62,7 +62,7 @@ const EntryCard: React.FC<EntryCardProps> = ({ title, tagline, description, chip
 };
 
 export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenTeacher }) => (
-  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-10">
+  <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8">
     <header className="flex flex-col items-center text-center">
       <TrilhaLogo variant="full" height={168} />
       <h1 className="sr-only">Trilha Rali</h1>

@@ -62,6 +62,8 @@ A **Trilha Rali** transforma uma aula de laboratório em uma competição organi
 
 O topo do site alterna entre os módulos. Os endereços `#/rali`, `#/ctf` e `#/professor` abrem cada um direto.
 
+> **Novo (script v8):** o professor pode liberar um **Terminal Linux simulado** (botão "Terminal Linux" na sala, igual ao Console SQL). Cole o script v8 e publique uma **nova versão**.
+
 > **Novidade (script v7):** o **CTF Online** agora pode ser **livre** (painel de desafios: o aluno escolhe a ordem e o ranking é por pontos) ou **em ordem** (fase a fase), escolhido na criação de cada sala. Cole o script v7 no Apps Script e publique uma **nova versão**; salas antigas continuam em ordem.
 >
 > **Script v6:** o Rali NFC agora também tem **salas com token criadas pelo professor**, como o CTF Online. Os dois ambientes são independentes (painel `#/professor/rali` e `#/professor/ctf`) e só **compartilham o banco de perguntas**. A equipe entra com token + nome da equipe, lê as etiquetas NFC/QR (ou digita o código) e vê o ranking; ao fim do tempo, ou quando o professor encerra a sala, aparece o **pódio final** nos dois ambientes e nos dois temas. O tema claro é o padrão e a logo tem versão própria para fundo branco. Ao atualizar, cole o script v6 no Apps Script e publique uma **nova versão**.

@@ -18,6 +18,7 @@ export interface CtfRoomInfo {
   status: 'aberta' | 'encerrada';
   modo: ScoringMode;
   total: number;
+  terminal?: boolean; // professor liberou o terminal Linux simulado
   banco: boolean; // professor liberou o download do banco de dados para os alunos
   /** cronômetro da sala (null = sala sem tempo); ausente em backends antigos */
   timer?: TimerInfo | null;
