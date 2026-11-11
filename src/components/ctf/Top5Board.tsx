@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { computeRankChanges, rankSignature, RankChange, RankRow } from '../../utils/ctfRank';
+import { Avatar, LeaderRow, PodiumColumn } from '../common/rankUi';
 
 interface Top5BoardProps {
   /** ranking completo, já ordenado (a tela mostra os 5 primeiros) */
@@ -17,29 +18,6 @@ interface Top5BoardProps {
 }
 
 const CHANGE_MS = 9000;
-
-const MEDAL = ['🥇', '🥈', '🥉'];
-const PODIUM_STYLE = [
-  'from-amber-400/30 to-amber-600/10 border-amber-400/60',
-  'from-slate-300/25 to-slate-500/10 border-slate-300/50',
-  'from-orange-500/25 to-orange-700/10 border-orange-500/50',
-];
-
-const Delta: React.FC<{ c?: RankChange; big: boolean }> = ({ c, big }) => {
-  if (!c) return null;
-  const cls = big ? 'text-base' : 'text-[11px]';
-  if (c.isNew) return <span className={`${cls} font-black text-sky-300`}>novo</span>;
-  if (c.delta > 0) return <span className={`${cls} font-black text-emerald-400`} title={`Subiu ${c.delta}`}>▲{c.delta}</span>;
-  if (c.delta < 0) return <span className={`${cls} font-black text-rose-400`} title={`Desceu ${-c.delta}`}>▼{-c.delta}</span>;
-  return null;
-};
-
-const Gain: React.FC<{ c?: RankChange; big: boolean }> = ({ c, big }) =>
-  c && c.xpGain > 0 ? (
-    <span className={`${big ? 'text-base px-2.5 py-0.5' : 'text-[11px] px-1.5 py-0.5'} rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black animate-pulse`}>
-      +{c.xpGain} XP
-    </span>
-  ) : null;
 
 export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine, size = 'compact', variant = 'podium', unit = 'fases' }) => {
   const big = size === 'big';
@@ -78,134 +56,71 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
   }, [sig]);
 
   const top = rows.slice(0, 5);
-  const fase = (r: RankRow) => (unit !== 'fases' ? `${r.fase}/${totalFases}` : r.fase > totalFases ? '✔' : `F${r.fase}/${totalFases}`);
+  const sub = (r: RankRow) =>
+    unit !== 'fases' ? `${r.fase} de ${totalFases} ${unit}` : r.fase > totalFases ? 'Todas as fases concluídas' : `Fase ${r.fase} de ${totalFases}`;
+  const tone = variant === 'bars' ? 'orange' : 'emerald';
+  const max = Math.max(top[0]?.xp || 0, 1);
+  const pct = (r: RankRow) => (r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0);
 
   if (top.length === 0) {
-    return <p className={`${big ? 'text-2xl' : 'text-sm'} text-slate-500 text-center py-6`}>Aguardando os alunos entrarem…</p>;
+    return <p className={`${big ? 'text-2xl' : 'text-sm'} text-slate-500 text-center py-6`}>Aguardando os {unit === 'fases' || unit === 'desafios' ? 'alunos' : 'participantes'} entrarem…</p>;
   }
 
+  const row = (r: RankRow, i: number) => (
+    <LeaderRow
+      key={r.nome}
+      pos={i + 1}
+      nome={r.nome}
+      xp={r.xp}
+      fogos={r.fogos}
+      sub={sub(r)}
+      pct={pct(r)}
+      mine={r.nome === me}
+      big={big}
+      change={changes.get(r.nome)}
+      tone={tone}
+    />
+  );
+
+  const minePos = mine && mine.posicao > 5 && (
+    <li className={`flex items-center justify-between gap-3 rounded-2xl border border-dashed border-orange-500/60 bg-orange-500/10 ${big ? 'px-5 py-4 text-2xl' : 'px-3 py-2.5 text-sm'}`}>
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-xl bg-orange-500/20 px-1.5 font-mono font-black text-orange-300">{mine.posicao}º</span>
+        <Avatar nome={mine.nome} className={big ? 'w-12 h-12 text-xl' : 'w-8 h-8 text-xs'} />
+        <span className="truncate font-bold text-white">Você</span>
+      </span>
+      <span className="shrink-0 text-right font-mono text-xs text-slate-300">
+        <strong className={`tabular-nums text-white ${big ? 'text-3xl' : 'text-base'}`}>{mine.xp}</strong> XP
+        <span className="block text-[10px] text-slate-400">{sub(mine)}</span>
+      </span>
+    </li>
+  );
+
   if (variant === 'bars') {
-    const max = Math.max(top[0]?.xp || 0, 1);
     return (
-      <ol className={big ? 'space-y-2' : 'space-y-1.5'}>
-        {top.map((r, i) => {
-          const c = changes.get(r.nome);
-          return (
-            <li
-              key={r.nome}
-              className={`grid items-center gap-3 rounded-xl border ${big ? 'grid-cols-[3.5rem_minmax(0,16rem)_minmax(0,1fr)_auto] px-5 py-3 text-2xl' : 'grid-cols-[2rem_minmax(0,1fr)_auto] px-3 py-2 text-sm'} ${
-                r.nome === me ? 'bg-orange-500/15 border-orange-500/50' : i === 0 ? 'bg-slate-900 border-emerald-500' : 'bg-slate-900 border-slate-800'
-              }`}
-            >
-              <span
-                className={`flex items-center justify-center rounded-full font-black ${big ? 'w-12 h-12' : 'w-7 h-7 text-xs'} ${
-                  i === 0 ? 'bg-emerald-600 text-white' : i < 3 ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-200'
-                }`}
-              >
-                {i + 1}
-              </span>
-              <span className="flex items-center gap-2 min-w-0">
-                <span className="truncate font-bold text-white">{r.nome}</span>
-                <Delta c={c} big={big} />
-                <Gain c={c} big={big} />
-              </span>
-              {big && (
-                <span className="h-4 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true">
-                  <span className="block h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0}%` }} />
-                </span>
-              )}
-              <span className={`shrink-0 font-mono ${big ? 'text-xl' : 'text-xs'} text-slate-300`}>
-                {r.fogos > 0 && <span className="mr-1.5">🔥{r.fogos}</span>}
-                {fase(r)} • <strong className={`text-white ${big ? 'text-3xl' : ''}`}>{r.xp}</strong>
-              </span>
-            </li>
-          );
-        })}
-        {mine && mine.posicao > 5 && (
-          <li className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm">
-            <span className="flex items-center gap-2 min-w-0">
-              <span className="font-mono font-black text-orange-300 shrink-0">{mine.posicao}º</span>
-              <span className="truncate font-semibold text-slate-100">Você</span>
-            </span>
-            <span className="shrink-0 font-mono text-xs text-slate-300">
-              {fase(mine)} • <strong className="text-emerald-300">{mine.xp}</strong>
-            </span>
-          </li>
-        )}
+      <ol className={big ? 'space-y-3' : 'space-y-2'}>
+        {top.map(row)}
+        {minePos}
       </ol>
     );
   }
 
-  const podium = [top[1], top[0], top[2]]; // 2º, 1º, 3º (o 1º no centro)
-  const podiumIdx = [1, 0, 2];
-
+  // Pódio: 2º, 1º e 3º lado a lado (o 1º no centro); 4º e 5º em linhas abaixo
+  const order = [1, 0, 2];
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2 items-end">
-        {podium.map((r, k) => {
-          const i = podiumIdx[k];
-          if (!r) return <div key={k} />;
-          const c = changes.get(r.nome);
-          return (
-            <div
-              key={r.nome}
-              className={`rounded-2xl border bg-gradient-to-b text-center px-2 ${PODIUM_STYLE[i]} ${
-                big ? (i === 0 ? 'py-8' : 'py-5') : i === 0 ? 'py-4' : 'py-2.5'
-              } ${r.nome === me ? 'ring-2 ring-orange-400' : ''}`}
-            >
-              <div className={big ? 'text-5xl' : 'text-2xl'}>{MEDAL[i]}</div>
-              <div className={`font-black text-white truncate ${big ? 'text-2xl mt-2' : 'text-sm mt-1'}`} title={r.nome}>
-                {r.nome}
-              </div>
-              <div className={`font-mono font-black text-emerald-300 ${big ? 'text-4xl' : 'text-lg'}`}>{r.xp}</div>
-              <div className={`text-slate-400 ${big ? 'text-base' : 'text-[10px]'}`}>
-                {r.fogos > 0 && <span className="mr-1">🔥{r.fogos}</span>}
-                {fase(r)}
-              </div>
-              <div className="min-h-[1.25rem] mt-1 flex items-center justify-center gap-1.5 flex-wrap">
-                <Delta c={c} big={big} />
-                <Gain c={c} big={big} />
-              </div>
-            </div>
-          );
+    <div className={big ? 'space-y-5' : 'space-y-3'}>
+      <div className={`grid grid-cols-3 items-end ${big ? 'gap-5' : 'gap-2'}`}>
+        {order.map((i) => {
+          const r = top[i];
+          if (!r) return <div key={i} />;
+          return <PodiumColumn key={r.nome} idx={i} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={sub(r)} mine={r.nome === me} big={big} change={changes.get(r.nome)} />;
         })}
       </div>
-
-      <ol className="space-y-1.5">
-        {top.slice(3).map((r, k) => {
-          const c = changes.get(r.nome);
-          return (
-            <li
-              key={r.nome}
-              className={`flex items-center justify-between gap-2 rounded-xl border px-3 ${big ? 'py-3 text-2xl' : 'py-2 text-sm'} ${
-                r.nome === me ? 'bg-orange-500/15 border-orange-500/40' : 'bg-slate-950/70 border-slate-800'
-              }`}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <span className="font-mono font-black text-slate-400 w-8 shrink-0">{k + 4}º</span>
-                <span className="truncate font-semibold text-slate-100">{r.nome}</span>
-                <Delta c={c} big={big} />
-                <Gain c={c} big={big} />
-              </span>
-              <span className={`shrink-0 font-mono ${big ? 'text-xl' : 'text-xs'} text-slate-300`}>
-                {r.fogos > 0 && <span className="mr-1.5">🔥{r.fogos}</span>}
-                {fase(r)} • <strong className="text-emerald-300">{r.xp}</strong>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-
-      {mine && mine.posicao > 5 && (
-        <div className={`flex items-center justify-between gap-2 rounded-xl border border-dashed border-orange-500/50 bg-orange-500/10 px-3 ${big ? 'py-3 text-2xl' : 'py-2 text-sm'}`}>
-          <span className="flex items-center gap-2 min-w-0">
-            <span className="font-mono font-black text-orange-300 shrink-0">{mine.posicao}º</span>
-            <span className="truncate font-semibold text-slate-100">Você</span>
-          </span>
-          <span className="shrink-0 font-mono text-xs text-slate-300">
-            {fase(mine)} • <strong className="text-emerald-300">{mine.xp}</strong>
-          </span>
-        </div>
+      {(top.length > 3 || minePos) && (
+        <ol className={big ? 'space-y-3' : 'space-y-2'}>
+          {top.slice(3).map((r, k) => row(r, k + 3))}
+          {minePos}
+        </ol>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy } from 'lucide-react';
 import type { RankRow } from '../../utils/ctfRank';
+import { LeaderRow, PodiumColumn } from './rankUi';
 
 /** Dispara os confetes uma única vez quando o resultado final aparece (respeita "reduzir movimento"). */
 export function useCelebrate(active: boolean) {
@@ -37,13 +38,6 @@ interface FinalPodiumProps {
   size?: 'compact' | 'big';
 }
 
-// Cores de pódio fixas (ouro, prata e bronze): não dependem do tema claro/escuro
-const STEP = [
-  { medal: '🥇', bg: 'bg-[#f4b73f]', h: 'h-28', hBig: 'h-40' },
-  { medal: '🥈', bg: 'bg-[#b8c0cc]', h: 'h-20', hBig: 'h-28' },
-  { medal: '🥉', bg: 'bg-[#cd8a4b]', h: 'h-14', hBig: 'h-20' },
-];
-
 /**
  * Resultado final: pódio com os três primeiros e a classificação completa.
  * Aparece quando o tempo acaba ou o professor encerra, igual nos dois módulos e nos dois temas.
@@ -56,59 +50,37 @@ export const FinalPodium: React.FC<FinalPodiumProps> = ({ rows, totalFases, unit
   }
   const order = [1, 0, 2]; // 2º, 1º, 3º: o primeiro fica no centro
   const rest = rows.slice(3);
+  const max = Math.max(rows[0]?.xp || 0, 1);
 
   return (
-    <section aria-label="Resultado final" className="space-y-5">
-      <div className="flex items-center justify-center gap-3 text-center">
-        <Trophy className={`${big ? 'w-10 h-10' : 'w-6 h-6'} text-amber-400`} aria-hidden />
-        <h2 className={`${big ? 'text-4xl' : 'text-xl'} font-black tracking-tight text-white`}>Resultado final</h2>
+    <section aria-label="Resultado final" className={big ? 'space-y-8' : 'space-y-5'}>
+      <div className="flex flex-col items-center gap-2 text-center">
+        <span
+          className={`inline-flex items-center justify-center rounded-2xl ${big ? 'h-16 w-16' : 'h-11 w-11'}`}
+          style={{ background: 'linear-gradient(160deg,#fcd34d,#d98e0b)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55)' }}
+        >
+          <Trophy className={`${big ? 'h-9 w-9' : 'h-6 w-6'}`} style={{ color: '#3b2503' }} aria-hidden />
+        </span>
+        <h2 className={`${big ? 'text-5xl' : 'text-xl'} font-black tracking-tight text-white`}>Resultado final</h2>
+        <p className={`${big ? 'text-xl' : 'text-xs'} text-slate-400`}>
+          {rows.length} {rows.length === 1 ? (entity === 'equipes' ? 'equipe' : 'aluno') : entity}
+        </p>
       </div>
 
-      <div className={`grid grid-cols-3 items-end ${big ? 'gap-5' : 'gap-2'} max-w-4xl mx-auto`}>
+      <div className={`mx-auto grid max-w-4xl grid-cols-3 items-end ${big ? 'gap-6' : 'gap-2'}`}>
         {order.map((idx) => {
           const r = rows[idx];
           if (!r) return <div key={idx} />;
-          const st = STEP[idx];
-          const mine = r.nome === me;
-          return (
-            <div key={r.nome} className="flex flex-col items-center text-center min-w-0">
-              <div className={big ? 'text-6xl' : 'text-3xl'} aria-hidden>{st.medal}</div>
-              <div className={`mt-1 w-full truncate font-black text-white ${big ? 'text-3xl' : 'text-sm'} ${mine ? 'underline decoration-orange-400 decoration-4 underline-offset-4' : ''}`} title={r.nome}>
-                {r.nome}
-              </div>
-              <div className={`font-mono font-black text-emerald-300 ${big ? 'text-5xl' : 'text-xl'}`}>{r.xp} <span className={`${big ? 'text-xl' : 'text-[11px]'} font-bold`}>XP</span></div>
-              <div className={`text-slate-400 ${big ? 'text-lg' : 'text-[11px]'}`}>
-                {r.fogos > 0 && <span className="mr-1">🔥{r.fogos}</span>}
-                {progress(r)}
-              </div>
-              <div className={`mt-2 w-full rounded-t-2xl ${st.bg} ${big ? st.hBig : st.h} flex items-start justify-center pt-2`}>
-                <span className={`font-black text-[#1f2937] ${big ? 'text-5xl' : 'text-2xl'}`}>{idx + 1}º</span>
-              </div>
-            </div>
-          );
+          return <PodiumColumn key={r.nome} idx={idx} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={progress(r)} mine={r.nome === me} big={big} />;
         })}
       </div>
 
       {rest.length > 0 && (
-        <div className="max-w-4xl mx-auto">
-          <h3 className={`mb-2 font-bold uppercase tracking-wider text-slate-400 ${big ? 'text-base' : 'text-[11px]'}`}>Classificação completa ({rows.length} {entity})</h3>
-          <ol className={`space-y-1.5 overflow-y-auto pr-1 ${big ? 'max-h-[40vh]' : 'max-h-64'}`}>
+        <div className="mx-auto max-w-4xl">
+          <h3 className={`mb-2 font-bold uppercase tracking-wider text-slate-400 ${big ? 'text-base' : 'text-[11px]'}`}>Classificação completa</h3>
+          <ol className={`space-y-2 overflow-y-auto p-1 ${big ? 'max-h-[40vh]' : 'max-h-72'}`}>
             {rest.map((r, k) => (
-              <li
-                key={`${r.nome}-${k}`}
-                className={`flex items-center justify-between gap-3 rounded-xl border px-4 ${big ? 'py-3 text-2xl' : 'py-2 text-sm'} ${
-                  r.nome === me ? 'bg-orange-500/15 border-orange-500/50' : 'bg-slate-900 border-slate-800'
-                }`}
-              >
-                <span className="flex items-center gap-3 min-w-0">
-                  <span className={`font-mono font-black text-slate-400 shrink-0 ${big ? 'w-12' : 'w-8'}`}>{k + 4}º</span>
-                  <span className="truncate font-semibold text-white">{r.nome}</span>
-                </span>
-                <span className={`shrink-0 font-mono text-slate-300 ${big ? 'text-xl' : 'text-xs'}`}>
-                  {r.fogos > 0 && <span className="mr-1.5">🔥{r.fogos}</span>}
-                  {progress(r)} • <strong className="text-emerald-300">{r.xp} XP</strong>
-                </span>
-              </li>
+              <LeaderRow key={`${r.nome}-${k}`} pos={k + 4} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={progress(r)} pct={r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0} mine={r.nome === me} big={big} />
             ))}
           </ol>
         </div>
