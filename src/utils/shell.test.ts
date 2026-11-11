@@ -91,3 +91,28 @@ test('módulo Linux: sistema, processos, rede simulada e tar', () => {
   assert.match(run(st, 'man chmod'), /MANUAL/);
   assert.match(run(st, 'du -sh documentos'), /documentos/);
 });
+
+test('módulo Linux 2: usuários, pacotes, disco, links e gzip', () => {
+  const st = createShell();
+  assert.match(run(st, 'apt install htop'), /só o administrador/);
+  assert.match(run(st, 'useradd joao'), /só o administrador/);
+  assert.match(run(st, 'systemctl status ssh'), /ativo/);
+  assert.match(run(st, 'systemctl stop ssh'), /administrador/);
+  assert.match(run(st, 'lsblk'), /sda1/);
+  assert.match(run(st, 'top'), /PID/);
+  assert.match(run(st, 'uname -r'), /6\.1/);
+  assert.match(run(st, 'ss'), /OUVINDO/);
+  run(st, 'ln -s documentos/relatorio.txt atalho');
+  assert.match(run(st, 'ls -l atalho'), /^lrwx.*atalho -> documentos\/relatorio.txt/);
+  assert.match(run(st, 'cat atalho'), /Relatorio de redes/);
+  run(st, 'gzip notas.txt');
+  assert.match(run(st, 'ls'), /notas.txt.gz/);
+  run(st, 'gunzip notas.txt.gz');
+  assert.match(run(st, 'cat notas.txt'), /Aula de Linux/);
+  run(st, 'zip p.zip documentos');
+  run(st, 'rm -r documentos');
+  run(st, 'unzip p.zip');
+  assert.match(run(st, 'ls documentos'), /alunos.csv/);
+  assert.match(run(st, 'diff notas.txt notas.txt'), /^$/);
+  assert.match(run(st, 'stat notas.txt'), /Dono: aluno/);
+});
