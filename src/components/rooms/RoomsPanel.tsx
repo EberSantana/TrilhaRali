@@ -473,7 +473,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 1 · Perguntas e nova sala */}
-        <form id="passo-1" onSubmit={handleCreate} className="scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
+        <form id="passo-1" onSubmit={handleCreate} className="min-w-0 scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
           <StepTitle n={1} title="Perguntas e nova sala" hint="Escolha o conteúdo e gere o token." tone={tone} />
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Nome da sala</span>
@@ -542,7 +542,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             )}
           </div>
 
-          <fieldset className={`space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
+          <fieldset className={`min-w-0 space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
             <legend className={`flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider ${accentText}`}>
               🎯 Perguntas da sala
               <span className={`rounded-full px-2 py-0.5 text-xs font-black text-white ${nfc ? 'bg-emerald-600' : 'bg-orange-500'}`}>{total}</span>
