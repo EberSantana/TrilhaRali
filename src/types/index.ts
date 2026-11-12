@@ -21,7 +21,10 @@ export type MissionPackage =
   | 'linux_sys'
   | 'bd_facil'
   | 'bd_medio'
-  | 'bd_dificil';
+  | 'bd_dificil'
+  | 'info_facil'
+  | 'info_medio'
+  | 'info_dificil';
 
 export type SqlCategory = 
   | 'DDL' 
@@ -34,7 +37,8 @@ export type SqlCategory =
   | 'Boss' 
   | 'Sintaxe'
   | 'Geral'
-  | 'Linux';
+  | 'Linux'
+  | 'Informática';
 
 export interface Mission {
   id: number;
