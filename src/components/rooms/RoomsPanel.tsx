@@ -8,7 +8,7 @@ import { ScoringMode } from '../../types';
 import { buildStudentLink, ctfCall, explainInvalidApiUrl, apiTail, getCtfApiUrl, getTeacherRooms, isValidApiUrl, saveTeacherRooms } from '../../utils/ctfApi';
 import { BankQuestion } from '../../types/bank';
 import { bankToCtfPayload, takeCtfPrefill } from '../../utils/bank';
-import { BankPicker } from '../bank/BankPicker';
+import { QuestionPicker } from './QuestionPicker';
 import { DebriefList } from './DebriefList';
 import { getBancoKey, listBanco, pingBanco, saveBancoKey } from '../../utils/bankApi';
 import { TimerControl } from '../common/TimerControl';
@@ -542,73 +542,77 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             )}
           </div>
 
-          <fieldset className={`space-y-2 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
+          <fieldset className={`space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
             <legend className={`flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider ${accentText}`}>
-              🎯 Missões do catálogo
+              🎯 Perguntas da sala
               <span className={`rounded-full px-2 py-0.5 text-xs font-black text-white ${nfc ? 'bg-emerald-600' : 'bg-orange-500'}`}>{total}</span>
             </legend>
-            <p className="text-[11px] text-slate-400">Escolha as disciplinas no menu abaixo: Linux, Banco de Dados, Redes e as do seu banco, tudo no mesmo lugar.</p>
-            <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
-              {nfc && packages.filter((p) => p.id === 'banco').map((p) => (
-                <label key={p.id} className="flex items-center gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(p.id)}
-                    onChange={(e) => {
-                      const next = new Set(selected);
-                      if (e.target.checked) next.add(p.id);
-                      else next.delete(p.id);
-                      setSelected(next);
-                    }}
-                    className={accentCheck}
-                  />
-                  <span className="flex-1 truncate">{p.nome}</span>
-                  <span className="text-xs font-mono text-slate-500">{p.count}</span>
-                </label>
-              ))}
-            </div>
-            <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950/40 p-2.5">
-              <div className={`text-xs font-black uppercase tracking-wider mb-1.5 ${accentText}`}>
-                📚 Todas as disciplinas {bankPool.length + catalogPicked.length > 0 && <span className={accentText}>· {bankPool.length + catalogPicked.length} escolhida(s)</span>}
+            <p className="text-[11px] text-slate-400">
+              Abra uma disciplina, depois um assunto, e marque o que quiser: a disciplina inteira, um assunto inteiro ou perguntas avulsas. Tudo que você marcar entra na sala.
+            </p>
+
+            {nfc && packages.filter((p) => p.id === 'banco').map((p) => (
+              <label key={p.id} className="flex items-center gap-2 text-sm text-slate-200 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.has(p.id)}
+                  onChange={(e) => {
+                    const next = new Set(selected);
+                    if (e.target.checked) next.add(p.id);
+                    else next.delete(p.id);
+                    setSelected(next);
+                  }}
+                  className={accentCheck}
+                />
+                <span className="flex-1 min-w-0">
+                  <span className="block truncate">Perguntas que você publicou no Rali NFC</span>
+                  <span className="block text-[11px] text-slate-500">{p.nome}</span>
+                </span>
+                <span className="text-xs font-mono text-slate-500">{p.count}</span>
+              </label>
+            ))}
+
+            {bank.length === 0 && bankMsg && (
+              <p className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-[11px] text-amber-200">
+                Suas perguntas do banco não carregaram: {bankMsg}
+              </p>
+            )}
+            {bank.length === 0 && (
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="password"
+                  value={bankKeyInput}
+                  onChange={(e) => setBankKeyInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void connectBank();
+                    }
+                  }}
+                  placeholder="Chave do seu banco de perguntas"
+                  aria-label="Chave do banco de perguntas"
+                  autoComplete="off"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-2 text-sm text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => void connectBank()}
+                  disabled={bankKeyBusy || !bankKeyInput.trim()}
+                  className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
+                >
+                  {bankKeyBusy ? 'Conectando…' : 'Conectar banco'}
+                </button>
               </div>
-              {bank.length === 0 && bankMsg && (
-                <p className="mb-2 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2 text-[11px] text-amber-200">
-                  Suas perguntas do banco não carregaram: {bankMsg}
-                </p>
-              )}
-              {bank.length === 0 && (
-                <div className="mb-2 flex flex-wrap gap-2">
-                  <input
-                    type="password"
-                    value={bankKeyInput}
-                    onChange={(e) => setBankKeyInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void connectBank();
-                      }
-                    }}
-                    placeholder="Chave do banco de perguntas"
-                    aria-label="Chave do banco de perguntas"
-                    autoComplete="off"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-2 text-sm text-slate-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void connectBank()}
-                    disabled={bankKeyBusy || !bankKeyInput.trim()}
-                    className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
-                  >
-                    {bankKeyBusy ? 'Conectando…' : 'Conectar banco'}
-                  </button>
-                </div>
-              )}
-              {pickerQuestions.length > 0 ? (
-                <BankPicker questions={pickerQuestions} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
-              ) : (
-                <p className="text-[11px] text-slate-500">{bankMsg || 'Seu banco de perguntas está vazio.'}</p>
-              )}
-            </div>
+            )}
+            {bank.length > 0 && (
+              <p className="text-[11px] text-emerald-300">✓ Seu banco está conectado: {bank.length} perguntas somadas aos pacotes prontos.</p>
+            )}
+
+            {pickerQuestions.length > 0 ? (
+              <QuestionPicker questions={pickerQuestions} selected={bankSel} onChange={setBankSel} accent={nfc ? 'emerald' : 'orange'} />
+            ) : (
+              <p className="text-[11px] text-slate-500">{bankMsg || 'Nenhuma pergunta disponível.'}</p>
+            )}
           </fieldset>
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
