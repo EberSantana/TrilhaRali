@@ -89,6 +89,7 @@ Cada aluno joga sozinho no navegador. **Uma pergunta por fase, em ordem fixa: s�
 - **Console SQLite no navegador** (via `sql.js`) para as missões práticas; o professor libera ou oculta o banco e o console quando quiser.
 - 50 missões que só se resolvem executando comandos no console (consultas, agregações, JOINs, subconsultas, DDL e integridade).
 - **60 missões de Banco de Dados** (20 fáceis, 20 médias, 20 difíceis) sobre as tabelas da escola (`departamentos`, `professores`, `disciplinas`, `estudantes`, `matriculas`): CRUD, cardinalidade, conceitos, DDL, DML, DQL, DTL, DCL e INNER / LEFT / RIGHT / FULL OUTER JOIN. Aparecem no seletor de perguntas em **Banco de Dados**, em três assuntos (Fácil, Médio, Difícil). Cada resposta é verificada executando a solução no SQLite (`src/data/bdMissions.test.ts`).
+- **60 missões de Informática Básica** (20 fáceis, 20 médias, 20 difíceis; 4 por unidade da ementa em cada nível: hardware e software, Internet e e-mail, editor de texto, planilha e slides), em **Informática Básica** no seletor. Vêm com o **Laboratório de Informática**, um ambiente CTF no navegador (ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas, filtro e classificação, e apresentação) que aparece sozinho para o aluno quando a sala tem essas missões. Gabaritos calculados a partir dos arquivos em `src/data/infoMissions.test.ts`.
 
 ### 👩‍🏫 Painel do professor
 
@@ -373,6 +374,7 @@ TrilhaRali/
 │   │   ├── missions.ts              50 missões padrão do Rali
 │   │   ├── consoleMissions.ts       50 missões do console SQLite
 │   │   ├── bdMissions.ts            60 missões de Banco de Dados (fácil/médio/difícil)
+│   │   ├── infoMissions.ts          60 missões de Informática Básica + infoLab.ts (arquivos do Laboratório)
 │   │   └── ctfAppsScript.ts         Código do backend (Apps Script)
 │   ├── utils/                       Cronômetro, tema, banco, ranking, API e armazenamento
 │   └── types/                       Tipos compartilhados

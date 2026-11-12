@@ -22,6 +22,7 @@ import { CtfChallenges } from './CtfChallenges';
 import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
 import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { LinuxTerminal } from './LinuxTerminal';
+import { LabInformatica } from './LabInformatica';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -239,6 +240,8 @@ export const CtfStudent: React.FC = () => {
   const livre = sala.ordem === 'livre' && Boolean(state.missoes);
   const phases = Array.from({ length: sala.total }, (_, i) => i + 1);
   const finished = closed || timeUp;
+  // O Laboratório de Informática aparece sozinho quando a sala tem missões de Informática Básica.
+  const temLab = [state.missao?.tag_id, ...(state.missoes ?? []).map((m) => m.tag_id)].some((t) => String(t || '').toLowerCase().startsWith('info_'));
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -263,6 +266,7 @@ export const CtfStudent: React.FC = () => {
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
 
       {sala.terminal && <LinuxTerminal />}
+      {temLab && <LabInformatica />}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
       {/* Progresso */}

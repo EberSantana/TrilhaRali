@@ -4,8 +4,9 @@ import { mergeMissions } from './missionsStore.ts';
 import { ALL_MISSIONS } from '../data/missions.ts';
 import { LINUX_MISSIONS } from '../data/linuxMissions.ts';
 import { BD_MISSIONS } from '../data/bdMissions.ts';
+import { INFO_MISSIONS } from '../data/infoMissions.ts';
 
-const PADRAO = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS];
+const PADRAO = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS, ...INFO_MISSIONS];
 import { emptyDraft } from './bank.ts';
 
 const pub = (tag: string) => ({ ...emptyDraft('Redes'), pergunta: 'Pergunta de teste?', resposta: 'ok', tag_id: tag });
@@ -18,8 +19,8 @@ test('sem publicação, valem as missões padrão', () => {
 test('somenteBanco usa só as perguntas do professor, mantendo o módulo Linux', () => {
   const m = mergeMissions({ somenteBanco: true, missoes: [pub('tag_01'), pub('tag_02')] });
   assert.deepEqual(m.slice(0, 2).map((x) => x.tag_id), ['tag_01', 'tag_02']);
-  assert.equal(m.slice(2).every((x) => x.tag_id.startsWith('linux_') || x.tag_id.startsWith('bd_')), true);
-  assert.equal(m.length, 2 + LINUX_MISSIONS.length + BD_MISSIONS.length);
+  assert.equal(m.slice(2).every((x) => x.tag_id.startsWith('linux_') || x.tag_id.startsWith('bd_') || x.tag_id.startsWith('info_')), true);
+  assert.equal(m.length, 2 + LINUX_MISSIONS.length + BD_MISSIONS.length + INFO_MISSIONS.length);
   assert.equal(m[0].package, 'banco');
 });
 
