@@ -3,9 +3,11 @@ import { Mission } from '../types';
 import { PublishedSet } from '../types/bank';
 import { ALL_MISSIONS } from '../data/missions';
 import { LINUX_MISSIONS } from '../data/linuxMissions';
+import { BD_MISSIONS } from '../data/bdMissions';
 
-/** Catálogo padrão: as 50 missões NTAG213 + as missões de Linux. */
-const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS];
+/** Catálogo padrão: as 50 missões NTAG213 + Linux + as 60 missões de Banco de Dados (console SQLite). */
+const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS];
+const EXTRAS: Mission[] = [...LINUX_MISSIONS, ...BD_MISSIONS];
 import { publishedToMission } from './bank';
 import { fetchNfcSet } from './bankApi';
 import { getCtfApiUrl } from './ctfApi';
@@ -27,9 +29,9 @@ export function mergeMissions(set: PublishedSet | null): Mission[] {
   if (!set || set.missoes.length === 0) return BASE;
   const custom = set.missoes.map(publishedToMission);
   if (set.somenteBanco) {
-    // o módulo Linux é à parte das 50 missões NTAG: continua no catálogo mesmo no modo "só meu banco"
+    // Linux e Banco de Dados (console) são à parte das 50 missões NTAG: continuam no catálogo mesmo no modo "só meu banco"
     const tags = new Set(custom.map((m) => m.tag_id.toLowerCase()));
-    return [...custom, ...LINUX_MISSIONS.filter((m) => !tags.has(m.tag_id.toLowerCase()))];
+    return [...custom, ...EXTRAS.filter((m) => !tags.has(m.tag_id.toLowerCase()))];
   }
   const byTag = new Map(custom.map((m) => [m.tag_id.toLowerCase(), m]));
   const replaced = BASE.map((m) => byTag.get(m.tag_id.toLowerCase()) ?? m);

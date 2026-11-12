@@ -187,6 +187,105 @@ INSERT INTO Livros (id, titulo, autor) VALUES
 INSERT INTO Emprestimos (id_aluno, id_livro) VALUES 
 (1, 1),
 (2, 2);
+
+-- Tabelas da Escola (Missões de Banco de Dados: CRUD, cardinalidade e JOINs)
+-- departamentos 1:N professores 1:N disciplinas; estudantes N:N disciplinas (tabela matriculas)
+DROP TABLE IF EXISTS matriculas;
+DROP TABLE IF EXISTS disciplinas;
+DROP TABLE IF EXISTS professores;
+DROP TABLE IF EXISTS estudantes;
+DROP TABLE IF EXISTS departamentos;
+
+CREATE TABLE departamentos (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  sigla TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE professores (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  id_departamento INTEGER,
+  salario REAL NOT NULL,
+  FOREIGN KEY (id_departamento) REFERENCES departamentos(id)
+);
+
+CREATE TABLE disciplinas (
+  id INTEGER PRIMARY KEY,
+  titulo TEXT NOT NULL,
+  carga_horaria INTEGER NOT NULL,
+  id_professor INTEGER,
+  FOREIGN KEY (id_professor) REFERENCES professores(id)
+);
+
+CREATE TABLE estudantes (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  cidade TEXT NOT NULL
+);
+
+CREATE TABLE matriculas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  id_estudante INTEGER NOT NULL,
+  id_disciplina INTEGER NOT NULL,
+  nota REAL,
+  situacao TEXT NOT NULL DEFAULT 'Cursando',
+  FOREIGN KEY (id_estudante) REFERENCES estudantes(id),
+  FOREIGN KEY (id_disciplina) REFERENCES disciplinas(id)
+);
+
+INSERT INTO departamentos (id, nome, sigla) VALUES
+(1, 'Informática', 'INF'),
+(2, 'Matemática', 'MAT'),
+(3, 'Administração', 'ADM'),
+(4, 'Química', 'QUI');
+
+INSERT INTO professores (id, nome, id_departamento, salario) VALUES
+(1, 'Ana Prado', 1, 5200),
+(2, 'Bruno Reis', 1, 4800),
+(3, 'Carla Lins', 2, 5100),
+(4, 'Diego Matos', 3, 4500),
+(5, 'Elisa Nunes', NULL, 4000),
+(6, 'Fábio Costa', 1, 6100);
+
+INSERT INTO disciplinas (id, titulo, carga_horaria, id_professor) VALUES
+(1, 'Banco de Dados', 60, 1),
+(2, 'Algoritmos', 80, 2),
+(3, 'Cálculo I', 90, 3),
+(4, 'Gestão de Projetos', 40, 4),
+(5, 'Redes de Computadores', 60, NULL),
+(6, 'Segurança da Informação', 45, 6),
+(7, 'Estatística', 50, 3),
+(8, 'Engenharia de Software', 70, 1);
+
+INSERT INTO estudantes (id, nome, cidade) VALUES
+(1, 'Lara Mendes', 'Tobias Barreto'),
+(2, 'Pedro Alves', 'Itabaiana'),
+(3, 'Sofia Rocha', 'Tobias Barreto'),
+(4, 'Tiago Lima', 'Lagarto'),
+(5, 'Úrsula Dias', 'Itabaiana'),
+(6, 'Vitor Hugo', 'Tobias Barreto'),
+(7, 'Wesley Cruz', 'Lagarto'),
+(8, 'Yara Faro', 'Estância');
+
+INSERT INTO matriculas (id_estudante, id_disciplina, nota, situacao) VALUES
+(1, 1, 9.0, 'Aprovado'),
+(1, 2, 7.5, 'Aprovado'),
+(1, 3, 5.0, 'Reprovado'),
+(2, 1, 6.5, 'Aprovado'),
+(2, 8, 8.0, 'Aprovado'),
+(3, 1, 9.5, 'Aprovado'),
+(3, 2, NULL, 'Cursando'),
+(3, 7, 8.5, 'Aprovado'),
+(4, 2, 4.0, 'Reprovado'),
+(4, 3, 6.0, 'Aprovado'),
+(5, 1, NULL, 'Cursando'),
+(5, 4, 7.0, 'Aprovado'),
+(6, 3, 8.0, 'Aprovado'),
+(6, 7, NULL, 'Cursando'),
+(6, 8, 9.0, 'Aprovado'),
+(7, 5, 7.5, 'Aprovado'),
+(7, 4, 3.5, 'Reprovado');
 `;
 
 /**

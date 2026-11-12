@@ -18,7 +18,10 @@ export type MissionPackage =
   | 'linux_nav'
   | 'linux_arq'
   | 'linux_perm'
-  | 'linux_sys';
+  | 'linux_sys'
+  | 'bd_facil'
+  | 'bd_medio'
+  | 'bd_dificil';
 
 export type SqlCategory = 
   | 'DDL' 

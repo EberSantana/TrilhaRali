@@ -88,6 +88,7 @@ Cada aluno joga sozinho no navegador. **Uma pergunta por fase, em ordem fixa: s�
 - A validação e o avanço de fase acontecem **no servidor**. O aluno só recebe a pergunta da fase atual, com intervalo de 3 s após cada erro.
 - **Console SQLite no navegador** (via `sql.js`) para as missões práticas; o professor libera ou oculta o banco e o console quando quiser.
 - 50 missões que só se resolvem executando comandos no console (consultas, agregações, JOINs, subconsultas, DDL e integridade).
+- **60 missões de Banco de Dados** (20 fáceis, 20 médias, 20 difíceis) sobre as tabelas da escola (`departamentos`, `professores`, `disciplinas`, `estudantes`, `matriculas`): CRUD, cardinalidade, conceitos, DDL, DML, DQL, DTL, DCL e INNER / LEFT / RIGHT / FULL OUTER JOIN. Aparecem no seletor de perguntas em **Banco de Dados**, em três assuntos (Fácil, Médio, Difícil). Cada resposta é verificada executando a solução no SQLite (`src/data/bdMissions.test.ts`).
 
 ### 👩‍🏫 Painel do professor
 
@@ -371,6 +372,7 @@ TrilhaRali/
 │   ├── data/
 │   │   ├── missions.ts              50 missões padrão do Rali
 │   │   ├── consoleMissions.ts       50 missões do console SQLite
+│   │   ├── bdMissions.ts            60 missões de Banco de Dados (fácil/médio/difícil)
 │   │   └── ctfAppsScript.ts         Código do backend (Apps Script)
 │   ├── utils/                       Cronômetro, tema, banco, ranking, API e armazenamento
 │   └── types/                       Tipos compartilhados
