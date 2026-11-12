@@ -174,7 +174,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
   const disciplinasVisiveis = soMarcadas ? arvore.filter((d) => marcados(d.qs) > 0) : arvore;
 
   return (
-    <div className="space-y-3">
+    <div className="w-full min-w-0 space-y-3">
       {/* Resumo sempre visível */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
         <div className="min-w-0">
@@ -227,7 +227,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
         {buscando ? (
           <span className={chip}>resultados da busca ({resultados.length})</span>
         ) : (
-          <select aria-label="Sortear de qual disciplina" value={escopo} onChange={(e) => setEscopo(e.target.value)} className={`${campo} max-w-[11rem] truncate`}>
+          <select aria-label="Sortear de qual disciplina" value={escopo} onChange={(e) => setEscopo(e.target.value)} className={`${campo} min-w-0 max-w-[11rem] truncate`}>
             <option value="">todas as disciplinas</option>
             {arvore.map((d) => <option key={d.nome} value={d.nome}>{d.nome}</option>)}
           </select>
@@ -245,7 +245,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
 
       {/* Resultados da busca */}
       {buscando ? (
-        <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1" role="list" aria-label="Resultados da busca">
+        <div className="max-h-[26rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1" role="list" aria-label="Resultados da busca">
           {resultados.length > 0 && (
             <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
               <span>{resultados.length} resultado(s)</span>
@@ -265,7 +265,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
         </div>
       ) : (
         /* Disciplina > Assunto > Pergunta */
-        <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1" role="tree" aria-label="Disciplinas, assuntos e perguntas">
+        <div className="max-h-[26rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1" role="tree" aria-label="Disciplinas, assuntos e perguntas">
           {disciplinasVisiveis.map((d) => {
             const sel = marcados(d.qs);
             const aberta = abertasD.has(d.nome) || (soMarcadas && sel > 0);
