@@ -144,7 +144,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       })
       .catch((e) => setBankMsg(e instanceof Error ? e.message : String(e)));
   }, [nfc, bankTry]);
-  // Pacotes prontos do catálogo (Linux, Banco de Dados, Informática Básica…) entram no mesmo menu de disciplinas do banco.
+  // Pacotes prontos do catálogo (Linux, Banco de Dados, Informática Básica, Construção de Sites…) entram no mesmo menu de disciplinas do banco.
   // As missões publicadas a partir do banco ('banco') já aparecem como perguntas do banco.
   const catalogAsBank = useMemo<BankQuestion[]>(
     () =>
@@ -158,7 +158,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             ? 'Fundamentos de Sistemas Operacionais'
             : String(m.package).startsWith('info_')
               ? 'Informática Básica'
-              : 'Banco de Dados',
+              : String(m.package).startsWith('web_')
+                ? 'Construção de Sites 1'
+                : 'Banco de Dados',
           assunto: String(m.package).startsWith('linux') ? 'Linux' : m.packageName,
           tipo: m.opcoes?.length ? ('multipla' as const) : ('exata' as const),
           pergunta: m.pergunta,
