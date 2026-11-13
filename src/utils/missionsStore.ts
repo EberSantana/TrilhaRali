@@ -4,11 +4,12 @@ import { PublishedSet } from '../types/bank';
 import { ALL_MISSIONS } from '../data/missions';
 import { LINUX_MISSIONS } from '../data/linuxMissions';
 import { INFO_MISSIONS } from '../data/infoMissions';
+import { WEB_MISSIONS } from '../data/webMissions';
 import { BD_MISSIONS } from '../data/bdMissions';
 
 /** Catálogo padrão: as 50 missões NTAG213 + Linux + as 60 missões de Banco de Dados (console SQLite). */
-const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS, ...INFO_MISSIONS];
-const EXTRAS: Mission[] = [...LINUX_MISSIONS, ...BD_MISSIONS, ...INFO_MISSIONS];
+const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS, ...INFO_MISSIONS, ...WEB_MISSIONS];
+const EXTRAS: Mission[] = [...LINUX_MISSIONS, ...BD_MISSIONS, ...INFO_MISSIONS, ...WEB_MISSIONS];
 import { publishedToMission } from './bank';
 import { fetchNfcSet } from './bankApi';
 import { getCtfApiUrl } from './ctfApi';

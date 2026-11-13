@@ -23,6 +23,7 @@ import { TimerDisplay, useCountdown } from '../common/TimerDisplay';
 import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { LinuxTerminal } from './LinuxTerminal';
 import { LabInformatica } from './LabInformatica';
+import { AtelieWeb } from './AtelieWeb';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -241,7 +242,10 @@ export const CtfStudent: React.FC = () => {
   const phases = Array.from({ length: sala.total }, (_, i) => i + 1);
   const finished = closed || timeUp;
   // O Laboratório de Informática aparece sozinho quando a sala tem missões de Informática Básica.
-  const temLab = [state.missao?.tag_id, ...(state.missoes ?? []).map((m) => m.tag_id)].some((t) => String(t || '').toLowerCase().startsWith('info_'));
+  const tagsSala = [state.missao?.tag_id, ...(state.missoes ?? []).map((m) => m.tag_id)].map((t) => String(t || '').toLowerCase());
+  const temLab = tagsSala.some((t) => t.startsWith('info_'));
+  // O Ateliê Web aparece quando a sala tem missões de Construção de Sites 1.
+  const temAtelie = tagsSala.some((t) => t.startsWith('web_'));
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -267,6 +271,7 @@ export const CtfStudent: React.FC = () => {
 
       {sala.terminal && <LinuxTerminal />}
       {temLab && <LabInformatica />}
+      {temAtelie && <AtelieWeb />}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
       {/* Progresso */}
