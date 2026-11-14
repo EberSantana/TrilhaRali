@@ -1,9 +1,9 @@
 <div align="center">
 
-# 🏁 Trilha Rali
+# Trilha Rali
 
-**Plataforma gamificada de aprendizagem para o laboratório de informática:**
-**Rali NFC em equipes, CTF Online individual e banco de perguntas do professor.**
+**Plataforma gamificada de aprendizagem para aulas de laboratório de informática.**
+Competições em equipe com etiquetas NFC, desafios individuais no estilo CTF e ambientes práticos que rodam no próprio navegador.
 
 [![Site](https://img.shields.io/badge/site-GitHub%20Pages-2ea44f?style=for-the-badge)](https://ebersantana.github.io/TrilhaRali/)
 ![React](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=white)
@@ -11,150 +11,181 @@
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?style=for-the-badge&logo=vite&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind-4-38bdf8?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![Backend](https://img.shields.io/badge/backend-Google%20Apps%20Script-4285f4?style=for-the-badge&logo=google&logoColor=white)
+![Testes](https://img.shields.io/badge/testes-104%20passando-2ea44f?style=for-the-badge)
 
 **Instituto Federal de Sergipe (IFS) · Campus Tobias Barreto**
-Desenvolvido e supervisionado pelo **Prof. Eber Santana**
+Desenvolvido e mantido pelo **Prof. Eber Santana**
 
-[Acessar o site](https://ebersantana.github.io/TrilhaRali/) · [Módulos](#-os-módulos) · [Instalação](#-instalação-e-execução-local) · [Backend](#-backend-google-apps-script) · [Banco de perguntas](#-banco-de-perguntas)
+[Acessar a plataforma](https://ebersantana.github.io/TrilhaRali/) · [Catálogo de missões](#catálogo-de-missões) · [Ambientes práticos](#ambientes-práticos) · [Instalação](#instalação-e-execução-local) · [Backend](#backend-google-apps-script)
 
 </div>
 
 ---
 
-## 📑 Sumário
+## Sumário
 
-1. [Visão geral](#-visão-geral)
-2. [Os módulos](#-os-módulos)
-3. [Fluxo da aula](#-fluxo-da-aula)
-4. [Funcionalidades](#-funcionalidades)
-5. [Banco de perguntas](#-banco-de-perguntas)
-6. [Pontuação](#-pontuação)
-7. [Cronômetro e temas](#-cronômetro-compartilhado-e-temas)
-8. [Arquitetura](#-arquitetura)
-9. [Instalação e execução local](#-instalação-e-execução-local)
-10. [Publicação no GitHub Pages](#-publicação-no-github-pages)
-11. [Backend (Google Apps Script)](#-backend-google-apps-script)
-12. [Etiquetas NFC](#-etiquetas-nfc-e-qr-code)
-13. [Segurança e privacidade](#-segurança-e-privacidade)
-14. [Testes](#-testes)
-15. [Estrutura do projeto](#-estrutura-do-projeto)
-16. [Solução de problemas](#-solução-de-problemas)
-17. [Créditos](#-créditos)
+1. [Visão geral](#visão-geral)
+2. [Modos de jogo](#modos-de-jogo)
+3. [Ambientes práticos](#ambientes-práticos)
+4. [Catálogo de missões](#catálogo-de-missões)
+5. [Ciclo de uma sala](#ciclo-de-uma-sala)
+6. [Banco de perguntas do professor](#banco-de-perguntas-do-professor)
+7. [Pontuação, cronômetro e temas](#pontuação-cronômetro-e-temas)
+8. [Registro e análise no servidor](#registro-e-análise-no-servidor)
+9. [Arquitetura](#arquitetura)
+10. [Instalação e execução local](#instalação-e-execução-local)
+11. [Publicação no GitHub Pages](#publicação-no-github-pages)
+12. [Backend (Google Apps Script)](#backend-google-apps-script)
+13. [Etiquetas NFC e QR code](#etiquetas-nfc-e-qr-code)
+14. [Como adicionar um pacote de missões](#como-adicionar-um-pacote-de-missões)
+15. [Segurança e privacidade](#segurança-e-privacidade)
+16. [Testes](#testes)
+17. [Estrutura do projeto](#estrutura-do-projeto)
+18. [Solução de problemas](#solução-de-problemas)
+19. [Créditos](#créditos)
 
 ---
 
-## 🎯 Visão geral
+## Visão geral
 
-A **Trilha Rali** transforma uma aula de laboratório em uma competição organizada. O professor escolhe as perguntas, abre a sala, projeta o ranking e acompanha o tempo; os alunos respondem pelo celular ou pelo navegador. Tudo roda como um site estático, sem servidor próprio: a persistência fica em uma **planilha Google** do próprio professor, acessada por um **Google Apps Script**.
+A **Trilha Rali** transforma uma aula de laboratório em uma competição organizada. O professor escolhe as perguntas, abre a sala, projeta o ranking e controla o tempo. Os alunos respondem pelo celular ou pelo computador, sem instalar nada.
+
+A plataforma é um **site estático**. Não há servidor próprio para manter: os dados ficam em uma **planilha Google do próprio professor**, acessada por um **Google Apps Script** publicado como aplicativo da Web.
 
 | Para o professor | Para o aluno |
 |---|---|
-| Banco de perguntas por disciplina, com importação CSV/JSON | Entra com um token de sala ou toca uma etiqueta NFC |
-| Cronômetro de 5 a 120 minutos, que bloqueia as respostas ao zerar | Vê o tempo restante, o XP e a posição no ranking |
-| Telão com Top 5, cronômetro e pódio final | Recebe retorno imediato de acerto ou erro |
-| Dois temas visuais (escuro e claro) escolhidos em um clique | Funciona em qualquer celular, sem instalar aplicativo |
+| 281 missões prontas em 5 disciplinas, mais o banco de perguntas próprio | Entra com o token da sala ou tocando uma etiqueta NFC |
+| Seletor de perguntas em árvore (Disciplina › Assunto › Pergunta) | Recebe retorno imediato de acerto ou erro |
+| Telão com Top 5, cronômetro, alertas sonoros e pódio final | Vê tempo restante, XP e posição no ranking |
+| Debriefing com gabarito comentado, liberado quando quiser | Resolve missões práticas em ambientes simulados no navegador |
+| Histórico de salas, log de eventos e análise de acerto por pergunta | Funciona em qualquer celular moderno |
 
-> O sistema nasceu para o **Rali de Banco de Dados** (SQL), e hoje serve a qualquer disciplina: o banco de perguntas atual cobre 11 disciplinas.
+**Princípios do projeto**
 
----
-
-## 🧩 Os módulos
-
-O topo do site alterna entre os módulos. Os endereços `#/rali`, `#/ctf` e `#/professor` abrem cada um direto.
-
-> **Novo (script v9):** nome repetido na sala só entra pelo aparelho original, mensagens do servidor com acento e publicação NFC aceita tags `linux_NN`. Cole o script v9 e publique uma **nova versão**.
-> **Novo (script v11):** passo 5 "Debriefing" nas salas de CTF e NFC: o professor vê o gabarito com explicações e libera para alunos/equipes. Cole o script v11 e publique uma **nova versão**.
-
-> **Script v8:** o professor pode liberar um **Terminal Linux simulado** (botão "Terminal Linux" na sala, igual ao Console SQL). Cole o script v8 e publique uma **nova versão**.
-
-> **Novidade (script v7):** o **CTF Online** agora pode ser **livre** (painel de desafios: o aluno escolhe a ordem e o ranking é por pontos) ou **em ordem** (fase a fase), escolhido na criação de cada sala. Cole o script v7 no Apps Script e publique uma **nova versão**; salas antigas continuam em ordem.
->
-> **Script v6:** o Rali NFC agora também tem **salas com token criadas pelo professor**, como o CTF Online. Os dois ambientes são independentes (painel `#/professor/rali` e `#/professor/ctf`) e só **compartilham o banco de perguntas**. A equipe entra com token + nome da equipe, lê as etiquetas NFC/QR (ou digita o código) e vê o ranking; ao fim do tempo, ou quando o professor encerra a sala, aparece o **pódio final** nos dois ambientes e nos dois temas. O tema claro é o padrão e a logo tem versão própria para fundo branco. Ao atualizar, cole o script v6 no Apps Script e publique uma **nova versão**.
-
-### 🏷️ Rali NFC — em equipes
-
-Dinâmica presencial. Etiquetas **NTAG213** (ou QR codes) espalhadas pelo laboratório guardam as missões. Cada equipe elege um **aluno scanner** que encosta o celular na etiqueta, lê a pergunta, resolve com o grupo e envia a resposta. O ranking atualiza no **Telão**.
-
-- 50 missões padrão em 9 pacotes de SQL, ou o seu conjunto de perguntas publicado a partir do banco.
-- Salas e equipes com nome dos integrantes e scanner oficial.
-- Aviso de **tag repetida** (a equipe já resolveu aquela missão) e feed ao vivo de respostas.
-- **Debriefing** ao final, com os desafios de maior taxa de erro.
-
-### 🚩 CTF Online — individual
-
-Cada aluno joga sozinho no navegador. **Uma pergunta por fase, em ordem fixa: só avança quem resolve a fase atual.**
-
-- O professor cria uma **sala** e recebe um **token**; os alunos entram com o token e o nome.
-- A validação e o avanço de fase acontecem **no servidor**. O aluno só recebe a pergunta da fase atual, com intervalo de 3 s após cada erro.
-- **Console SQLite no navegador** (via `sql.js`) para as missões práticas; o professor libera ou oculta o banco e o console quando quiser.
-- 50 missões que só se resolvem executando comandos no console (consultas, agregações, JOINs, subconsultas, DDL e integridade).
-- **60 missões de Banco de Dados** (20 fáceis, 20 médias, 20 difíceis) sobre as tabelas da escola (`departamentos`, `professores`, `disciplinas`, `estudantes`, `matriculas`): CRUD, cardinalidade, conceitos, DDL, DML, DQL, DTL, DCL e INNER / LEFT / RIGHT / FULL OUTER JOIN. Aparecem no seletor de perguntas em **Banco de Dados**, em três assuntos (Fácil, Médio, Difícil). Cada resposta é verificada executando a solução no SQLite (`src/data/bdMissions.test.ts`).
-- **60 missões de Informática Básica** (20 fáceis, 20 médias, 20 difíceis; 4 por unidade da ementa em cada nível: hardware e software, Internet e e-mail, editor de texto, planilha e slides), em **Informática Básica** no seletor. Vêm com o **Laboratório de Informática**, um ambiente CTF no navegador (ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas, filtro e classificação, e apresentação) que aparece sozinho para o aluno quando a sala tem essas missões. Gabaritos calculados a partir dos arquivos em `src/data/infoMissions.test.ts`.
-- **60 missões de Construção de Sites 1** (20 fáceis, 20 médias, 20 difíceis; 10 de HTML e 10 de CSS por nível, cobrindo todos os temas do Dicionário Técnico HTML & CSS), em **Construção de Sites 1** no seletor. Vêm com o **Ateliê Web**: o site de exemplo Café Sertão (pré-visualização, `index.html` e `estilo.css`), um modo **Inspecionar** que mostra os estilos calculados pelo navegador e um **Editor** de HTML/CSS com pré-visualização ao vivo (iframe sem scripts). Aparece sozinho quando a sala tem essas missões. Gabaritos conferidos no código do site em `src/data/webMissions.test.ts`.
-
-### 👩‍🏫 Painel do professor
-
-Central de administração protegida por PIN, organizada em um roteiro igual para os dois módulos: **Perguntas → Turma → Ao vivo → Resultados**.
+- **Sem infraestrutura para manter.** Site estático no GitHub Pages; backend na conta Google do professor.
+- **Correção no servidor.** No CTF, gabarito, avanço de fase e trava de tempo nunca dependem do navegador do aluno.
+- **Prática antes da memorização.** Cada disciplina tem um ambiente onde a resposta é encontrada fazendo: executando SQL, comandos Linux, inspecionando arquivos ou editando HTML e CSS.
+- **Gabaritos verificados por teste.** As respostas das missões práticas são recalculadas automaticamente a partir dos próprios ambientes.
 
 ---
 
-## 🧭 Fluxo da aula
+## Modos de jogo
+
+Os dois modos são independentes, compartilham o banco de perguntas e seguem o mesmo roteiro no painel do professor. Os endereços `#/rali`, `#/ctf` e `#/professor` abrem cada área diretamente.
+
+### Rali NFC: em equipes
+
+Dinâmica presencial. Etiquetas **NTAG213** (ou QR codes) espalhadas pelo laboratório guardam as missões. Cada equipe elege um **aluno scanner**, que encosta o celular na etiqueta, lê a pergunta, resolve com o grupo e envia a resposta.
+
+- Sala com token criada pelo professor; a equipe entra com token, nome e integrantes.
+- Leitura por NFC (Android/Chrome), QR code ou digitação do código da etiqueta.
+- Aviso de etiqueta já resolvida, feed de respostas ao vivo e ranking no telão.
+
+### CTF Online: individual
+
+Cada aluno joga sozinho no navegador. O professor escolhe o formato ao criar a sala:
+
+| Formato | Como funciona | Ranking |
+|---|---|---|
+| **Livre** | Painel de desafios; o aluno escolhe a ordem | Por pontos |
+| **Em ordem** | Uma fase por vez; só avança quem resolve a fase atual | Por fase e pontos |
+
+- O aluno só recebe as perguntas permitidas pelo servidor, com intervalo de 3 s após cada erro.
+- Os **ambientes práticos** aparecem conforme as missões da sala (ver abaixo).
+
+---
+
+## Ambientes práticos
+
+Os ambientes rodam inteiramente no navegador do aluno, sem acesso à rede ou ao computador da escola.
+
+| Ambiente | Disciplina | Quando aparece | O que o aluno faz |
+|---|---|---|---|
+| **Console SQL** | Banco de Dados | Liberado pelo professor na sala | Executa SQL em um SQLite real (`sql.js`/WebAssembly) com as tabelas da escola e do laboratório |
+| **Terminal Linux** | Fundamentos de Sistemas Operacionais | Liberado pelo professor na sala | Usa um shell simulado com sistema de arquivos, permissões e processos |
+| **Laboratório de Informática** | Informática Básica | Automaticamente, se a sala tiver missões `info_*` | Investiga ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas e apresentação |
+| **Ateliê Web** | Construção de Sites 1 | Automaticamente, se a sala tiver missões `web_*` | Inspeciona um site de exemplo, lê `index.html` e `estilo.css` e testa HTML/CSS em um editor com pré-visualização ao vivo |
+
+**Destaques**
+
+- **Planilha do Laboratório:** fórmulas em português (`SOMA`, `MEDIA`, `SE`, `CONT.SE`, `SOMASE`, `MAIOR`, `ARRED`…), classificação por coluna, filtro e barra de teste de fórmulas. O avaliador é próprio e não usa `eval`.
+- **Inspecionar do Ateliê Web:** o aluno clica em um elemento e vê os estilos calculados pelo navegador (largura total, `box-sizing`, `padding`, cor, fonte…), como nas ferramentas de desenvolvedor.
+- **Pré-visualização isolada:** o código do aluno roda em um `iframe` com `sandbox`, sem permissão para executar JavaScript.
+
+---
+
+## Catálogo de missões
+
+Todas aparecem no seletor de perguntas da sala, organizadas por disciplina e assunto.
+
+| Disciplina | Assuntos | Missões | Ambiente | Verificação automática |
+|---|---|---:|---|---|
+| Banco de Dados (Rali SQL) | 9 pacotes: DDL, JOINs, DML, transações, subconjuntos SQL… | 50 | Etiquetas NFC | Gabarito revisado |
+| Banco de Dados | Fácil, Médio, Difícil (CRUD, cardinalidade, DDL/DML/DQL/DTL/DCL, INNER/LEFT/RIGHT/FULL OUTER JOIN) | 60 | Console SQL | Cada solução é executada no SQLite |
+| Fundamentos de Sistemas Operacionais | Navegação, arquivos e texto, permissões, sistema e processos | 51 | Terminal Linux | Testes do shell simulado |
+| Informática Básica | Fácil, Média, Difícil (hardware e software, Internet e e-mail, texto, planilha, slides) | 60 | Laboratório de Informática | Respostas recalculadas a partir dos arquivos |
+| Construção de Sites 1 | Fácil, Média, Difícil (10 de HTML e 10 de CSS por nível) | 60 | Ateliê Web | Respostas recalculadas a partir do código do site |
+| **Total** | | **281** | | |
+
+Os pacotes de 60 missões seguem a mesma proporção: **20 fáceis (10 XP), 20 médias (20 XP) e 20 difíceis (30 XP)**. O repositório também traz 50 missões de console SQL usadas como base de testes (`consoleMissions.ts`), que não aparecem no seletor.
+
+<details>
+<summary><strong>Cobertura de Construção de Sites 1</strong> (Dicionário Técnico HTML &amp; CSS)</summary>
+
+- **HTML:** listas, links e mídia, tabelas, formulários, estrutura semântica e atributos.
+- **CSS:** formas de aplicar, seletores, cor e fundo, texto e fonte, modelo de caixa, exibição e posicionamento, Flexbox, efeitos, unidades e cores.
+- As difíceis exigem experimentação: largura da caixa com e sem `box-sizing`, cascata e especificidade, conversão de `rem`/`em` para px.
+
+</details>
+
+<details>
+<summary><strong>Cobertura de Informática Básica</strong> (ementa da disciplina)</summary>
+
+Quatro missões por unidade em cada nível: hardware e software; Internet, e-mail e nuvem; editor de texto; editor de planilha; apresentação de slides.
+
+</details>
+
+---
+
+## Ciclo de uma sala
+
+O painel do professor (protegido por PIN) segue o mesmo roteiro nos dois modos.
 
 ```text
-1. Conteúdo      Banco de perguntas ──► escolhe disciplina/assunto ──► sorteia ou marca
-                                          │
-                       ┌──────────────────┴──────────────────┐
-                       ▼                                       ▼
-2. Aula         Rali NFC (equipes)                     CTF Online (individual)
-                 Perguntas   Missões e gabarito          Perguntas   Escolher fases
-                 Turma       Salas e equipes             Turma       Salas e tokens
-                 Ao vivo     Telão e cronômetro          Ao vivo     Telão e cronômetro
-                 Resultados  Debriefing                  Resultados  Ranking e envios
+ 1. Perguntas    Seletor em árvore: Disciplina › Assunto › Pergunta (marca em qualquer nível, busca, sorteio)
+ 2. Turma        Token da sala, link de convite, alunos ou equipes conectados
+ 3. Ao vivo      Telão com Top 5, cronômetro, pausa, +5 min e liberação do Console SQL / Terminal Linux
+ 4. Resultados   Ranking completo, envios e exportação
+ 5. Debriefing   Gabarito com explicações, liberado para alunos e equipes quando o professor quiser
 ```
 
-Exemplo de aula de 100 minutos com o Rali NFC:
+Ao terminar, **Encerrar sala** congela o resultado e grava o resumo no servidor. **Nova sala** reinicia o roteiro, e o **histórico** guarda as salas encerradas (sincronizado com a planilha) para consulta posterior.
+
+**Exemplo de aula de 100 minutos (Rali NFC)**
 
 | Tempo | Fase | O que acontece |
 |---|---|---|
-| 00–15 min | **Briefing** | Divisão em equipes, projeção do telão, escolha do aluno scanner |
-| 15–85 min | **Sprint** | Alunos escaneiam as tags, resolvem e enviam; o professor circula dando mentoria |
-| 85–90 min | **Hard stop** | Respostas bloqueadas, revelação do pódio e bônus |
-| 90–100 min | **Debriefing** | Revisão dos desafios com mais erros |
+| 00–15 min | Briefing | Divisão em equipes, projeção do telão, escolha do aluno scanner |
+| 15–85 min | Sprint | Equipes leem as etiquetas, resolvem e enviam; o professor faz mentoria |
+| 85–90 min | Encerramento | Respostas bloqueadas, pódio final |
+| 90–100 min | Debriefing | Revisão das perguntas com maior taxa de erro |
 
-A duração é configurável (5 a 120 min); o roteiro acima é apenas uma sugestão.
-
----
-
-## ✨ Funcionalidades
-
-- **Dois modos de jogo** com a mesma identidade visual, o mesmo relógio, o mesmo Top 5 e os mesmos avisos de estado.
-- **Seletor único de perguntas** nos dois módulos: filtro por disciplina e assunto, busca, perguntas inativas opcionais e sorteio de N perguntas.
-- **Telão** com Top 5 em pódio (tema escuro) ou barras (tema claro), setas de subida e descida (▲ ▼), "+XP" em destaque e **pódio final com confete** quando o tempo acaba.
-- **Alertas de tempo**: o relógio fica âmbar nos últimos 5 minutos e vermelho no último; o telão e o painel tocam um aviso sonoro.
-- **Tempo extra e pausa**: `+5 min` reabre a sala depois de zerar; o professor pausa e retoma quando quiser.
-- **Posição no celular**: o aluno do CTF vê "2º de 30" e o aluno do NFC vê a posição da equipe.
-- **Link de tag**: `…/#/tag/tag_07` abre o app já na missão; o mesmo link vira QR code de reserva.
-- **Etiquetas imprimíveis** (QR + código + categoria + XP, sem pergunta nem resposta) e exportação em CSV.
-- **Exportação para Google Sheets** com cada captura registrada (posição, XP e 🔥).
+A duração é configurável de 5 a 120 minutos.
 
 ---
 
-## 📚 Banco de perguntas
+## Banco de perguntas do professor
 
-As perguntas ficam na sua planilha Google (aba `Banco`), gerenciadas em **Área do professor › Banco de perguntas**. A conexão usa uma **chave do banco** pedida uma vez por aparelho.
-
-**Dois tipos de pergunta**
+Além do catálogo, o professor mantém o próprio banco na aba `Banco` da planilha, em **Área do professor › Banco de perguntas**. A conexão usa uma **chave do banco**, pedida uma vez por aparelho.
 
 | Tipo | Como o aluno responde | Correção |
 |---|---|---|
-| `exata` | Digita a resposta | Compara com o gabarito e as variações aceitas, ignorando acentos, maiúsculas e espaços extras |
-| `multipla` | Escolhe entre 2 e 6 alternativas | A resposta correta deve ser uma das alternativas |
+| `exata` | Digita a resposta | Compara com o gabarito e as variações aceitas, ignorando acentos, maiúsculas, aspas e espaços extras |
+| `multipla` | Escolhe entre 2 e 6 alternativas | A resposta correta deve estar entre as alternativas |
 
-**O que cada pergunta guarda:** disciplina, assunto, tipo, enunciado, resposta, variações aceitas, alternativas, XP (1 a 100), explicação e situação (ativa ou inativa).
+Cada pergunta guarda disciplina, assunto, tipo, enunciado, resposta, variações aceitas, alternativas, XP (1 a 100), explicação e situação (ativa ou inativa).
 
-**Usar a mesma seleção nos dois módulos:** marque perguntas no banco e use os botões **Rali NFC** ou **CTF Online**. No CTF, a criação de sala também traz o mesmo seletor, com a opção *Incluir perguntas inativas*.
-
-**Importar e exportar:** aceita CSV (separador `;`, `,` ou tabulação) e JSON.
+**Importação e exportação** em CSV (separador `;`, `,` ou tabulação) ou JSON. Listas usam `|`.
 
 ```csv
 disciplina;assunto;tipo;pergunta;resposta;aceitas;opcoes;xp;explicacao
@@ -162,55 +193,57 @@ Redes de Computadores;Camada de rede;exata;Qual protocolo traduz nomes em endere
 Segurança da Informação;Criptografia;multipla;Qual destes é um algoritmo simétrico?;AES;;RSA|AES|ECC;15;AES usa a mesma chave para cifrar e decifrar.
 ```
 
-Listas (`aceitas`, `opcoes`) usam `|` como separador.
-
-> ⚠️ **Respostas que começam com `=`** são interpretadas como fórmula pelo Google Sheets. Escreva "SOMA(A1:A5)" em vez de "=SOMA(A1:A5)" e deixe claro no enunciado.
+> **Atenção:** respostas que começam com `=` são interpretadas como fórmula pelo Google Sheets. Escreva `SOMA(A1:A5)` em vez de `=SOMA(A1:A5)`.
 
 ---
 
-## 🔥 Pontuação
+## Pontuação, cronômetro e temas
 
-O professor escolhe o modo no telão do Rali ou ao criar a sala do CTF:
+**Pontuação**
 
 | Modo | Regra |
 |---|---|
-| **XP fixo** (Rali Tradicional) | Cada missão sempre vale o XP original |
-| **CTF Dinâmico** | O valor cai conforme mais pessoas capturam a mesma flag: perde 10% do XP base por posição (10, 9, 8, 7…), com piso de 40%. Quem captura primeiro ganha o 🔥 |
+| **XP fixo** | Cada missão vale sempre o XP original |
+| **Dinâmico (CTF)** | O valor cai 10% do XP base a cada nova captura da mesma pergunta, com piso de 40%. A primeira captura ganha o 🔥 |
 
-Antes de enviar, o aluno vê o valor atual da flag ("🔥 FLAG INTACTA!" ou "⚠️ 2 alunos já resolveram: vale 8 XP").
+**Cronômetro** (5 a 120 min, de 5 em 5)
 
----
+- **CTF Online:** o tempo fica no servidor; respostas fora do tempo são recusadas e a sala trava ao zerar.
+- **Rali NFC:** o telão espelha o relógio do servidor e os celulares o consultam periodicamente.
+- Relógio âmbar nos últimos 5 minutos e vermelho no último, com aviso sonoro. O professor pode pausar, retomar e adicionar 5 minutos.
 
-## ⏲️ Cronômetro compartilhado e temas
-
-**Cronômetro (5 a 120 min, de 5 em 5)** nos dois módulos:
-
-- **CTF Online:** o tempo fica no servidor, por sala. As respostas só valem com o relógio rodando e a sala trava sozinha ao zerar.
-- **Rali NFC:** o telão do professor espelha o relógio no servidor e os celulares dos alunos o leem a cada 30 s (exige a chave do banco no aparelho do professor).
-
-**Temas** (em *Área do professor › Aparência*):
-
-| Tema | Indicado para |
-|---|---|
-| **Arena escura** | Salas com pouca luz e projetores de bom contraste |
-| **Quadro claro** | Salas iluminadas ou projetores fracos |
-
-Com o banco conectado, a escolha é salva no servidor e chega aos celulares dos alunos.
+**Temas:** *Quadro claro* (padrão, para salas iluminadas) e *Arena escura* (para projetores de bom contraste). A escolha é salva no servidor e chega aos celulares dos alunos.
 
 ---
 
-## 🏗️ Arquitetura
+## Registro e análise no servidor
+
+Desde o script **v11**, cada sala deixa um rastro completo na planilha:
+
+| Aba | Conteúdo | Uso |
+|---|---|---|
+| `CtfLog` | Eventos com data e hora: criação, entradas, envios, mudanças de situação | Auditoria e acompanhamento da aula |
+| `CtfResumo` | Uma linha por sala encerrada: duração, participantes, acertos, erros, taxa de acerto, XP médio | Comparar turmas e aulas |
+| `CtfAnalise` | Uma linha por pergunta: acertos, participantes e taxa de acerto | Identificar conteúdos que precisam de revisão |
+
+O resumo e a análise são gravados ao **encerrar a sala**. Os textos enviados pelos alunos são gravados com proteção contra injeção de fórmulas na planilha.
+
+---
+
+## Arquitetura
 
 ```mermaid
 flowchart LR
     subgraph Navegador["Navegador (site estático no GitHub Pages)"]
         P[Professor<br/>painel, telão, banco]
         A[Aluno<br/>celular ou PC]
+        L[Ambientes práticos<br/>SQLite · Terminal · Laboratório · Ateliê]
     end
     subgraph Google["Conta Google do professor"]
         S[Apps Script<br/>Web App]
-        SH[(Planilha<br/>salas, fases, alunos,<br/>capturas, banco)]
+        SH[(Planilha<br/>salas, alunos, capturas,<br/>banco, log e análise)]
     end
+    A --- L
     P -- "POST (chave do banco / adminKey)" --> S
     A -- "POST (token da sala)" --> S
     S <--> SH
@@ -220,22 +253,22 @@ flowchart LR
 |---|---|
 | Interface | React 19, TypeScript, Tailwind CSS 4, Lucide |
 | Build | Vite 8 |
-| Console SQL no navegador | `sql.js` (SQLite compilado para WebAssembly) |
-| NFC | Web NFC (Android/Chrome) e links por etiqueta (Android e iPhone) |
-| QR code e confete | `qrcode`, `canvas-confetti` |
-| Backend | Google Apps Script publicado como Web App, com planilha Google como banco |
+| Banco no navegador | `sql.js` (SQLite compilado para WebAssembly) |
+| NFC e QR | Web NFC (Android/Chrome), links por etiqueta, `qrcode` |
+| Efeitos | `canvas-confetti` |
+| Backend | Google Apps Script (Web App) com planilha Google |
 | Hospedagem | GitHub Pages, publicado por GitHub Actions |
 
 **Decisões de projeto**
 
-- **Sem servidor para manter.** O site é estático e o backend roda na conta Google do professor.
-- **Validação no servidor.** No CTF, as respostas e o avanço de fase nunca dependem do navegador do aluno.
-- **Mesma lógica de tempo em todos os lugares.** Um único conjunto de funções (`src/utils/timer.ts`) calcula fases, alertas e formatação, com compensação da diferença de relógio entre o aparelho e o servidor.
-- **Componentes compartilhados** (`src/components/common`): relógio, controle de tempo, cabeçalho de telão, cabeçalho de aluno e avisos de estado são os mesmos nos dois módulos.
+- **Roteamento por hash** (`#/rali`, `#/ctf`, `#/professor`, `#/tag/<id>`): funciona em hospedagem estática e em links gravados em etiquetas.
+- **Uma só lógica de tempo** (`src/utils/timer.ts`) para fases, alertas e formatação, com compensação da diferença de relógio entre aparelho e servidor.
+- **Componentes compartilhados** (`src/components/common`): relógio, controle de tempo, cabeçalhos, avisos e pódio são os mesmos nos dois modos.
+- **Mesma normalização de respostas** no app e no servidor: minúsculas, sem acentos, sem aspas nas pontas, sem `;` final e espaços colapsados.
 
 ---
 
-## 💻 Instalação e execução local
+## Instalação e execução local
 
 Requisitos: **Node.js 20 ou superior** e npm.
 
@@ -249,137 +282,174 @@ npm run dev        # http://localhost:3000
 | Comando | O que faz |
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento na porta 3000 |
-| `npm run build` | Gera a versão de produção em `dist/` |
+| `npm run build` | Versão de produção em `dist/` |
 | `npm run preview` | Serve a versão de produção localmente |
 | `npm run lint` | Verificação de tipos (`tsc --noEmit`) |
-| `npx tsx --test src/*/*.test.ts` | Roda toda a suíte de testes |
+| `npx tsx --test src/*/*.test.ts` | Suíte de testes completa |
 
 ---
 
-## 🚀 Publicação no GitHub Pages
+## Publicação no GitHub Pages
 
-O repositório já traz o fluxo `.github/workflows/deploy.yml`, que compila e publica a cada `push` na branch `main`.
+O fluxo `.github/workflows/deploy.yml` compila e publica o site a cada `push` na branch `main` (e também pode ser disparado manualmente).
 
 1. Em **Settings › Pages › Build and deployment › Source**, escolha **GitHub Actions**.
-2. Faça `git push origin main`.
-3. Em cerca de um minuto o site estará em **`https://<usuário>.github.io/<repositório>/`**.
+2. Envie as alterações para `main`.
+3. Em cerca de um minuto o site estará em `https://<usuário>.github.io/<repositório>/`.
 
-O `vite.config.ts` usa `base: './'`, então o site funciona em qualquer nome de repositório sem ajuste.
+O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de repositório.
 
 ---
 
-## 🔌 Backend (Google Apps Script)
+## Backend (Google Apps Script)
 
-Um único script atende o CTF, o banco de perguntas, o cronômetro e o tema. O código está em `src/data/ctfAppsScript.ts` e também pode ser copiado pelo painel do professor (botão *Copiar script do servidor*).
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v11.**
 
-**Configuração (uma vez)**
+### Configuração inicial
 
-1. Crie uma **planilha Google nova** e abra **Extensões › Apps Script**.
+1. Crie uma **planilha Google** nova e abra **Extensões › Apps Script**.
 2. Apague o conteúdo, cole o script e salve.
-3. Execute a função `setupBanco()` uma vez e **guarde a chave** exibida: é a chave do banco de perguntas (no servidor fica só o hash).
-4. **Implantar › Nova implantação › Aplicativo da Web**, com *Executar como: Eu* e *Acesso: Qualquer pessoa*.
+3. Execute `setupBanco()` uma vez e **guarde a chave exibida**. O servidor armazena apenas o hash.
+4. **Implantar › Nova implantação › Aplicativo da Web**, com *Executar como: Eu* e *Quem pode acessar: Qualquer pessoa*.
 5. Copie a URL terminada em `/exec` e cole no painel do professor.
-6. Para os alunos digitarem só o token, coloque a mesma URL em `DEFAULT_CTF_API_URL` (`src/config.ts`) e publique o site.
+6. Para que os alunos digitem só o token, coloque a mesma URL em `DEFAULT_CTF_API_URL` (`src/config.ts`) e publique o site.
 
-**Depois de atualizar o código do script:** cole o novo código e use **Implantar › Gerenciar implantações › Editar › Nova versão**. A URL não muda.
+### Atualização do script
 
-**Abas criadas automaticamente na planilha**
+Cole o código novo e use **Implantar › Gerenciar implantações › Editar › Versão: Nova versão › Implantar**. Assim a URL `/exec` não muda. Para conferir a versão em produção, abra a URL `/exec` no navegador: a resposta informa `versao`.
+
+### Histórico de versões
+
+| Versão | Principais mudanças |
+|---|---|
+| **v11** | Abas `CtfLog`, `CtfResumo` e `CtfAnalise`; resumo gravado ao encerrar; histórico de salas (`salasList`); proteção contra injeção de fórmulas |
+| v10 | Passo 5 *Debriefing* nas salas de CTF e NFC |
+| v9 | Nome repetido só entra pelo aparelho original; mensagens com acento; publicação NFC aceita tags `linux_NN` |
+| v8 | Liberação do Terminal Linux pela sala |
+| v7 | CTF em formato *livre* ou *em ordem* |
+| v6 | Salas com token também no Rali NFC; pódio final nos dois modos |
+
+Salas criadas em versões anteriores continuam funcionando.
+
+### Abas criadas automaticamente
 
 | Aba | Conteúdo |
 |---|---|
-| `CtfSalas` | Salas, token, situação, modo de pontuação e cronômetro |
-| `CtfMissoes` | Fases de cada sala |
-| `CtfAlunos` | Progresso, XP, acertos, erros e 🔥 de cada aluno |
-| `CtfCapturas` | Registro de cada captura (posição, XP, horário) |
+| `CtfSalas` | Salas: token, tipo, situação, formato, pontuação, cronômetro, liberações e data de encerramento |
+| `CtfMissoes` | Perguntas de cada sala |
+| `CtfAlunos` | Progresso, XP, acertos, erros e 🔥 de cada aluno ou equipe |
+| `CtfCapturas` | Cada captura: posição, XP e horário |
+| `CtfLog`, `CtfResumo`, `CtfAnalise` | Registro e análise (v11) |
 | `Banco` | Banco de perguntas do professor |
 | `NfcPublicadas` | Conjunto publicado para o Rali NFC |
 
-**Ações da API** (POST com corpo `text/plain` contendo JSON): `createRoom`, `join`, `state`, `submit`, `teacherRoom`, `setStatus`, `setBanco`, `setTimer`, `raliTimer`, `raliEstado`, `setTema`, `bancoPing`, `bancoList`, `bancoSave`, `bancoDelete`, `bancoImport`, `nfcPublish`, `nfcSet`.
+### API
+
+Requisições `POST` com corpo `text/plain` contendo JSON; `GET` responde a verificação de versão.
+
+| Grupo | Ações |
+|---|---|
+| Salas | `createRoom`, `join`, `state`, `submit`, `teacherRoom`, `setStatus`, `setBanco`, `setTerminal`, `setTimer`, `salasList` |
+| Debriefing | `setDebriefing`, `debriefTeacher`, `debriefStudent` |
+| Rali NFC | `raliTag`, `raliSubmit`, `raliTimer`, `raliEstado`, `nfcPublish`, `nfcSet` |
+| Banco de perguntas | `bancoPing`, `bancoList`, `bancoSave`, `bancoDelete`, `bancoImport` |
+| Geral | `ping`, `setTema` |
 
 ---
 
-## 🏷️ Etiquetas NFC e QR code
+## Etiquetas NFC e QR code
 
-Use o aplicativo gratuito **NFC Tools** (Android ou iOS):
+Grave as etiquetas com o aplicativo gratuito **NFC Tools** (Android ou iOS):
 
-1. Abra o **NFC Tools** e toque em **Escrever**.
-2. **Adicionar um registro › URL** e cole o link da tag (ex.: `https://ebersantana.github.io/TrilhaRali/#/tag/tag_07`).
+1. Abra o NFC Tools e toque em **Escrever**.
+2. **Adicionar um registro › URL** e cole o link da etiqueta, por exemplo `https://ebersantana.github.io/TrilhaRali/#/tag/tag_07`.
 3. Toque em **Escrever** e encoste o celular na etiqueta **NTAG213**.
 
-Em **Rali NFC › 50 Missões › Etiquetas NFC/QR**, o professor escolhe a quantidade de tags, copia a lista de links, baixa o CSV e imprime as etiquetas com QR code de reserva.
-
-**Missões padrão (50 em 9 pacotes)**
-
-| Pacote | Tags | Conteúdo |
-|---|---|---|
-| MVP Base | `tag_01`–`tag_05` | DDL, COUNT, JOIN, WHERE no UPDATE, subconsulta |
-| Academia | `tag_acad_01`–`06` | Cardinalidade, FK, tipagem, N:N |
-| 16 CRUD | `tag_crud_01`–`05` | INSERT/NULL, GROUP BY, ORDER BY, DELETE sem WHERE |
-| Biblioteca | `tag_bib_01`–`05` | Chave primária, integridade referencial, INNER e LEFT JOIN |
-| Supermercado | `tag_sup_01`–`05` | Verdadeiro/falso sobre JOIN, IS NULL, CROSS JOIN |
-| Fechamento | `tag_extra_01`–`04` | COMMIT, ROLLBACK, GRANT |
-| Rali dos JOINs | `tag_join_01`–`06` | INNER, LEFT, RIGHT, FULL e CROSS JOIN |
-| Mutação DML | `tag_dml_01`–`05` | SET, UPDATE e DELETE |
-| Subconjuntos SQL | `tag_img_01`–`09` | DDL, DML, DCL, TCL, TRUNCATE, SAVEPOINT, MERGE |
-
-O banco SQLite do laboratório (`banco_rali.sql`) é baixado com um clique na aba **SQLite** e traz as tabelas `equipes`, `missoes`, `Funcionarios`, `Produtos`, `Vendas`, `Alunos`, `bens`, `Livros`, `Emprestimos` e `Plano`.
+No painel do Rali NFC, o professor escolhe a quantidade de etiquetas, copia a lista de links, baixa o CSV e imprime etiquetas com QR code de reserva (sem pergunta nem resposta impressas).
 
 ---
 
-## 🔒 Segurança e privacidade
+## Como adicionar um pacote de missões
 
-- **CTF:** a correção e o avanço de fase ocorrem no servidor; o aluno só recebe a pergunta da fase atual.
-- **Banco de perguntas:** protegido por uma chave verificada no servidor (hash SHA-256 nas propriedades do script). Uma chave errada é recusada.
-- **PIN do professor:** protege a **interface** do painel neste aparelho. A proteção real dos dados está na chave do banco e na `adminKey` de cada sala, ambas verificadas no servidor.
-- **Rali NFC:** a resposta é conferida **no celular**, como nas missões padrão. Para provas ou notas, prefira o CTF Online.
-- **Banco de questões padrão:** as 100 missões embutidas estão no código-fonte público. Para avaliações com nota, use perguntas inéditas do seu banco.
-- **Dados pessoais:** o sistema guarda apenas os nomes informados pelos alunos e seu desempenho, na planilha do próprio professor. Não há cadastro, e-mail nem rastreamento.
+O mesmo padrão foi usado em Banco de Dados, Informática Básica e Construção de Sites 1.
+
+1. **Dados:** crie `src/data/<pacote>Missions.ts` exportando um `Mission[]` com `id` e `tag_id` únicos, `package`, `packageName` (vira o assunto no seletor), `category`, `pergunta`, `resposta_curta`, `alternatives`, `xp_valor`, `explanation` e, se for múltipla escolha, `opcoes`.
+2. **Tipos:** inclua os novos valores de `package` (e de `category`, se necessário) em `src/types/index.ts`.
+3. **Catálogo:** adicione o array em `BASE` e `EXTRAS` de `src/utils/missionsStore.ts`.
+4. **Disciplina:** mapeie o prefixo do pacote para o nome da disciplina em `catalogAsBank` (`src/components/rooms/RoomsPanel.tsx`).
+5. **Ambiente (opcional):** crie o componente em `src/components/ctf/` e exiba-o em `CtfStudent.tsx` quando a sala tiver tags com o prefixo do pacote.
+6. **Testes:** crie `src/data/<pacote>Missions.test.ts` verificando contagens, unicidade de ids e tags, e recalculando cada gabarito a partir do ambiente.
+
+---
+
+## Segurança e privacidade
+
+- **Correção no servidor (CTF):** gabarito, avanço de fase e trava de tempo são decididos pelo Apps Script.
+- **Chave do banco:** verificada no servidor (hash SHA-256 nas propriedades do script); chaves erradas são recusadas.
+- **Chave de administração por sala (`adminKey`):** exigida para alterar situação, tempo, liberações e debriefing.
+- **PIN do professor:** protege apenas a interface no aparelho; a proteção dos dados está nas chaves verificadas no servidor.
+- **Rali NFC:** a resposta das missões padrão é conferida no celular. Para avaliações com nota, prefira o CTF Online com perguntas inéditas do seu banco, já que o catálogo embutido é público.
+- **Planilha protegida:** textos enviados pelos alunos são gravados sem risco de virarem fórmulas.
+- **Ambientes isolados:** SQL, terminal, laboratório e Ateliê Web rodam no navegador; a pré-visualização HTML usa `iframe` com `sandbox`, sem execução de scripts.
+- **Dados pessoais (LGPD):** são guardados apenas o nome informado pelo aluno e seu desempenho, na planilha do próprio professor. Não há cadastro, e-mail nem rastreamento.
 - Nunca publique a chave do banco, a `adminKey` ou arquivos `.env` no repositório.
 
 ---
 
-## 🧪 Testes
+## Testes
 
 ```bash
 npx tsx --test src/*/*.test.ts
 ```
 
-A suíte (61 testes) cobre:
+**104 testes**, organizados em:
 
-- **Backend simulado:** o código do Apps Script é executado em um ambiente de teste com planilha falsa, cobrindo salas, entrada de alunos, envio, trava de tempo, banco, publicação e tema.
-- **Missões:** a solução de cada uma das 50 missões do console é executada no banco entregue aos alunos.
-- **Cronômetro:** limites de 5 a 120 min, fases, alertas e formatação.
-- **Banco de perguntas:** validação, importação CSV/JSON, filtros e sorteio.
-- **Ranking:** posições, subidas, descidas e ganhos de XP.
+| Área | O que é verificado |
+|---|---|
+| Backend | O código do Apps Script roda contra uma planilha simulada: salas, entrada, envio, trava de tempo, banco, publicação, tema, debriefing, log e resumo |
+| Missões de Banco de Dados | Cada solução é executada no SQLite e precisa reproduzir o gabarito |
+| Missões de Informática Básica | Gabaritos recalculados a partir dos arquivos do Laboratório; avaliador de fórmulas da planilha |
+| Missões de Construção de Sites 1 | Gabaritos recalculados a partir do HTML e CSS do site; montagem da pré-visualização |
+| Terminal Linux | Comandos, sistema de arquivos e permissões do shell simulado |
+| Catálogo | Unicidade de ids e tags em todos os pacotes; modo "só meu banco" |
+| Cronômetro, ranking e pontuação | Limites, fases, alertas, posições, subidas e descidas, XP dinâmico |
+| Banco de perguntas | Validação, importação CSV/JSON, filtros e sorteio |
 
 ---
 
-## 🗂️ Estrutura do projeto
+## Estrutura do projeto
 
 ```text
 TrilhaRali/
-├── .github/workflows/deploy.yml     Publicação no GitHub Pages
-├── public/                          Arquivos estáticos
+├── .github/workflows/deploy.yml   Publicação no GitHub Pages
+├── public/                        Arquivos estáticos
 ├── src/
-│   ├── App.tsx                      Roteamento entre módulos e estado do Rali
-│   ├── config.ts                    URL padrão do backend (DEFAULT_CTF_API_URL)
+│   ├── App.tsx                    Roteamento por hash e estado do Rali
+│   ├── config.ts                  URL padrão do backend (DEFAULT_CTF_API_URL)
 │   ├── components/
-│   │   ├── HomeLanding.tsx          Entrada do site
-│   │   ├── TeacherHub.tsx           Painel do professor
-│   │   ├── ClassroomProjector.tsx   Telão do Rali NFC
-│   │   ├── StudentScanner.tsx       Tela do aluno no Rali NFC
-│   │   ├── ctf/                     CTF: sala, aluno, telão, console SQL, Top 5
-│   │   ├── bank/                    Banco de perguntas, seletor, importação
-│   │   └── common/                  Relógio, cabeçalhos, avisos e temas compartilhados
+│   │   ├── TeacherHub.tsx         Área do professor
+│   │   ├── ClassroomProjector.tsx Telão do Rali NFC
+│   │   ├── StudentScanner.tsx     Tela da equipe no Rali NFC
+│   │   ├── rooms/                 Salas: seletor de perguntas, telão, resultados, debriefing
+│   │   ├── ctf/                   CTF: aluno, desafios, Top 5 e ambientes práticos
+│   │   │   ├── SqlConsole.tsx         Console SQL
+│   │   │   ├── LinuxTerminal.tsx      Terminal Linux
+│   │   │   ├── LabInformatica.tsx     Laboratório de Informática
+│   │   │   └── AtelieWeb.tsx          Ateliê Web
+│   │   ├── bank/                  Banco de perguntas e importação
+│   │   └── common/                Relógio, cabeçalhos, avisos, pódio e temas
 │   ├── data/
-│   │   ├── missions.ts              50 missões padrão do Rali
-│   │   ├── consoleMissions.ts       50 missões do console SQLite
-│   │   ├── bdMissions.ts            60 missões de Banco de Dados (fácil/médio/difícil)
-│   │   ├── infoMissions.ts          60 missões de Informática Básica + infoLab.ts (arquivos do Laboratório)
-│   │   ├── webMissions.ts           60 missões de Construção de Sites 1 + webLab.ts (site do Ateliê Web)
-│   │   └── ctfAppsScript.ts         Código do backend (Apps Script)
-│   ├── utils/                       Cronômetro, tema, banco, ranking, API e armazenamento
-│   └── types/                       Tipos compartilhados
+│   │   ├── missions.ts            50 missões do Rali SQL (NFC)
+│   │   ├── bdMissions.ts          60 missões de Banco de Dados
+│   │   ├── linuxMissions.ts       51 missões de Linux
+│   │   ├── infoMissions.ts        60 missões de Informática Básica
+│   │   ├── infoLab.ts             Arquivos do Laboratório de Informática
+│   │   ├── webMissions.ts         60 missões de Construção de Sites 1
+│   │   ├── webLab.ts              Site de exemplo do Ateliê Web
+│   │   ├── consoleMissions.ts     Missões de console usadas nos testes
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v11)
+│   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
+│   └── types/                     Tipos compartilhados
 ├── index.html
 ├── vite.config.ts
 └── package.json
@@ -387,30 +457,32 @@ TrilhaRali/
 
 ---
 
-## 🛠️ Solução de problemas
+## Solução de problemas
 
 | Sintoma | Causa provável e solução |
 |---|---|
 | O site mostra a versão antiga | Recarregue sem cache: **Ctrl+Shift+R** (**Cmd+Shift+R** no Mac) |
-| "Chave do banco invalida" | A chave foi digitada errada ou o script foi recriado. Conecte de novo em *Banco de perguntas* |
-| O aluno não consegue entrar no CTF | Confira o token e a URL do backend (`DEFAULT_CTF_API_URL` ou o link de convite) |
-| O CTF não lista minhas perguntas | O seletor mostra só perguntas **ativas** por padrão: marque *Incluir perguntas inativas* ou ative-as no banco |
-| O relógio não aparece no celular do Rali NFC | O aparelho do professor precisa estar com o banco conectado para espelhar o tempo |
-| "Tempo limite do bloqueio" | Muitas gravações simultâneas na planilha: repita a operação |
-| O NFC não lê a etiqueta | Web NFC exige Android com Chrome; no iPhone, use o link da etiqueta ou o QR code |
-| Resposta com `=` virou erro na planilha | O Sheets trata `=` como fórmula: escreva a resposta sem o sinal |
+| "Chave do banco inválida" | Chave digitada errada ou script recriado. Conecte de novo em *Banco de perguntas* |
+| O aluno não consegue entrar | Confira o token e a URL do backend (`DEFAULT_CTF_API_URL` ou link de convite) |
+| Uma função nova não funciona | O script na planilha está desatualizado. Publique a **nova versão** e confira `versao` na URL `/exec` |
+| O seletor não mostra minhas perguntas | Por padrão aparecem só as **ativas**: marque *Incluir perguntas inativas* ou ative-as no banco |
+| O Laboratório ou o Ateliê Web não aparece | Eles surgem só quando a sala contém missões `info_*` ou `web_*` |
+| O relógio não aparece no celular (Rali NFC) | O aparelho do professor precisa estar com o banco conectado |
+| "Tempo limite do bloqueio" | Muitas gravações simultâneas na planilha; repita a operação |
+| O NFC não lê a etiqueta | Web NFC exige Android com Chrome; no iPhone, use o link ou o QR code |
+| Resposta com `=` virou erro na planilha | O Sheets trata `=` como fórmula; escreva a resposta sem o sinal |
 
 ---
 
-## 👥 Créditos
+## Créditos
 
 **Instituto Federal de Sergipe (IFS) · Campus Tobias Barreto**
-Desenvolvido e supervisionado pelo **Prof. Eber Santana**.
+Concepção, desenvolvimento e supervisão pedagógica: **Prof. Eber Santana** ([@prof.ebersantana](https://instagram.com/prof.ebersantana)).
 
-Sugestões e melhorias são bem-vindas por *issues* e *pull requests* neste repositório.
+Sugestões e melhorias são bem-vindas por *issues* e *pull requests*.
 
 <div align="center">
 
-🏁 **Trilha Rali** · IFS 2026
+**Trilha Rali** · IFS Campus Tobias Barreto · 2026
 
 </div>
