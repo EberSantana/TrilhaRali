@@ -72,7 +72,7 @@ export function CruzBancoPanel({ call }: Props) {
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           rows={5}
-          placeholder={'Banco de Dados;PRIMARIA;Tipo de chave que identifica cada linha\nsites;HREF;Atributo com o endereço de um link'}
+          placeholder={'Banco de Dados;EXEMPLO;Escreva aqui a dica da palavra\nsites;OUTRAPALAVRA;Apelidos aceitos: bd, info, sites, linux'}
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[13px]"
         />
       </label>
