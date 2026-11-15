@@ -3,7 +3,6 @@ import type { Database, SqlJsStatic } from 'sql.js';
 import { Database as DbIcon, Download, Eraser, Loader2, Play, RotateCcw, Table2, Terminal } from 'lucide-react';
 import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 
-const KEY_DRAFT = 'rali_ctf_sql_draft_v1';
 const MAX_ROWS = 500;
 
 // SQLite compilado para WebAssembly: carregado só quando o aluno abre o console
@@ -47,13 +46,8 @@ export const SqlConsole: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [origin, setOrigin] = useState<'rali' | 'vazio'>('rali');
   const [tables, setTables] = useState<TableInfo[]>([]);
-  const [sql, setSql] = useState(() => {
-    try {
-      return localStorage.getItem(KEY_DRAFT) || '';
-    } catch {
-      return '';
-    }
-  });
+  // Sempre começa limpo: nada de texto de outra pessoa/sessão no computador do laboratório.
+  const [sql, setSql] = useState('');
   const [results, setResults] = useState<ResultSet[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -114,11 +108,6 @@ export const SqlConsole: React.FC = () => {
 
   const updateSql = (value: string) => {
     setSql(value);
-    try {
-      localStorage.setItem(KEY_DRAFT, value);
-    } catch {
-      // ignore
-    }
   };
 
   const run = () => {
@@ -357,7 +346,7 @@ export const SqlConsole: React.FC = () => {
         </div>
       )}
       <p className="text-[11px] text-slate-500">
-        Este banco existe só nesta página: ao recarregar ele volta ao início (seu texto é guardado). Use “.sqlite” para salvar uma cópia.
+        Este banco existe só nesta página: ao recarregar ele volta ao início. Use “.sqlite” para salvar uma cópia.
       </p>
     </section>
   );
