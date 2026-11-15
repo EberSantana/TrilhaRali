@@ -260,27 +260,75 @@ export const CtfStudent: React.FC = () => {
   // O Ateliê Web aparece quando a sala tem missões de Construção de Sites 1.
   const temAtelie = tagsSala.some((t) => t.startsWith('web_'));
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-      <StudentBar
-        module="ctf"
-        context={sala.nome}
-        name={aluno.nome}
-      >
-        <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
-        <XpChip xp={aluno.xp} />
-        {aluno.fogos > 0 && (
-          <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
-        )}
-        <RankChip pos={aluno.posicao} total={state.total_alunos} />
-        <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
-          <LogOut className="w-4 h-4" />
-        </button>
-      </StudentBar>
+  const barra = (
+    <StudentBar
+      module="ctf"
+      context={sala.nome}
+      name={aluno.nome}
+    >
+      <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
+      <XpChip xp={aluno.xp} />
+      {aluno.fogos > 0 && (
+        <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
+      )}
+      <RankChip pos={aluno.posicao} total={state.total_alunos} />
+      <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
+        <LogOut className="w-4 h-4" />
+      </button>
+    </StudentBar>
+  );
+  const avisos = (
+    <>
 
       {closed && <StatusBanner>A sala foi encerrada pelo professor. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}
+    </>
+  );
+
+  // Sala só de Cruzadinha: o aluno entra direto na grade; o ranking conta as palavras acertadas.
+  if (sala.ordem === 'cruzadinha') {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+        {barra}
+        {avisos}
+        {finished && (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">
+            <FinalPodium rows={ranking} totalFases={sala.total} unit="palavras" entity="alunos" me={aluno.nome} />
+            <p className="mt-4 text-center text-sm text-slate-400">
+              Você: <strong className="text-white">{aluno.posicao}º lugar</strong> • {aluno.xp} XP
+            </p>
+          </div>
+        )}
+        <Cruzadinha token={sala.token} nome={aluno.nome} versao={sala.cruzadinha_versao} bloqueada={locked} api={cruzApi} />
+        <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-400" /> Top 5
+            </h3>
+            <span className="text-[11px] font-mono text-slate-500">
+              {state.total_alunos} {state.total_alunos === 1 ? 'aluno' : 'alunos'}
+            </span>
+          </div>
+          <Top5Board
+            rows={ranking}
+            totalFases={sala.total}
+            me={aluno.nome}
+            mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.acertos, fogos: aluno.fogos, posicao: aluno.posicao }}
+            unit="palavras"
+            variant={theme === 'claro' ? 'bars' : 'podium'}
+          />
+          <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      {barra}
+      {avisos}
 
       {sala.terminal && <LinuxTerminal />}
       {temLab && <LabInformatica />}

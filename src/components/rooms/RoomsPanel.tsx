@@ -16,6 +16,7 @@ import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
+import { CRUZ_DISCIPLINAS, type CruzDisciplina } from '../../utils/cruzBanco';
 
 const POLL_MS = 10_000;
 
@@ -81,6 +82,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
   const [ordem, setOrdem] = useState<CtfOrdem>('livre');
+  const [novaDisc, setNovaDisc] = useState<CruzDisciplina>('Banco de Dados');
+  const [novaPalavras, setNovaPalavras] = useState(12);
+  const [novaDicas, setNovaDicas] = useState(10);
+  const cruzSala = tipo === 'ctf' && ordem === 'cruzadinha';
   const [usarTimer, setUsarTimer] = useState(false);
   const [minutos, setMinutos] = useState(60);
   const catalog = useMissions();
@@ -198,13 +203,29 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       setShowSetup(true);
       return;
     }
-    if (total === 0) {
+    if (total === 0 && !cruzSala) {
       setError('Selecione ao menos uma pergunta.');
       return;
     }
     setBusy(true);
     setError('');
     try {
+      if (cruzSala) {
+        const nomeCruz = nome.trim() || `Cruzadinha · ${novaDisc}`;
+        const r = await ctfCall<{ token: string; adminKey: string; ordem?: string }>(
+          'createRoom',
+          { nome: nomeCruz, modo, tipo: 'ctf', ordem: 'cruzadinha', disciplina: novaDisc, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
+          apiUrl,
+        );
+        if (r.ordem !== 'cruzadinha') {
+          throw new Error('O servidor está numa versão antiga e não tem a sala de Cruzadinha. Atualize o script do Apps Script (versão 19) e publique uma nova versão.');
+        }
+        const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeCruz, api: apiUrl, criada: Date.now() };
+        persist([st, ...allRooms]);
+        setActiveToken(st.token);
+        setNome('');
+        return;
+      }
       const missions: CtfMissionPayload[] = chosen.map(({ m }) => ({
         tag_id: m.tag_id,
         categoria: 'category' in m ? m.category : '',
@@ -453,9 +474,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     URL.revokeObjectURL(a.href);
   };
 
+  const salaCruz = !nfc && view?.sala.ordem === 'cruzadinha';
   const livre = !nfc && view?.sala.ordem === 'livre';
-  const porAcertos = nfc || livre;
-  const unidade = livre ? 'desafios' : txt.unidade;
+  const porAcertos = nfc || livre || salaCruz;
+  const unidade = salaCruz ? 'palavras' : livre ? 'desafios' : txt.unidade;
   const inviteLink = activeRoom ? buildStudentLink(activeRoom.token, activeRoom.api, tipo) : '';
   const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo}` : '';
   const Icon = nfc ? Radio : Flag;
@@ -535,8 +557,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           {!nfc && (
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Como os alunos avançam</span>
-              <div className="grid grid-cols-2 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
-                {([['livre', 'Livre'], ['sequencial', 'Em ordem']] as [CtfOrdem, string][]).map(([o, label]) => (
+              <div className="grid grid-cols-3 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
+                {([['livre', 'Livre'], ['sequencial', 'Em ordem'], ['cruzadinha', 'Cruzadinha']] as [CtfOrdem, string][]).map(([o, label]) => (
                   <button
                     key={o}
                     type="button"
@@ -552,7 +574,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               <p className="text-[11px] text-slate-500">
                 {ordem === 'livre'
                   ? 'Painel de desafios: cada aluno escolhe a ordem e o ranking é por pontos.'
-                  : 'Fase a fase: o aluno só libera a próxima fase ao acertar a atual.'}
+                  : ordem === 'cruzadinha'
+                    ? 'Sala só de palavras cruzadas: o aluno entra direto na Cruzadinha e cada palavra certa soma no ranking.'
+                    : 'Fase a fase: o aluno só libera a próxima fase ao acertar a atual.'}
               </p>
             </div>
           )}
@@ -573,6 +597,35 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             )}
           </div>
 
+          {cruzSala ? (
+            <fieldset className="min-w-0 space-y-3 rounded-2xl border-2 border-emerald-500/50 bg-emerald-500/5 p-3">
+              <legend className="flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider text-emerald-300">
+                <Puzzle className="w-4 h-4" /> Cruzadinha da sala
+              </legend>
+              <p className="text-[11px] text-slate-400">
+                O servidor monta a grade com o banco de palavras da disciplina (aba CruzBanco) e o aluno entra direto nela. O ranking conta as palavras acertadas.
+              </p>
+              <label className="block space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Disciplina</span>
+                <select value={novaDisc} onChange={(e) => setNovaDisc(e.target.value as CruzDisciplina)} className={input}>
+                  {CRUZ_DISCIPLINAS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Palavras (6 a 25)</span>
+                  <input type="number" min={6} max={25} value={novaPalavras} onChange={(e) => setNovaPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={input} />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dicas por aluno</span>
+                  <input type="number" min={0} max={30} value={novaDicas} onChange={(e) => setNovaDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={input} />
+                </label>
+              </div>
+              <p className="text-[11px] text-slate-500">Para trocar ou incluir palavras, use “Banco de palavras” no passo 2 de qualquer sala.</p>
+            </fieldset>
+          ) : (
           <fieldset className={`min-w-0 space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
             <legend className={`flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider ${accentText}`}>
               🎯 Perguntas da sala
@@ -645,6 +698,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               <p className="text-[11px] text-slate-500">{bankMsg || 'Nenhuma pergunta disponível.'}</p>
             )}
           </fieldset>
+          )}
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
 

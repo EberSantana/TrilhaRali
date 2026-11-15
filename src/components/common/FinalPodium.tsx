@@ -30,7 +30,7 @@ interface FinalPodiumProps {
   rows: RankRow[];
   totalFases: number;
   /** 'fases' (CTF) ou 'missões' (Rali NFC) */
-  unit?: 'fases' | 'missões' | 'desafios';
+  unit?: 'fases' | 'missões' | 'desafios' | 'palavras';
   /** 'alunos' (CTF) ou 'equipes' (Rali NFC) */
   entity?: 'alunos' | 'equipes';
   /** destaca a linha de quem está olhando (celular) */

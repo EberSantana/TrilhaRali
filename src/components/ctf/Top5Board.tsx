@@ -14,7 +14,7 @@ interface Top5BoardProps {
   /** podium = três primeiros em destaque (tema escuro) · bars = lista com barras de pontos (tema claro) */
   variant?: 'podium' | 'bars';
   /** 'fases' (CTF, F3/10) ou 'missões' (Rali NFC, 3/50) */
-  unit?: 'fases' | 'missões' | 'desafios';
+  unit?: 'fases' | 'missões' | 'desafios' | 'palavras';
 }
 
 const CHANGE_MS = 9000;

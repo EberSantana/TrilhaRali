@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v18.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v19.**
 
 ### Configuração inicial
 
@@ -323,7 +323,8 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
-| **v18** | Banco da Cruzadinha fora do código público: o professor importa a lista pelo painel (*Banco de palavras*), e ela existe só na aba `CruzBanco` da planilha (`cruzBancoImport`, `cruzBancoResumo`) |
+| **v19** | Sala de Cruzadinha: em *Como os alunos avançam › Cruzadinha* o professor escolhe a disciplina, as palavras e as dicas; o servidor monta a grade na criação e o aluno entra direto nela; ranking, telão e debriefing contam palavras (coluna `cruzadinha_disc`) |
+| v18 | Banco da Cruzadinha fora do código público: o professor importa a lista pelo painel (*Banco de palavras*), e ela existe só na aba `CruzBanco` da planilha (`cruzBancoImport`, `cruzBancoResumo`) |
 | v17 | Cruzadinha 100% no servidor: grade montada pelo Apps Script a partir da aba `CruzBanco` (editável); aluno recebe a grade sem letras; `cruzState`, `cruzCheck` e `cruzHint`; dicas registradas em `CtfCruzDicas`; botão *Nova grade* |
 | v16 | Cruzadinha: grade de até 25 palavras (banco com 32 por disciplina); no modo CTF Dinâmico quem fecha a palavra primeiro ganha mais (aba `CtfCruzCapturas`) |
 | v15 | O servidor confere a Cruzadinha: o professor grava o gabarito (palavras da grade) ao liberar; o aluno envia as palavras resolvidas e o nível de ajuda; o XP é recalculado no servidor (coluna `cruzadinha_gabarito`) |
@@ -458,7 +459,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v18)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v19)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html
