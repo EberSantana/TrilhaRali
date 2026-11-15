@@ -16,6 +16,7 @@ import { TeacherAuthModal } from './components/TeacherAuthModal';
 import { AboutView } from './components/AboutView';
 import type { AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
+import { CruzModule } from './components/cruz/CruzModule';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
 import { HomeLanding } from './components/HomeLanding';
@@ -52,9 +53,11 @@ import { parseTagFromLocation } from './utils/tagLink';
 function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/professor/rali')) return 'prof-rali';
   if (hash.startsWith('#/professor/ctf')) return 'prof-ctf';
+  if (hash.startsWith('#/professor/cruz')) return 'prof-cruz';
   if (hash.startsWith('#/professor/local')) return 'local';
   if (hash.startsWith('#/professor')) return 'professor';
   if (hash.startsWith('#/ctf')) return 'ctf';
+  if (hash.startsWith('#/cruzada')) return 'cruz';
   if (hash.startsWith('#/rali') || parseTagFromLocation(hash, search)) return 'rali';
   return null;
 }
@@ -179,8 +182,8 @@ export default function App() {
 
   // Troca de módulo mantém o endereço compartilhável (#/ctf)
   const MODULE_HASH: Record<AppModule, string> = {
-    home: '', rali: '#/rali', ctf: '#/ctf', professor: '#/professor',
-    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', local: '#/professor/local',
+    home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', professor: '#/professor',
+    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', local: '#/professor/local',
   };
   const handleChangeModule = (next: AppModule) => {
     setAppModule(next);
@@ -359,6 +362,7 @@ export default function App() {
             isTeacher={isTeacher}
             onOpenRali={() => handleChangeModule('rali')}
             onOpenCtf={() => handleChangeModule('ctf')}
+            onOpenCruz={() => handleChangeModule('cruz')}
             onOpenTeacher={() => handleChangeModule('professor')}
           />
         </main>
@@ -380,6 +384,10 @@ export default function App() {
         <main className="flex-1 pb-16">
           <CtfModule />
         </main>
+      ) : appModule === 'cruz' ? (
+        <main className="flex-1 pb-16">
+          <CruzModule />
+        </main>
       ) : appModule === 'prof-rali' && isTeacher ? (
         <main className="flex-1 pb-16">
           <RoomsPanel
@@ -400,7 +408,11 @@ export default function App() {
         <main className="flex-1 pb-16">
           <RoomsPanel tipo="ctf" onBack={() => handleChangeModule('professor')} />
         </main>
-      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' ? (
+      ) : appModule === 'prof-cruz' && isTeacher ? (
+        <main className="flex-1 pb-16">
+          <RoomsPanel tipo="cruz" onBack={() => handleChangeModule('professor')} />
+        </main>
+      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' || appModule === 'prof-cruz' ? (
         <main className="flex-1 pb-16">
           <TeacherHub
             isTeacher={isTeacher}
@@ -413,6 +425,7 @@ export default function App() {
             onOpenSheets={() => { setActiveTab('sheets'); handleChangeModule('local'); }}
             onOpenRaliRooms={() => handleChangeModule('prof-rali')}
             onOpenCtfRooms={() => handleChangeModule('prof-ctf')}
+            onOpenCruzRooms={() => handleChangeModule('prof-cruz')}
             onOpenAccount={() => handleOpenTeacherAuth('PIN e sessão')}
           />
         </main>

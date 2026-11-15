@@ -104,7 +104,7 @@ Os ambientes rodam inteiramente no navegador do aluno, sem acesso à rede ou ao 
 | **Console SQL** | Banco de Dados | Liberado pelo professor na sala | Executa SQL em um SQLite real (`sql.js`/WebAssembly) com as tabelas da escola e do laboratório |
 | **Terminal Linux** | Fundamentos de Sistemas Operacionais | Liberado pelo professor na sala | Usa um shell simulado com sistema de arquivos, permissões e processos |
 | **Laboratório de Informática** | Informática Básica | Automaticamente, se a sala tiver missões `info_*` | Investiga ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas e apresentação |
-| **Cruzadinha** | Todas (vocabulário da disciplina da sala) | Liberada pelo professor na sala, com limite de dicas e quantidade de palavras (6 a 25) definidos por ele | O servidor monta a grade a partir da aba `CruzBanco` e o aluno recebe só o desenho e as dicas, sem as letras. Cada palavra completa é conferida no servidor, que também entrega e conta as dicas (letra revelada: metade do XP; palavra revelada: 0). O XP soma no ranking; no modo CTF Dinâmico quem fecha a palavra primeiro ganha o valor cheio e os seguintes perdem 10% por posição, até 40% |
+| **Cruzada Online** (módulo próprio, cartão na tela inicial) | Banco da Cruzadinha: Banco de Dados, Informática Básica, Construção de Sites 1 e Fundamentos de SO | Duas formas de jogar: **sala da turma** (token, ranking e telão) ou **treino livre** (o aluno escolhe o assunto; sem token e sem ranking). Na sala, com limite de dicas e quantidade de palavras (6 a 25) definidos por ele | O servidor monta a grade a partir da aba `CruzBanco` e o aluno recebe só o desenho e as dicas, sem as letras. Cada palavra completa é conferida no servidor, que também entrega e conta as dicas (letra revelada: metade do XP; palavra revelada: 0). O XP soma no ranking; no modo CTF Dinâmico quem fecha a palavra primeiro ganha o valor cheio e os seguintes perdem 10% por posição, até 40% |
 | **Ateliê Web** | Construção de Sites 1 | Automaticamente, se a sala tiver missões `web_*` | Inspeciona um site de exemplo, lê `index.html` e `estilo.css` e testa HTML/CSS em um editor com pré-visualização ao vivo |
 
 **Destaques**
@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v19.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v20.**
 
 ### Configuração inicial
 
@@ -323,7 +323,8 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
-| **v19** | Sala de Cruzadinha: em *Como os alunos avançam › Cruzadinha* o professor escolhe a disciplina, as palavras e as dicas; o servidor monta a grade na criação e o aluno entra direto nela; ranking, telão e debriefing contam palavras (coluna `cruzadinha_disc`) |
+| **v20** | **Cruzada Online** vira módulo próprio, separado do CTF: sala do professor com tipo `cruz` (salas da v19 continuam valendo) e **treino livre** sem token nem ranking (`cruzTreinoNovo`, `cruzTreinoEstado`, `cruzTreinoCheck`, `cruzTreinoHint`; gabarito só no cache do servidor por 6 h) |
+| v19 | Sala de Cruzadinha: em *Como os alunos avançam › Cruzadinha* o professor escolhe a disciplina, as palavras e as dicas; o servidor monta a grade na criação e o aluno entra direto nela; ranking, telão e debriefing contam palavras (coluna `cruzadinha_disc`) |
 | v18 | Banco da Cruzadinha fora do código público: o professor importa a lista pelo painel (*Banco de palavras*), e ela existe só na aba `CruzBanco` da planilha (`cruzBancoImport`, `cruzBancoResumo`) |
 | v17 | Cruzadinha 100% no servidor: grade montada pelo Apps Script a partir da aba `CruzBanco` (editável); aluno recebe a grade sem letras; `cruzState`, `cruzCheck` e `cruzHint`; dicas registradas em `CtfCruzDicas`; botão *Nova grade* |
 | v16 | Cruzadinha: grade de até 25 palavras (banco com 32 por disciplina); no modo CTF Dinâmico quem fecha a palavra primeiro ganha mais (aba `CtfCruzCapturas`) |
@@ -459,7 +460,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v19)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v20)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

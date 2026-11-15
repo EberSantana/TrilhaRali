@@ -9,6 +9,7 @@ import {
   Library,
   Lock,
   MonitorPlay,
+  Puzzle,
   Radio,
   ArrowLeft,
   Sheet,
@@ -29,6 +30,7 @@ interface TeacherHubProps {
   onOpenSheets: () => void;
   onOpenRaliRooms: () => void;
   onOpenCtfRooms: () => void;
+  onOpenCruzRooms: () => void;
   onOpenAccount: () => void;
 }
 
@@ -90,9 +92,11 @@ interface StepRow {
 }
 
 /** Cartão de módulo: Rali NFC e CTF Online seguem exatamente os mesmos 4 passos. */
-const ModuleCard: React.FC<{ name: string; tagline: string; tone: 'emerald' | 'orange'; icon: React.ReactNode; rows: StepRow[] }> = ({ name, tagline, tone, icon, rows }) => {
+const ModuleCard: React.FC<{ name: string; tagline: string; tone: 'emerald' | 'orange' | 'cyan'; icon: React.ReactNode; rows: StepRow[] }> = ({ name, tagline, tone, icon, rows }) => {
   const t = tone === 'emerald'
     ? { head: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300', num: 'bg-emerald-600', hover: 'hover:border-emerald-500/50' }
+    : tone === 'cyan'
+    ? { head: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300', num: 'bg-cyan-600', hover: 'hover:border-cyan-500/50' }
     : { head: 'bg-orange-500/10 border-orange-500/30 text-orange-300', num: 'bg-orange-600', hover: 'hover:border-orange-500/50' };
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5" aria-label={name}>
@@ -182,7 +186,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
       </Section>
 
       <h2 className="mt-8 mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">2 · Aula — mesmo roteiro nos dois módulos</h2>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <ModuleCard
           name="Rali NFC"
           tagline="Equipes em grupo, tags no laboratório"
@@ -205,6 +209,18 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
             { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token aos alunos.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
             { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Ranking, Top 5 e tempo de 5 a 120 min para projetar.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
             { step: 4, label: 'Resultados', title: 'Ranking e envios', description: 'Acompanhe o ranking e o andamento de cada aluno.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCtfRooms },
+          ]}
+        />
+        <ModuleCard
+          name="Cruzada Online"
+          tagline="Palavras cruzadas por assunto (a turma também treina sozinha)"
+          tone="cyan"
+          icon={<Puzzle className="w-5 h-5" />}
+          rows={[
+            { step: 1, label: 'Assunto', title: 'Escolher assunto e dicas', description: 'Disciplina, nº de palavras (6 a 25) e dicas por aluno. O banco de palavras fica só na sua planilha.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
+            { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token. Sem sala, o aluno usa o Treino livre.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
+            { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Quem fecha a palavra primeiro ganha mais XP e o 🔥.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
+            { step: 4, label: 'Resultados', title: 'Ranking e debriefing', description: 'Palavras acertadas por aluno e gabarito da turma.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
           ]}
         />
       </div>

@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
 import { BANCO_TESTE } from './cruzBancoTeste';
 
-// Executa o código real da Cruzadinha do Apps Script (v19) num simulador mínimo da planilha.
+// Executa o código real da Cruzada Online do Apps Script (v20) num simulador mínimo da planilha.
 const trecho = (de: string, ate: string) => CTF_APPS_SCRIPT.slice(CTF_APPS_SCRIPT.indexOf(de), CTF_APPS_SCRIPT.indexOf(ate));
 type Row = Record<string, unknown> & { _row: number };
 const plain = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -18,6 +18,8 @@ interface Saida {
 }
 
 function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
+  const guardado = new Map<string, string>();
+  const cache = { get: (k: string) => guardado.get(k) ?? null, put: (k: string, v: string) => void guardado.set(k, v) };
   const sheets: Record<string, Row[]> = {
     CtfSalas: [{ _row: 2, token: 'T', status: 'aberta', modo, tipo: 'ctf', timer: '', cruzadinha_dicas: '', cruzadinha_palavras: '', cruzadinha_grade: '' }],
     CtfMissoes: tags.map((t, i) => ({ _row: i + 2, token: 'T', tag_id: t })),
@@ -44,6 +46,7 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
     norm: (x: string) => String(x).toLowerCase(),
     playersOf: () => sheets.CtfAlunos,
     fail: (m: string) => { throw new Error(m); },
+    CacheService: { getScriptCache: () => cache },
   };
   vm.createContext(ctx);
   vm.runInContext(trecho('function pontos', 'function randomFrom'), ctx);
@@ -208,7 +211,7 @@ test('o professor pode editar a aba CruzBanco: palavra com acento, palavra desat
   assert.ok(nomes.every((n) => ativas.has(n)), nomes.join(','));
 });
 
-test('sala de Cruzadinha (v19): cria com a disciplina, o aluno joga direto e o ranking conta palavras', () => {
+test('Cruzada Online (v20): sala com tipo próprio; cria com a disciplina, o aluno joga direto e o ranking conta palavras', () => {
   const p = planilha('ctf_dynamic', []);
   const ctx = p.ctx;
   Object.assign(ctx, {
@@ -218,14 +221,74 @@ test('sala de Cruzadinha (v19): cria com a disciplina, o aluno joga direto e o r
     TOKEN_CHARS: 'ABC',
   });
   vm.runInContext(trecho('function isCruz', 'function join('), ctx);
-  const r = plain((ctx.createRoom as (q: unknown) => Record<string, unknown>)({ tipo: 'ctf', ordem: 'cruzadinha', disciplina: 'Informática Básica', palavras: 10, dicas: 4, modo: 'ctf_dynamic', nome: 'Cruz' }));
+  const r = plain((ctx.createRoom as (q: unknown) => Record<string, unknown>)({ tipo: 'cruz', disciplina: 'Informática Básica', palavras: 10, dicas: 4, modo: 'ctf_dynamic', nome: 'Cruz' }));
   assert.equal(r.ordem, 'cruzadinha');
+  assert.equal(r.tipo, 'cruz');
   const sala = p.sheets.CtfSalas.find((s) => s.token === 'CRUZ01')!;
+  assert.equal(sala.tipo, 'cruz');
+  assert.equal(plain((ctx.tipoOut as (x: unknown) => string)(sala)), 'cruz');
+  // salas da v19 (ctf + cruzadinha) continuam sendo Cruzada; CTF e Rali não mudam
+  assert.equal((ctx.tipoOut as (x: unknown) => string)({ tipo: 'ctf', ordem: 'cruzadinha' }), 'cruz');
+  assert.equal((ctx.tipoOut as (x: unknown) => string)({ tipo: 'ctf', ordem: 'livre' }), 'ctf');
+  assert.equal((ctx.tipoOut as (x: unknown) => string)({ tipo: 'rali' }), 'rali');
   assert.equal(sala.cruzadinha_disc, 'Informática Básica');
   assert.equal(sala.cruzadinha_dicas, 4);
   const g = JSON.parse(String(sala.cruzadinha_grade)) as { palavras: { id: number; palavra: string }[] };
   assert.equal(Number(sala.total_fases), g.palavras.length);
   const info = new Set(p.sheets.CruzBanco.filter((b) => b.disciplina === 'Informática Básica').map((b) => b.palavra));
   assert.ok(g.palavras.every((w) => info.has(w.palavra)));
-  assert.throws(() => (ctx.createRoom as (q: unknown) => unknown)({ tipo: 'ctf', ordem: 'cruzadinha', disciplina: 'Química' }), /Escolha a disciplina/);
+  assert.throws(() => (ctx.createRoom as (q: unknown) => unknown)({ tipo: 'cruz', disciplina: 'Química' }), /Escolha a disciplina/);
+});
+
+test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no ranking', () => {
+  const p = planilha();
+  const call = (fn: string, req: Record<string, unknown>) => p.call(fn, req) as unknown as { cruz: Saida };
+  const novo = call('cruzTreinoNovo', { disciplina: 'Informática Básica', palavras: 8, dicas: 2 });
+  const gid = novo.cruz.grade.id;
+  assert.equal(novo.cruz.limite, 2);
+  assert.ok(novo.cruz.grade.palavras.length >= 6);
+  // o aluno nunca recebe a palavra: só o tamanho e a dica
+  assert.ok(novo.cruz.grade.palavras.every((w) => !('palavra' in w) && typeof w.tam === 'number'));
+  // o gabarito existe só no cache do servidor
+  const gab = plain((p.ctx.treinoGet as (g: number) => { grade: { palavras: Palavra[] } })(gid)).grade.palavras;
+  const [a, b, c, d] = gab;
+
+  let r = call('cruzTreinoCheck', { gid, id: a.id, tentativa: 'ZZZ' });
+  assert.equal(r.cruz.correta, false);
+  assert.equal(r.cruz.xp, 0);
+  r = call('cruzTreinoCheck', { gid, id: a.id, tentativa: a.palavra.toLowerCase() });
+  assert.equal(r.cruz.correta, true);
+  assert.equal(r.cruz.nova?.xp, a.palavra.length * 10);
+  assert.equal(r.cruz.xp, a.palavra.length * 10);
+  // repetir a mesma palavra não soma de novo
+  r = call('cruzTreinoCheck', { gid, id: a.id, tentativa: a.palavra });
+  assert.equal(r.cruz.xp, a.palavra.length * 10);
+  assert.equal(r.cruz.nova, undefined);
+
+  // dica: o servidor entrega a letra e conta; palavra com ajuda vale metade
+  let h = call('cruzTreinoHint', { gid, id: b.id, tipo: 'letra', indice: 0 });
+  assert.equal(h.cruz.usadas, 1);
+  assert.deepEqual(h.cruz.reveladas.map((x) => x[2]), [b.palavra[0]]);
+  r = call('cruzTreinoCheck', { gid, id: b.id, tentativa: b.palavra });
+  assert.equal(r.cruz.nova?.xp, Math.round(b.palavra.length * 10 * 0.5));
+  assert.throws(() => call('cruzTreinoHint', { gid, id: a.id, tipo: 'letra', indice: 0 }), /já está resolvida/);
+  h = call('cruzTreinoHint', { gid, id: c.id, tipo: 'letra', indice: 1 });
+  assert.equal(h.cruz.usadas, 2);
+  assert.throws(() => call('cruzTreinoHint', { gid, id: d.id, tipo: 'letra', indice: 0 }), /acabaram/);
+
+  // continua de onde parou ao recarregar
+  const st = call('cruzTreinoEstado', { gid });
+  assert.equal(st.cruz.resolvidas.length, 2);
+  assert.equal(st.cruz.usadas, 2);
+  assert.ok(st.cruz.grade.palavras.every((w) => !('palavra' in w)));
+
+  // nada vai para o ranking nem para a planilha da sala
+  assert.equal(p.sheets.CtfCruzCapturas.length, 0);
+  assert.equal(p.sheets.CtfCruzDicas.length, 0);
+  assert.ok(p.sheets.CtfAlunos.every((x) => x.xp === 0 && x.xp_cruz === 0));
+
+  assert.throws(() => call('cruzTreinoEstado', { gid: 1 }), /expirou/);
+  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Química' }), /assunto/);
+  p.sheets.CruzBanco.length = 0;
+  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Banco de Dados' }), /Ainda não há palavras/);
 });

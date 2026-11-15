@@ -43,7 +43,7 @@ export function buildStudentLink(token: string, api: string, tipo: RoomTipo = 'c
   const base = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : '';
   const params = new URLSearchParams({ t: token });
   if (!DEFAULT_CTF_API_URL || DEFAULT_CTF_API_URL !== api) params.set('api', api);
-  return `${base}#/${tipo === 'rali' ? 'rali' : 'ctf'}?${params.toString()}`;
+  return `${base}#/${tipo === 'rali' ? 'rali' : tipo === 'cruz' ? 'cruzada' : 'ctf'}?${params.toString()}`;
 }
 
 // --- URL do backend (Apps Script) ---

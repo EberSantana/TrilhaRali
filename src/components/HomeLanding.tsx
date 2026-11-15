@@ -1,11 +1,12 @@
 import React from 'react';
-import { ArrowRight, Flag, Lock, Radio, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Flag, Lock, Puzzle, Radio, ShieldCheck } from 'lucide-react';
 import { TrilhaLogo } from './TrilhaLogo';
 
 interface HomeLandingProps {
   isTeacher: boolean;
   onOpenRali: () => void;
   onOpenCtf: () => void;
+  onOpenCruz: () => void;
   onOpenTeacher: () => void;
 }
 
@@ -15,7 +16,7 @@ interface EntryCardProps {
   description: string;
   chips: string[];
   icon: React.ReactNode;
-  accent: 'emerald' | 'orange';
+  accent: 'emerald' | 'orange' | 'cyan';
   onClick: () => void;
 }
 
@@ -31,6 +32,12 @@ const ACCENTS = {
     icon: 'bg-orange-500/10 text-orange-300 border-orange-500/30',
     chip: 'bg-orange-500/10 text-orange-300 border-orange-500/20',
     cta: 'text-orange-300 group-hover:text-orange-200',
+  },
+  cyan: {
+    ring: 'hover:border-cyan-500/60 focus-visible:ring-cyan-500/60',
+    icon: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+    chip: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20',
+    cta: 'text-cyan-300 group-hover:text-cyan-200',
   },
 } as const;
 
@@ -61,7 +68,7 @@ const EntryCard: React.FC<EntryCardProps> = ({ title, tagline, description, chip
   );
 };
 
-export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenTeacher }) => (
+export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenCruz, onOpenTeacher }) => (
   <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-6">
     <header className="flex flex-col items-center text-center">
       <div className="relative">
@@ -74,7 +81,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
       </p>
     </header>
 
-    <section className="mt-7 grid gap-5 md:grid-cols-2" aria-label="Escolha o módulo">
+    <section className="mt-7 grid gap-5 md:grid-cols-3" aria-label="Escolha o módulo">
       <EntryCard
         title="Rali NFC"
         tagline="Em equipe, pelo laboratório"
@@ -92,6 +99,15 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
         icon={<Flag className="w-6 h-6" />}
         accent="orange"
         onClick={onOpenCtf}
+      />
+      <EntryCard
+        title="Cruzada Online"
+        tagline="Individual, por assunto"
+        description="Escolha o assunto e monte palavras cruzadas, na sala da turma ou em treino livre. As palavras são conferidas no servidor."
+        chips={['Por assunto', 'Sala ou treino', 'Dicas limitadas']}
+        icon={<Puzzle className="w-6 h-6" />}
+        accent="cyan"
+        onClick={onOpenCruz}
       />
     </section>
 
