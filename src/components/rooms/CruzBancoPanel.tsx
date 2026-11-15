@@ -10,6 +10,8 @@ interface Props {
 
 interface Resumo {
   por_disciplina: Record<string, number>;
+  /** quantas dessas palavras vêm das perguntas do Banco de perguntas */
+  do_banco?: Record<string, number>;
   importadas?: number;
 }
 
@@ -53,7 +55,7 @@ export function CruzBancoPanel({ call }: Props) {
       <div className="flex items-start gap-2">
         <Lock className="w-4 h-4 mt-0.5 text-emerald-700 shrink-0" />
         <p className="text-sm">
-          <strong>Banco de palavras da Cruzadinha.</strong> Fica só na aba <code>CruzBanco</code> da sua planilha, fora do código do site, então os alunos não têm como ver a lista. Vale para todas as suas salas.
+          <strong>Banco de palavras da Cruzada.</strong> As palavras ficam só na planilha (aba <code>CruzBanco</code>), fora do código do site, então os alunos não têm como ver a lista. Além delas, toda pergunta ativa do <strong>Banco de perguntas</strong> cuja resposta seja uma palavra (3 a 16 letras) vira palavra da cruzada, no mesmo assunto, com a pergunta como dica.
         </p>
       </div>
 
@@ -62,17 +64,18 @@ export function CruzBancoPanel({ call }: Props) {
           <div key={d} className="rounded-lg bg-white border border-emerald-200 px-2.5 py-1.5">
             <div className="text-slate-500 truncate" title={d}>{d}</div>
             <div className="text-lg font-black">{resumo ? resumo.por_disciplina[d] ?? 0 : '…'}</div>
+            {resumo?.do_banco && <div className="text-[10px] text-slate-500">{resumo.do_banco[d] ?? 0} do Banco de perguntas</div>}
           </div>
         ))}
       </div>
 
       <label className="block space-y-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Uma palavra por linha: disciplina;palavra;dica</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Uma palavra por linha: disciplina;assunto;palavra;dica</span>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           rows={5}
-          placeholder={'Banco de Dados;EXEMPLO;Escreva aqui a dica da palavra\nsites;OUTRAPALAVRA;Apelidos aceitos: bd, info, sites, linux'}
+          placeholder={'disciplina;assunto;palavra;dica\nBanco de Dados;Joins;INNER;Junção que traz só as linhas com par\nsites;HTML;HREF;Atributo do link (apelidos: bd, info, sites, linux)'}
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[13px]"
         />
       </label>
@@ -98,11 +101,13 @@ export function CruzBancoPanel({ call }: Props) {
 
       {texto && (
         <p className="text-xs text-slate-600">
-          {leitura.linhas.length} palavras prontas{leitura.erros.length ? `; ${leitura.erros.length} linhas ignoradas: ${leitura.erros.slice(0, 3).join(' · ')}${leitura.erros.length > 3 ? '…' : ''}` : '.'}
+          {leitura.linhas.length} palavras prontas{leitura.comAssunto ? '' : ' (sem assunto: entram em "Geral")'}{leitura.erros.length ? `; ${leitura.erros.length} linhas ignoradas: ${leitura.erros.slice(0, 3).join(' · ')}${leitura.erros.length > 3 ? '…' : ''}` : '.'}
         </p>
       )}
       {msg && <p className="text-sm font-bold text-emerald-800">{msg}</p>}
-      <p className="text-[11px] text-slate-500">Depois de importar, use “Nova grade” nas salas que já estão com a Cruzadinha liberada.</p>
+      <p className="text-[11px] text-slate-500">
+        Com cabeçalho <code>disciplina;assunto;palavra;dica</code> a lista traz o assunto; sem cabeçalho vale o formato antigo <code>disciplina;palavra;dica</code> (assunto “Geral”). Depois de importar, use “Nova grade” nas salas que já estão com a Cruzadinha liberada.
+      </p>
     </div>
   );
 }

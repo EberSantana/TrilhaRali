@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Loader2, Puzzle, RotateCcw, Shuffle } from 'lucide-react';
 import { Cruzadinha, type CruzApi } from '../ctf/Cruzadinha';
+import { AssuntosPicker, palavrasDisponiveis, useCruzAssuntos } from './AssuntosPicker';
 import { ctfCall } from '../../utils/ctfApi';
 import { CRUZ_DISCIPLINAS, type CruzDisciplina } from '../../utils/cruzBanco';
 import type { CruzEstado } from '../../types/ctf';
@@ -10,6 +11,7 @@ const KEY_TREINO = 'rali_cruz_treino_v1';
 interface Salvo {
   gid: number;
   disciplina: CruzDisciplina;
+  assuntos?: string[];
 }
 
 function lerSalvo(): Salvo | null {
@@ -28,6 +30,10 @@ function lerSalvo(): Salvo | null {
 export const CruzTreino: React.FC = () => {
   const [salvo, setSalvo] = useState<Salvo | null>(lerSalvo);
   const [disciplina, setDisciplina] = useState<CruzDisciplina>(salvo?.disciplina ?? 'Banco de Dados');
+  const [assuntos, setAssuntos] = useState<string[]>([]);
+  const { mapa, erro: erroAssuntos } = useCruzAssuntos();
+  const lista = mapa?.[disciplina];
+  const disponiveis = palavrasDisponiveis(lista, assuntos);
   const [palavras, setPalavras] = useState(12);
   const [dicas, setDicas] = useState(10);
   const [ocupado, setOcupado] = useState(false);
@@ -38,8 +44,8 @@ export const CruzTreino: React.FC = () => {
     setOcupado(true);
     setErro('');
     try {
-      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { disciplina, palavras, dicas });
-      const novo = { gid: r.cruz.grade.id, disciplina };
+      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { disciplina, palavras, dicas, assuntos });
+      const novo = { gid: r.cruz.grade.id, disciplina, assuntos };
       localStorage.setItem(KEY_TREINO, JSON.stringify(novo));
       setSalvo(novo);
     } catch (err) {
@@ -85,7 +91,8 @@ export const CruzTreino: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-slate-300">
-            Treino de <strong className="text-white">{salvo.disciplina}</strong>. Os pontos são só seus.
+            Treino de <strong className="text-white">{salvo.disciplina}</strong>
+            {salvo.assuntos?.length ? <> · {salvo.assuntos.join(', ')}</> : null}. Os pontos são só seus.
           </p>
           <button
             type="button"
@@ -113,12 +120,14 @@ export const CruzTreino: React.FC = () => {
 
       <label className="block space-y-1.5">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Assunto</span>
-        <select value={disciplina} onChange={(e) => setDisciplina(e.target.value as CruzDisciplina)} className={campo}>
+        <select value={disciplina} onChange={(e) => { setDisciplina(e.target.value as CruzDisciplina); setAssuntos([]); }} className={campo}>
           {CRUZ_DISCIPLINAS.map((d) => (
             <option key={d} value={d}>{d}</option>
           ))}
         </select>
       </label>
+
+      {!erroAssuntos && <AssuntosPicker lista={lista} carregando={!mapa} valor={assuntos} onChange={setAssuntos} />}
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block space-y-1.5">
@@ -135,13 +144,13 @@ export const CruzTreino: React.FC = () => {
 
       <button
         type="submit"
-        disabled={ocupado}
+        disabled={ocupado || (disponiveis !== null && disponiveis < 6)}
         className="w-full py-3.5 rounded-xl font-black text-base bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white flex items-center justify-center gap-2 transition active:scale-[0.98]"
       >
         {ocupado ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shuffle className="w-5 h-5" />}
         GERAR CRUZADA
       </button>
-      <p className="text-[11px] text-center text-slate-500">Cada vez que você gera, sai uma grade diferente com palavras sorteadas do assunto.</p>
+      <p className="text-[11px] text-center text-slate-500">Cada vez que você gera, sai uma grade diferente com palavras sorteadas dos assuntos marcados.</p>
     </form>
   );
 };

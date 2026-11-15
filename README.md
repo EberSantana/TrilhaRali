@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v21.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v22.**
 
 ### Configuração inicial
 
@@ -323,6 +323,7 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
+| **v22** | Cruzada por assunto: as perguntas ativas do Banco de perguntas (resposta de uma palavra) viram palavras da cruzada, no mesmo assunto, com a pergunta como dica; `CruzBanco` ganha a coluna `assunto`; `cruzAssuntos` lista assuntos e contagens; treino e sala aceitam `assuntos` |
 | **v21** | *Apagar de vez* no histórico: `deleteRoom` remove a sala encerrada e seus alunos, capturas, dicas, resumo e análise da planilha (o `CtfLog` permanece) |
 | v20 | **Cruzada Online** vira módulo próprio, separado do CTF: sala do professor com tipo `cruz` (salas da v19 continuam valendo) e **treino livre** sem token nem ranking (`cruzTreinoNovo`, `cruzTreinoEstado`, `cruzTreinoCheck`, `cruzTreinoHint`; gabarito só no cache do servidor por 6 h) |
 | v19 | Sala de Cruzadinha: em *Como os alunos avançam › Cruzadinha* o professor escolhe a disciplina, as palavras e as dicas; o servidor monta a grade na criação e o aluno entra direto nela; ranking, telão e debriefing contam palavras (coluna `cruzadinha_disc`) |
@@ -461,7 +462,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v21)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v22)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

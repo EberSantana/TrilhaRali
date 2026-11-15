@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
 import { BANCO_TESTE } from './cruzBancoTeste';
 
-// Executa o código real da Cruzada Online do Apps Script (v20) num simulador mínimo da planilha.
+// Executa o código real da Cruzada Online do Apps Script (v22) num simulador mínimo da planilha.
 const trecho = (de: string, ate: string) => CTF_APPS_SCRIPT.slice(CTF_APPS_SCRIPT.indexOf(de), CTF_APPS_SCRIPT.indexOf(ate));
 type Row = Record<string, unknown> & { _row: number };
 const plain = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -24,7 +24,7 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
     CtfSalas: [{ _row: 2, token: 'T', status: 'aberta', modo, tipo: 'ctf', timer: '', cruzadinha_dicas: '', cruzadinha_palavras: '', cruzadinha_grade: '' }],
     CtfMissoes: tags.map((t, i) => ({ _row: i + 2, token: 'T', tag_id: t })),
     CtfAlunos: ['ana', 'bia', 'caio'].map((n, i) => ({ _row: i + 2, token: 'T', nome_key: n, xp: 0, xp_cruz: 0 })),
-    CtfCruzCapturas: [], CtfCruzDicas: [],
+    CtfCruzCapturas: [], CtfCruzDicas: [], Banco: [],
     CruzBanco: Object.entries(BANCO_TESTE).flatMap(([d, l]) => l.map(([palavra, dica]) => ({ disciplina: d, palavra, dica, ativo: 'sim' } as Record<string, unknown>))).map((r, i) => ({ ...r, _row: i + 2 })),
   };
   const sala = sheets.CtfSalas[0];
@@ -36,7 +36,7 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
       getLastRow: () => sheets[n].length + 1,
       deleteRows: (de: number, qtd: number) => sheets[n].splice(de - 2, qtd),
       getRange: () => ({
-        setValues: (vals: unknown[][]) => vals.forEach((v) => sheets[n].push({ _row: sheets[n].length + 2, disciplina: v[0], palavra: v[1], dica: v[2], ativo: v[3] })),
+        setValues: (vals: unknown[][]) => vals.forEach((v) => sheets[n].push({ _row: sheets[n].length + 2, disciplina: v[0], palavra: v[1], dica: v[2], ativo: v[3], assunto: v[4] })),
       }),
     }),
     safeText: (v: string) => (/^[=+\-@]/.test(v) ? "'" + v : v),
@@ -313,4 +313,92 @@ test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala a
   const r = plain((ctx.deleteRoom as (r: unknown) => { apagadas: number })({}));
   assert.equal(r.apagadas, 16);
   for (const n of Object.keys(abas)) assert.deepEqual(abas[n].map((x) => x.token), ['B'], n);
+});
+
+// ---------- v22: perguntas do Banco por assunto viram palavras da Cruzada ----------
+const perguntaBanco = (id: number, disciplina: string, assunto: string, resposta: string, pergunta: string, extra: Record<string, unknown> = {}): Row => ({
+  _row: id + 2, id: `B${id}`, disciplina, assunto, tipo: 'exata', pergunta, resposta, ativo: true, ...extra,
+});
+
+function comBanco() {
+  const p = planilha();
+  p.sheets.CruzBanco.length = 0;
+  const q = [
+    ['Joins', 'INNER', 'Junção que traz só as linhas com par nas duas tabelas'],
+    ['Joins', 'LEFT', 'Junção que mantém todas as linhas da tabela da esquerda'],
+    ['Joins', 'RIGHT', 'Junção que mantém todas as linhas da tabela da direita'],
+    ['Joins', 'CROSS', 'Junção que gera o produto cartesiano'],
+    ['Joins', 'NATURAL', 'Junção feita pelas colunas de mesmo nome'],
+    ['Joins', 'OUTER', 'Junção externa, que preserva linhas sem par'],
+    ['Chaves', 'primária', 'Identifica cada linha da tabela de forma única'],
+    ['Chaves', 'estrangeira', 'Coluna que aponta para a chave de outra tabela'],
+    ['Chaves', 'candidata', 'Coluna que poderia ser escolhida como identificador'],
+    ['Chaves', 'composta', 'Chave formada por mais de uma coluna'],
+    ['Chaves', 'alternativa', 'Candidata que não foi escolhida como principal'],
+    ['Chaves', 'surrogate', 'Chave artificial, sem significado no negócio'],
+  ];
+  q.forEach(([a, r, d], i) => p.sheets.Banco.push(perguntaBanco(i + 1, 'Banco de Dados', a, r, d)));
+  return p;
+}
+
+test('v22: perguntas ativas do Banco viram palavras, cada uma no seu assunto, e a pergunta vira a dica', () => {
+  const p = comBanco();
+  p.sheets.Banco.push(
+    perguntaBanco(20, 'Banco de Dados', 'Joins', 'SELECT * FROM t', 'Comando que lista tudo'), // frase com símbolos: não serve
+    perguntaBanco(21, 'Banco de Dados', 'Joins', 'DESATIVADA', 'Pergunta desativada', { ativo: false }),
+    perguntaBanco(22, 'Banco de Dados', 'Joins', 'CHAVE', 'A chave é aquilo que identifica a linha'), // a pergunta entrega a resposta
+    perguntaBanco(23, 'Banco de Dados', 'Joins', 'SO', 'Resposta curta demais'),
+    perguntaBanco(24, 'Química', 'Átomos', 'PROTON', 'Disciplina que não existe na Cruzada'),
+    perguntaBanco(25, 'Banco de Dados', 'Joins', 'DISTINCT', 'x'.repeat(250)), // dica longa demais
+  );
+  const r = p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> };
+  assert.deepEqual(r.assuntos['Banco de Dados'], [{ assunto: 'Chaves', n: 6 }, { assunto: 'Joins', n: 6 }]);
+  assert.deepEqual(r.assuntos['Informática Básica'], []);
+  assert.ok(!JSON.stringify(r).includes('INNER'), 'nenhuma resposta sai na lista de assuntos');
+});
+
+test('v22: o treino filtra por assunto e as palavras vêm só dele', () => {
+  const p = comBanco();
+  const t = p.call('cruzTreinoNovo', { disciplina: 'Banco de Dados', palavras: 6, dicas: 0, assuntos: ['Chaves'] });
+  assert.ok(t.cruz.grade.palavras.length >= 5);
+  const chaves = new Set(['PRIMARIA', 'ESTRANGEIRA', 'CANDIDATA', 'COMPOSTA', 'ALTERNATIVA', 'SURROGATE']);
+  const g = JSON.parse((p.ctx.CacheService as { getScriptCache(): { get(k: string): string } }).getScriptCache().get(`cruzT_${t.cruz.grade.id}`)) as { grade: { palavras: Palavra[] } };
+  for (const w of g.grade.palavras) assert.ok(chaves.has(w.palavra), `${w.palavra} não é do assunto Chaves`);
+  assert.ok(!JSON.stringify(t).includes('PRIMARIA'), 'o aluno não recebe as letras');
+});
+
+test('v22: assunto com poucas palavras é recusado com uma mensagem clara; vários assuntos somam', () => {
+  const p = comBanco();
+  p.sheets.Banco.length = 8; // Joins fica com 6 e Chaves com 2
+  assert.throws(() => p.call('cruzTreinoNovo', { disciplina: 'Banco de Dados', assuntos: ['Chaves'] }), /só 2 palavra\(s\).*mínimo 6/);
+  const t = p.call('cruzTreinoNovo', { disciplina: 'Banco de Dados', palavras: 6, assuntos: ['Chaves', 'Joins'] });
+  assert.ok(t.cruz.grade.palavras.length >= 5);
+  const sem = p.call('cruzTreinoNovo', { disciplina: 'Banco de Dados', palavras: 6 });
+  assert.ok(sem.cruz.grade.palavras.length >= 5, 'sem filtro usa todos os assuntos');
+});
+
+test('v22: a aba CruzBanco ganha assunto, vence repetidas do Banco e o resumo conta de onde vem', () => {
+  const p = comBanco();
+  const r = p.call('cruzBancoImport', {
+    substituir: true,
+    linhas: [['Banco de Dados', 'inner', 'Dica do professor', 'Joins'], ['Banco de Dados', 'VIEW', 'Tabela virtual', ''], ['Banco de Dados', 'INDICE', 'Acelera buscas', '=1+1']],
+  }) as unknown as { importadas: number; por_disciplina: Record<string, number>; do_banco: Record<string, number> };
+  assert.equal(r.importadas, 3);
+  assert.deepEqual(p.sheets.CruzBanco.map((x) => [x.palavra, x.assunto]), [['INNER', 'Joins'], ['VIEW', ''], ['INDICE', "'=1+1"]]);
+  assert.equal(r.por_disciplina['Banco de Dados'], 14); // 12 do Banco + 3 do CruzBanco - INNER repetida
+  assert.equal(r.do_banco['Banco de Dados'], 11);
+  const lista = p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> };
+  assert.ok(lista.assuntos['Banco de Dados'].some((a) => a.assunto === 'Geral' && a.n === 1), 'palavra sem assunto cai em Geral');
+});
+
+test('v22: a nova grade da sala respeita os assuntos gravados nela', () => {
+  const p = comBanco();
+  p.sala.tipo = 'cruz';
+  p.sala.cruzadinha_disc = 'Banco de Dados';
+  p.sala.cruzadinha_assuntos = JSON.stringify(['Joins']);
+  liberar(p, 3, 6, true);
+  const joins = new Set(['INNER', 'LEFT', 'RIGHT', 'CROSS', 'NATURAL', 'OUTER']);
+  for (const w of p.grade().palavras) assert.ok(joins.has(w.palavra), `${w.palavra} não é de Joins`);
+  p.sala.cruzadinha_assuntos = JSON.stringify(['Assunto inexistente']);
+  assert.throws(() => liberar(p, 3, 6, true), /Os assuntos escolhidos têm só 0 palavra/);
 });

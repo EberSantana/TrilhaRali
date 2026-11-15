@@ -16,6 +16,7 @@ import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
+import { AssuntosPicker, palavrasDisponiveis, useCruzAssuntos } from '../cruz/AssuntosPicker';
 import { CRUZ_DISCIPLINAS, type CruzDisciplina } from '../../utils/cruzBanco';
 
 const POLL_MS = 10_000;
@@ -91,6 +92,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
   const [ordem, setOrdem] = useState<CtfOrdem>('livre');
   const [novaDisc, setNovaDisc] = useState<CruzDisciplina>('Banco de Dados');
+  const [novaAssuntos, setNovaAssuntos] = useState<string[]>([]);
+  const { mapa: mapaAssuntos, erro: erroAssuntos } = useCruzAssuntos(apiUrl && isValidApiUrl(apiUrl) ? apiUrl : undefined);
   const [novaPalavras, setNovaPalavras] = useState(12);
   const [novaDicas, setNovaDicas] = useState(10);
   const cruzSala = tipo === 'cruz';
@@ -219,14 +222,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     setError('');
     try {
       if (cruzSala) {
-        const nomeCruz = nome.trim() || `Cruzada · ${novaDisc}`;
+        const nomeCruz = nome.trim() || `Cruzada · ${novaAssuntos.length === 1 ? novaAssuntos[0] : novaDisc}`;
         const r = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>(
           'createRoom',
-          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', disciplina: novaDisc, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
+          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', disciplina: novaDisc, assuntos: novaAssuntos, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
           apiUrl,
         );
         if (r.tipo !== 'cruz') {
-          throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 20) e publique uma nova versão.');
+          throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 22) e publique uma nova versão.');
         }
         const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeCruz, api: apiUrl, criada: Date.now() };
         persist([st, ...allRooms]);
@@ -635,16 +638,17 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 <Puzzle className="w-4 h-4" /> Cruzadinha da sala
               </legend>
               <p className="text-[11px] text-slate-400">
-                O servidor monta a grade com o banco de palavras da disciplina (aba CruzBanco) e o aluno entra direto nela. O ranking conta as palavras acertadas.
+                O servidor monta a grade com as palavras da disciplina e dos assuntos que você marcar (vindas das perguntas do Banco e da aba CruzBanco) e o aluno entra direto nela. O ranking conta as palavras acertadas.
               </p>
               <label className="block space-y-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Disciplina</span>
-                <select value={novaDisc} onChange={(e) => setNovaDisc(e.target.value as CruzDisciplina)} className={input}>
+                <select value={novaDisc} onChange={(e) => { setNovaDisc(e.target.value as CruzDisciplina); setNovaAssuntos([]); }} className={input}>
                   {CRUZ_DISCIPLINAS.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
               </label>
+              {!erroAssuntos && <AssuntosPicker lista={mapaAssuntos?.[novaDisc]} carregando={!mapaAssuntos} valor={novaAssuntos} onChange={setNovaAssuntos} cor="emerald" />}
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Palavras (6 a 25)</span>
@@ -655,7 +659,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   <input type="number" min={0} max={30} value={novaDicas} onChange={(e) => setNovaDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={input} />
                 </label>
               </div>
-              <p className="text-[11px] text-slate-500">Para trocar ou incluir palavras, use “Banco de palavras” no passo 2 de qualquer sala.</p>
+              <p className="text-[11px] text-slate-500">Para trocar ou incluir palavras, use “Banco de palavras” no passo 2 de qualquer sala; perguntas novas do Banco de perguntas entram sozinhas, pelo assunto.</p>
             </fieldset>
           ) : (
           <fieldset className={`min-w-0 space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
@@ -734,7 +738,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
 
-          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
+          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy || (cruzSala && (palavrasDisponiveis(mapaAssuntos?.[novaDisc], novaAssuntos) ?? 99) < 6)} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
             Criar sala e gerar token
           </Btn>
         </form>
@@ -850,6 +854,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />
                           </label>
+                          {!!view?.sala.cruzadinha_assuntos?.length && (
+                            <span className="text-xs font-bold text-slate-500" title="Assuntos escolhidos ao criar a sala">Assuntos: {view.sala.cruzadinha_assuntos.join(', ')}</span>
+                          )}
                           {view?.sala.cruzadinha != null && (
                             <Btn size="sm" variant="ghost" onClick={() => window.confirm('Gerar uma grade nova? O que os alunos digitaram na grade atual se perde (o XP já ganho continua).') && setCruzadinha(dicasCruz, palavrasCruz, true)} title="Sorteia outra grade com as palavras da aba CruzBanco">
                               Nova grade
