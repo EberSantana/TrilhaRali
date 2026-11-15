@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -42,7 +42,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 13 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 14 });
 }
 
 function doPost(e) {
@@ -217,6 +217,7 @@ function roomInfo(room) {
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
+    cruzadinha_palavras: cruzadinhaPalavras(room),
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
@@ -623,11 +624,19 @@ function cruzadinhaDicas(room) {
   return isNaN(n) ? null : Math.max(0, Math.min(30, Math.floor(n)));
 }
 
+// Quantidade de palavras da grade (6 a 16; vazio = 12, o padrao das versoes anteriores).
+function cruzadinhaPalavras(room) {
+  var n = Number(room.cruzadinha_palavras);
+  return !n || isNaN(n) ? 12 : Math.max(6, Math.min(16, Math.floor(n)));
+}
+
 function setCruzadinha(req) {
   var room = requireAdmin(req);
   var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas });
+  var palavras = Math.max(6, Math.min(16, Math.floor(Number(req.palavras)) || 12));
+  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras });
   room.cruzadinha_dicas = dicas;
+  room.cruzadinha_palavras = palavras;
   return { sala: roomInfo(room) };
 }
 

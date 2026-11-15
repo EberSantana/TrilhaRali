@@ -278,6 +278,7 @@ export const CtfStudent: React.FC = () => {
           token={sala.token}
           nome={aluno.nome}
           dicas={sala.cruzadinha}
+          palavras={sala.cruzadinha_palavras}
           tags={tagsSala}
           bloqueada={locked}
           onXp={async (xpCruz) => {

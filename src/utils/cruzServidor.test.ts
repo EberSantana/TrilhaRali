@@ -24,3 +24,16 @@ test('cruzSubmit soma só a diferença e respeita limites', () => {
   f({ token: 'T', nome: 'Ana', xp: 99999 }); assert.equal(rows[0].xp_cruz, 1500);
   assert.equal(rows[0].xp, 30 + 1500);
 });
+
+test('cruzadinhaPalavras: padrão 12 e limites 6 a 16 (script v14)', () => {
+  const src = readFileSync(new URL('../data/ctfAppsScript.ts', import.meta.url), 'utf8');
+  const code = src.slice(src.indexOf('function cruzadinhaPalavras'), src.indexOf('function setCruzadinha'));
+  const ctx: Record<string, unknown> = { Number, Math, isNaN };
+  vm.createContext(ctx); vm.runInContext(code, ctx);
+  const f = ctx.cruzadinhaPalavras as (r: unknown) => number;
+  assert.equal(f({}), 12);
+  assert.equal(f({ cruzadinha_palavras: '' }), 12);
+  assert.equal(f({ cruzadinha_palavras: 3 }), 6);
+  assert.equal(f({ cruzadinha_palavras: 40 }), 16);
+  assert.equal(f({ cruzadinha_palavras: 9 }), 9);
+});

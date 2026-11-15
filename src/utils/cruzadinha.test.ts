@@ -74,3 +74,12 @@ test('semente diferente pode gerar outra grade', () => {
   const b = montarGrade(l, hashTexto('ZZZZZZ'));
   assert.notDeepEqual(a.palavras.map((p) => p.palavra).sort(), b.palavras.map((p) => p.palavra).sort());
 });
+
+test('montarGrade respeita a quantidade pedida pelo professor (6 a 16)', () => {
+  const banco = [...BANCO_CRUZADINHA['Informática Básica'], ...BANCO_CRUZADINHA['Construção de Sites 1']];
+  for (const n of [6, 10, 16]) {
+    const g = montarGrade(banco, hashTexto('QTD' + n), n);
+    assert.ok(g.palavras.length <= n, `${n}: gerou ${g.palavras.length}`);
+    assert.ok(g.palavras.length >= n - 3, `${n}: só encaixou ${g.palavras.length}`);
+  }
+});
