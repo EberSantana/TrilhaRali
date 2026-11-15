@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v27.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v28.**
 
 ### Configuração inicial
 
@@ -327,6 +327,7 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 | **v25** | Cruzadinha com dois limites independentes: *Dica de letra* (padrão 30) e *Revelar palavra* (padrão 5, máx. 10), cada um com seu contador (💡 30/30 · 👁 5/5) |
 | **v26** | Cruzadinha: cada letra revelada por *Dica de letra* tira 2 pontos da palavra (antes valia metade); Revelar palavra continua valendo 0 |
 | **v27** | Cruzada só usa perguntas do Banco que fazem sentido sem alternativas: múltipla escolha e frases como "qual destes…", "assinale…", "abaixo" ficam de fora |
+| **v28** | Grande ranking da Cruzada: ao terminar o treino livre abre uma caixa para o nome; o servidor grava os pontos que ele mesmo contou (aba `CruzRanking`) e a aba *Ranking* mostra os 100 melhores |
 | **v23** | Cruzada com todas as disciplinas do Banco: seletor expansível (disciplina inteira ou só alguns assuntos, várias ao mesmo tempo); `selecao: [{disciplina, assuntos}]` no treino e na sala; `cruzAssuntos` lista todas as disciplinas; o banco de palavras aceita qualquer disciplina |
 | **v22** | Cruzada por assunto: as perguntas ativas do Banco de perguntas (resposta de uma palavra) viram palavras da cruzada, no mesmo assunto, com a pergunta como dica; `CruzBanco` ganha a coluna `assunto`; `cruzAssuntos` lista assuntos e contagens; treino e sala aceitam `assuntos` |
 | **v21** | *Apagar de vez* no histórico: `deleteRoom` remove a sala encerrada e seus alunos, capturas, dicas, resumo e análise da planilha (o `CtfLog` permanece) |
@@ -467,7 +468,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v27)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v28)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html
