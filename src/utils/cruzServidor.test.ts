@@ -453,3 +453,17 @@ test('v25: limites separados — 30 dicas de letra e 5 revelações de palavra p
   const t0 = p.call('cruzTreinoNovo', { selecao: [{ disciplina: 'Construção de Sites 1', assuntos: [] }], palavras: 10, dicas: 0 }).cruz;
   assert.equal(t0.limite_palavra, 0, 'sem dicas, sem revelar palavra');
 });
+
+test('v27: perguntas que dependem de alternativas ou têm várias respostas não viram dica de cruzada', () => {
+  const p = comBanco();
+  p.sheets.Banco.push(
+    perguntaBanco(30, 'Banco de Dados', 'Joins', 'Monitor', 'Qual destes é dispositivo de entrada e saída?'),
+    perguntaBanco(31, 'Banco de Dados', 'Joins', 'Teclado', 'Qual das alternativas é dispositivo de entrada?'),
+    perguntaBanco(32, 'Banco de Dados', 'Joins', 'Impressora', 'Assinale o dispositivo que imprime documentos'),
+    perguntaBanco(33, 'Banco de Dados', 'Joins', 'Scanner', 'Dispositivo listado abaixo que digitaliza imagens'),
+    perguntaBanco(34, 'Banco de Dados', 'Joins', 'Pendrive', 'Memória portátil conectada pela porta USB', { tipo: 'multipla', opcoes: 'Pendrive|Monitor|Mouse' }),
+    perguntaBanco(35, 'Banco de Dados', 'Joins', 'Touchscreen', 'Tela sensível ao toque que serve de entrada e saída'), // pergunta clara: serve
+  );
+  const palavras = (p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> }).assuntos['Banco de Dados'];
+  assert.deepEqual(palavras, [{ assunto: 'Chaves', n: 6 }, { assunto: 'Joins', n: 7 }], 'só a pergunta clara (35) entra');
+});
