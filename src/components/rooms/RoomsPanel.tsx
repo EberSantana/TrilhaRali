@@ -466,6 +466,32 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     if (activeToken === token) setActiveToken(rooms.find((r) => r.token !== token)?.token ?? null);
   };
 
+  // Apaga de vez: remove a sala e os resultados da planilha (só salas encerradas) e tira do histórico daqui.
+  const apagarSala = async (r: CtfStoredRoom) => {
+    if (!window.confirm(`Apagar “${r.nome}” de vez?\n\nA sala e todos os resultados dela somem da planilha. Não dá para desfazer.`)) return;
+    try {
+      await ctfCall('deleteRoom', { token: r.token, adminKey: r.adminKey }, r.api || apiUrl);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/desconhecida/i.test(msg)) {
+        setSyncMsg('O servidor ainda não sabe apagar salas. Atualize o script do Apps Script (versão 21) e publique uma nova versão.');
+        return;
+      }
+      // sala que já não existe no servidor: basta tirar da lista
+      if (!/n[aã]o encontrad/i.test(msg)) {
+        setSyncMsg(msg);
+        return;
+      }
+    }
+    persist(allRooms.filter((x) => x.token !== r.token));
+    setSrv((m) => {
+      const n = { ...m };
+      delete n[r.token];
+      return n;
+    });
+    setSyncMsg(`Sala “${r.nome}” apagada de vez.`);
+  };
+
   const downloadCsv = () => {
     if (!view || !activeRoom) return;
     // Planilhas executam células que começam com = + - @ : o apóstrofo as mantém como texto
@@ -970,7 +996,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                     </div>
                     <div className="flex items-center gap-2">
                       <Btn size="sm" onClick={() => { setActiveToken(r.token); setTimeout(() => document.getElementById('passo-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }}>Ver resultados</Btn>
-                      <Btn size="sm" variant="ghost" onClick={() => forgetRoom(r.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
+                      <Btn size="sm" variant="ghost" onClick={() => void apagarSala(r)} icon={<Trash2 className="w-4 h-4" />} title="Apaga a sala e os resultados da planilha, de vez">Apagar de vez</Btn>
                     </div>
                   </li>
                 ))}
