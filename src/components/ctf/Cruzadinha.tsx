@@ -141,6 +141,19 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   );
   const completa = palavras.length > 0 && feitas.size === palavras.length;
   const restantes = Math.max(0, (est?.limite ?? 0) - (est?.usadas ?? 0));
+  // Quanto cada palavra vale agora: 10 por letra; letra revelada por dica corta pela metade; tudo revelado vale 0
+  const valeAgora = useCallback(
+    (p: CruzPalavra) => {
+      const feita = est?.resolvidas.find((x) => x.id === p.id);
+      if (feita) return { pts: feita.xp, estado: 'feita' as const };
+      const base = p.tam * 10;
+      const reveladas = celulas(p).filter(([r, c]) => fixas[k(r, c)]?.dica).length;
+      if (reveladas >= p.tam) return { pts: 0, estado: 'zero' as const };
+      return reveladas > 0 ? { pts: Math.round(base / 2), estado: 'metade' as const } : { pts: base, estado: 'cheia' as const };
+    },
+    [est, fixas],
+  );
+  const unid = treino ? 'pts' : 'XP';
 
   useEffect(() => {
     if (!sel && palavras.length) {
@@ -393,7 +406,9 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
         <div className="lg:col-span-3 space-y-3 min-w-0">
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2" aria-live="polite">
             <div className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-              {atual.n} {atual.dir === 'A' ? 'Horizontal →' : 'Vertical ↓'} · {atual.tam} letras
+              {atual.n} {atual.dir === 'A' ? 'Horizontal →' : 'Vertical ↓'} · {atual.tam} letras · vale {valeAgora(atual).pts} {unid}
+              {valeAgora(atual).estado === 'metade' && ' (metade: há letra revelada)'}
+              {valeAgora(atual).estado === 'zero' && ' (tudo revelado)'}
             </div>
             <div className="text-sm sm:text-base font-bold text-white">{atual.dica}</div>
           </div>
@@ -463,10 +478,10 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
               {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Conferir palavra
             </button>
             <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('letra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
-              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra
+              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra <span className="text-[10px] font-bold text-amber-300">(vale metade)</span>
             </button>
             <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('palavra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
-              <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra
+              <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra <span className="text-[10px] font-bold text-amber-300">(vale 0)</span>
             </button>
             <button type="button" onMouseDown={semFoco} onClick={apagarPalavra} disabled={bloqueada} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Eraser className="w-4 h-4 text-slate-300" /> Apagar palavra
@@ -475,7 +490,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
           <p className="text-[11px] text-slate-500 min-h-[1rem]" role="status">
             {aviso ||
               (est.limite > 0
-                ? `A palavra é conferida ao completar. Cada dica gasta 1 das suas ${est.limite}: palavra com letra revelada vale metade; palavra revelada vale 0.`
+                ? `A palavra é conferida ao completar. Cada dica gasta 1 das suas ${est.limite} (restam ${restantes}). Dica de letra: a palavra vale metade. Revelar palavra: vale 0. Cada palavra vale 10 por letra.`
                 : 'A palavra é conferida ao completar. O professor desativou as dicas nesta sala.')}
           </p>
         </div>
@@ -508,7 +523,12 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
                         <span className={ok ? 'line-through' : ''}>
                           {p.dica} <em className="not-italic text-slate-500">({p.tam})</em>
                         </span>
-                        {ok && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 ml-auto" />}
+                        {(() => {
+                          const v = valeAgora(p);
+                          const cor = v.estado === 'feita' ? 'text-emerald-300' : v.estado === 'cheia' ? 'text-slate-400' : 'text-amber-300';
+                          return <span className={`ml-auto shrink-0 self-start font-mono text-[11px] font-bold ${cor}`}>{v.estado === 'feita' ? '+' : ''}{v.pts} {unid}</span>;
+                        })()}
+                        {ok && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
                       </button>
                     </li>
                   );
