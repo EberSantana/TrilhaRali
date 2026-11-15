@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 22 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 23 });
 }
 
 function doPost(e) {
@@ -231,7 +231,7 @@ function roomInfo(room) {
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
     cruzadinha_palavras: cruzadinhaPalavras(room),
-    cruzadinha_assuntos: cruzAssuntosSala(room),
+    cruzadinha_assuntos: cruzRotulos(cruzSelecaoSala(room)),
     cruzadinha_versao: cruzadinhaDicas(room) === null ? undefined : (cruzGrade(room) || {}).id,
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
@@ -330,13 +330,13 @@ function tipoOut(room) {
 // Sala de Cruzadinha: em vez de perguntas, o professor escolhe a disciplina; o servidor monta a grade na hora
 // e o aluno entra direto nela. O ranking conta as palavras acertadas.
 function createCruzRoom(req) {
-  var disc = String(req.disciplina || '');
-  if (CRUZ_DISCIPLINAS.indexOf(disc) < 0) fail('Escolha a disciplina da Cruzadinha.');
+  var sel = cruzSelecaoReq(req);
+  if (!sel.length) fail('Escolha ao menos uma disciplina para a Cruzadinha.');
+  var disc = cruzDiscsDe(sel).join('|');
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
   var dicas = Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var assuntos = cruzAssuntosReq(req.assuntos);
-  var banco = cruzFonte([disc], assuntos);
-  if (banco.length < 6) fail(cruzPoucas(disc, assuntos, banco.length));
+  var banco = cruzFonte(sel);
+  if (banco.length < 6) fail(cruzPoucas(sel, banco.length));
   var grade = cruzMontar(banco, palavras);
   var nome = String(req.nome || 'Cruzadinha').substring(0, 80);
   var modo = req.modo === 'ctf_dynamic' ? 'ctf_dynamic' : 'fixed';
@@ -351,9 +351,9 @@ function createCruzRoom(req) {
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
     tipo: 'cruz', ordem: 'cruzadinha',
     cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc,
-    cruzadinha_assuntos: assuntos.length ? JSON.stringify(assuntos) : ''
+    cruzadinha_assuntos: JSON.stringify(sel)
   });
-  logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + disc + (assuntos.length ? ' (' + assuntos.join(', ') + ')' : '') + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
+  logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + cruzRotulos(sel).join(', ') + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
   return { token: token, adminKey: adminKey, total: grade.palavras.length, tipo: 'cruz', ordem: 'cruzadinha' };
 }
 
@@ -695,7 +695,6 @@ function setTerminal(req) {
 // NAO vem no codigo (que e publico): o professor importa a lista pelo painel e ela existe so na planilha. O aluno recebe so o desenho da grade, os numeros e as dicas, sem as
 // letras. Cada palavra completa e conferida aqui (cruzCheck), as dicas sao entregues e contadas aqui (cruzHint)
 // e o XP e calculado aqui. No modo CTF Dinamico, quem fecha a palavra primeiro ganha mais (regra das missoes).
-var CRUZ_DISCIPLINAS = ['Banco de Dados', 'Informática Básica', 'Construção de Sites 1', 'Fundamentos de Sistemas Operacionais'];
 
 // Coluna vazia = Cruzadinha oculta; 0 = liberada sem dicas.
 function cruzadinhaDicas(room) {
@@ -712,7 +711,7 @@ function cruzadinhaPalavras(room) {
 }
 
 function cruzDisciplinas(room) {
-  if (room.cruzadinha_disc) return [String(room.cruzadinha_disc)];
+  if (room.cruzadinha_disc) return String(room.cruzadinha_disc).split('|').map(cruzDiscNome).filter(function (d) { return d; });
   var set = {};
   readRows('CtfMissoes').forEach(function (m) {
     if (String(m.token) !== room.token) return;
@@ -739,10 +738,9 @@ function cruzAssuntoLimpo(v) {
   return a || 'Geral';
 }
 
-function cruzDiscDe(txt) {
-  var k = cruzLetras(txt);
-  for (var i = 0; i < CRUZ_DISCIPLINAS.length; i++) if (cruzLetras(CRUZ_DISCIPLINAS[i]) === k) return CRUZ_DISCIPLINAS[i];
-  return '';
+// Nome de disciplina como esta no Banco (qualquer uma serve; as quatro da v20 continuam com os mesmos nomes).
+function cruzDiscNome(v) {
+  return String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().substring(0, 80);
 }
 
 function cruzBanco() {
@@ -750,14 +748,14 @@ function cruzBanco() {
   readRows('CruzBanco').forEach(function (r) {
     var a = cruzLetras(r.ativo);
     if (a === 'NAO' || a === 'FALSE' || a === 'N') return;
-    var disc = String(r.disciplina || '').trim(), palavra = cruzLetras(r.palavra), dica = String(r.dica || '').trim();
-    if (palavra.length < 3 || palavra.length > 16 || !dica || vistas[disc + '|' + palavra]) return;
+    var disc = cruzDiscNome(r.disciplina), palavra = cruzLetras(r.palavra), dica = String(r.dica || '').trim();
+    if (!disc || palavra.length < 3 || palavra.length > 16 || !dica || vistas[disc + '|' + palavra]) return;
     vistas[disc + '|' + palavra] = true;
     out.push({ disciplina: disc, assunto: cruzAssuntoLimpo(r.assunto), palavra: palavra, dica: dica, fonte: 'palavras' });
   });
   readRows('Banco').forEach(function (r) {
     if (!(r.ativo === true || String(r.ativo).toLowerCase() === 'true')) return;
-    var disc = cruzDiscDe(r.disciplina);
+    var disc = cruzDiscNome(r.disciplina);
     var bruta = String(r.resposta === undefined || r.resposta === null ? '' : r.resposta).trim();
     if (!disc || !/^[A-Za-zÀ-ÿ]+([ -][A-Za-zÀ-ÿ]+)?$/.test(bruta)) return;
     var palavra = cruzLetras(bruta), dica = String(r.pergunta || '').replace(/\s+/g, ' ').trim();
@@ -770,56 +768,90 @@ function cruzBanco() {
   return out;
 }
 
-// Lista de assuntos pedida pelo aluno ou pelo professor (ate 30, texto curto); vazia = todos os assuntos.
-function cruzAssuntosReq(v) {
-  var out = [];
-  (Array.isArray(v) ? v : []).slice(0, 30).forEach(function (a) {
-    var t = cruzAssuntoLimpo(a).substring(0, 80);
-    if (out.indexOf(t) < 0) out.push(t);
+// Selecao de disciplinas e assuntos: lista de pares [disciplina, assunto]; assunto vazio = a disciplina inteira.
+// Aceita o formato novo (selecao: [{disciplina, assuntos: []}]) e o da v22 (disciplina + assuntos).
+function cruzSelecaoReq(req) {
+  var itens = Array.isArray(req.selecao) ? req.selecao : (req.disciplina ? [{ disciplina: req.disciplina, assuntos: req.assuntos }] : []);
+  var out = [], vistos = {};
+  function add(d, a) {
+    var k = d + '\u0001' + a;
+    if (d && !vistos[k] && out.length < 300) { vistos[k] = true; out.push([d, a]); }
+  }
+  itens.slice(0, 60).forEach(function (it) {
+    var d = cruzDiscNome(it && it.disciplina);
+    var as = Array.isArray(it && it.assuntos) ? it.assuntos.slice(0, 60) : [];
+    if (!as.length) add(d, '');
+    else as.forEach(function (a) { add(d, cruzAssuntoLimpo(a).substring(0, 80)); });
   });
   return out;
 }
 
-function cruzAssuntosSala(room) {
-  try {
-    var v = JSON.parse(room.cruzadinha_assuntos || '[]');
-    return Array.isArray(v) ? cruzAssuntosReq(v) : [];
-  } catch (e) {
-    return [];
-  }
+function cruzDiscsDe(sel) {
+  var out = [];
+  sel.forEach(function (e) { if (out.indexOf(e[0]) < 0) out.push(e[0]); });
+  return out;
 }
 
-// Palavras das disciplinas, so dos assuntos escolhidos (nenhum escolhido = todos).
-function cruzFonte(discs, assuntos) {
-  var set = {};
-  assuntos.forEach(function (a) { set[cruzLetras(a)] = true; });
+// Selecao gravada na sala; salas antigas (so disciplina, ou so assuntos da v22) continuam funcionando.
+function cruzSelecaoSala(room) {
+  var discs = cruzDisciplinas(room);
+  var v = [];
+  try { v = JSON.parse(room.cruzadinha_assuntos || '[]'); } catch (e) { v = []; }
+  var out = [];
+  (Array.isArray(v) ? v : []).forEach(function (e) {
+    if (Array.isArray(e) && e[0]) out.push([cruzDiscNome(e[0]), e[1] ? cruzAssuntoLimpo(e[1]) : '']);
+    else if (typeof e === 'string' && e) out.push([discs[0], cruzAssuntoLimpo(e)]);
+  });
+  return out.length ? out : discs.map(function (d) { return [d, '']; });
+}
+
+function cruzRotulos(sel) {
+  var inteiras = {};
+  sel.forEach(function (e) { if (!e[1]) inteiras[e[0]] = true; });
+  var out = [];
+  sel.forEach(function (e) {
+    if (e[1] ? !inteiras[e[0]] : true) out.push(e[1] ? e[0] + ' › ' + e[1] : e[0]);
+  });
+  return out;
+}
+
+// Palavras ativas das disciplinas/assuntos escolhidos.
+function cruzFonte(sel) {
+  var por = {};
+  sel.forEach(function (e) {
+    var d = por[e[0]] || (por[e[0]] = { todos: false, assuntos: {} });
+    if (!e[1]) d.todos = true;
+    else d.assuntos[cruzLetras(e[1])] = true;
+  });
   return cruzBanco().filter(function (b) {
-    return discs.indexOf(b.disciplina) >= 0 && (!assuntos.length || set[cruzLetras(b.assunto)]);
+    var d = por[b.disciplina];
+    return d && (d.todos || d.assuntos[cruzLetras(b.assunto)]);
   });
 }
 
-function cruzPoucas(disc, assuntos, n) {
-  return assuntos.length
-    ? 'Os assuntos escolhidos têm só ' + n + ' palavra(s) em ' + disc + ' (mínimo 6). Marque mais assuntos.'
-    : 'O banco da Cruzadinha tem poucas palavras ativas para ' + disc + '. Importe as palavras em "Banco de palavras" ou cadastre perguntas de resposta curta no Banco de perguntas.';
+function cruzPoucas(sel, n) {
+  var multi = sel.some(function (e) { return e[1]; });
+  return multi
+    ? 'O recorte escolhido tem só ' + n + ' palavra(s) (mínimo 6). Marque mais assuntos ou disciplinas.'
+    : 'O banco da Cruzadinha tem poucas palavras ativas para ' + cruzDiscsDe(sel).join(', ') + '. Importe as palavras em "Banco de palavras" ou cadastre perguntas de resposta curta no Banco de perguntas.';
 }
 
 // Assuntos de cada disciplina com a quantidade de palavras (so contagens; nada de resposta sai daqui).
 function cruzAssuntos(req) {
   var cache = CacheService.getScriptCache();
-  var guardado = cache.get('cruzAssuntos_v22');
+  var guardado = cache.get('cruzAssuntos_v23');
   if (guardado) return JSON.parse(guardado);
   var por = {};
-  CRUZ_DISCIPLINAS.forEach(function (d) { por[d] = {}; });
   cruzBanco().forEach(function (b) {
-    if (por[b.disciplina]) por[b.disciplina][b.assunto] = (por[b.disciplina][b.assunto] || 0) + 1;
+    var d = por[b.disciplina] || (por[b.disciplina] = {});
+    d[b.assunto] = (d[b.assunto] || 0) + 1;
   });
   var out = {};
-  CRUZ_DISCIPLINAS.forEach(function (d) {
-    out[d] = Object.keys(por[d]).sort().map(function (a) { return { assunto: a, n: por[d][a] }; });
+  Object.keys(por).sort(function (x, y) { return x.localeCompare(y); }).forEach(function (d) {
+    out[d] = Object.keys(por[d]).sort(function (x, y) { return x.localeCompare(y); }).map(function (a) { return { assunto: a, n: por[d][a] }; });
   });
   var r = { assuntos: out };
-  cache.put('cruzAssuntos_v22', JSON.stringify(r), 60);
+  cache.put('cruzAssuntos_v23', JSON.stringify(r), 60);
   return r;
 }
 
@@ -930,10 +962,9 @@ function setCruzadinha(req) {
   var upd = { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras };
   var atual = cruzGrade(room);
   if (dicas !== '' && (!atual || req.nova === true || cruzadinhaPalavras(room) !== palavras)) {
-    var disc = cruzDisciplinas(room);
-    var assuntos = cruzAssuntosSala(room);
-    var banco = cruzFonte(disc, assuntos);
-    if (banco.length < 6) fail(cruzPoucas(disc.join(', '), assuntos, banco.length));
+    var sel = cruzSelecaoSala(room);
+    var banco = cruzFonte(sel);
+    if (banco.length < 6) fail(cruzPoucas(sel, banco.length));
     var nova = cruzMontar(banco, palavras);
     upd.cruzadinha_grade = JSON.stringify(nova);
     if (isCruz(room)) upd.total_fases = nova.palavras.length;
@@ -1076,16 +1107,15 @@ function treinoRetorno(t, extra) {
 }
 
 function cruzTreinoNovo(req) {
-  var disc = String(req.disciplina || '');
-  if (CRUZ_DISCIPLINAS.indexOf(disc) < 0) fail('Escolha o assunto da cruzada.');
+  var sel = cruzSelecaoReq(req);
+  if (!sel.length) fail('Escolha ao menos uma disciplina para a cruzada.');
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
   var dicas = req.dicas === undefined || req.dicas === null || req.dicas === '' ? 10 : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var assuntos = cruzAssuntosReq(req.assuntos);
-  var banco = cruzFonte([disc], assuntos);
-  if (banco.length < 6) fail(assuntos.length ? cruzPoucas(disc, assuntos, banco.length) : 'Ainda não há palavras suficientes para ' + disc + '. Avise o professor.');
+  var banco = cruzFonte(sel);
+  if (banco.length < 6) fail(cruzPoucas(sel, banco.length));
   var grade = cruzMontar(banco, palavras);
   grade.id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
-  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [], assuntos: assuntos };
+  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [], selecao: sel };
   treinoPut(t);
   return treinoRetorno(t);
 }
@@ -1132,13 +1162,10 @@ function cruzTreinoHint(req) {
 // Banco da Cruzadinha pelo painel do professor (qualquer sala aberta por ele serve de chave).
 function cruzBancoResumo(req) {
   requireAdmin(req);
-  var por = {};
-  CRUZ_DISCIPLINAS.forEach(function (d) { por[d] = 0; });
-  var doBanco = {};
-  CRUZ_DISCIPLINAS.forEach(function (d) { doBanco[d] = 0; });
+  var por = {}, doBanco = {};
   cruzBanco().forEach(function (b) {
-    if (por[b.disciplina] === undefined) return;
-    por[b.disciplina]++;
+    por[b.disciplina] = (por[b.disciplina] || 0) + 1;
+    if (!doBanco[b.disciplina]) doBanco[b.disciplina] = 0;
     if (b.fonte === 'banco') doBanco[b.disciplina]++;
   });
   return { por_disciplina: por, do_banco: doBanco };
@@ -1148,11 +1175,11 @@ function cruzBancoImport(req) {
   requireAdmin(req);
   var vals = [];
   (Array.isArray(req.linhas) ? req.linhas : []).slice(0, 3000).forEach(function (l) {
-    var d = String(l && l[0] || '').trim();
+    var d = cruzDiscNome(l && l[0]);
     var p = cruzLetras(l && l[1]);
     var dica = safeText(String(l && l[2] || '').trim().substring(0, 200));
     var assunto = l && l[3] ? safeText(cruzAssuntoLimpo(l[3]).substring(0, 80)) : '';
-    if (CRUZ_DISCIPLINAS.indexOf(d) >= 0 && p.length >= 3 && p.length <= 16 && dica) vals.push([d, p, dica, 'sim', assunto]);
+    if (d && p.length >= 3 && p.length <= 16 && dica) vals.push([d, p, dica, 'sim', assunto]);
   });
   if (!vals.length) fail('Nenhuma linha válida. Use o formato: disciplina;assunto;palavra;dica');
   var sh = getSheet('CruzBanco');

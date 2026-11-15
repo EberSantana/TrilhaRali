@@ -75,15 +75,15 @@ test('cruzBancoImport: importa, substitui, valida e protege contra fórmula', ()
   const p = planilha();
   const r = p.call('cruzBancoImport', {
     substituir: true,
-    linhas: [['Banco de Dados', 'Primária', 'Chave da linha'], ['Banco de Dados', 'X', 'curta'], ['Química', 'ATOMO', 'x'], ['Banco de Dados', 'TUPLA', '=HYPERLINK("x")']],
+    linhas: [['Banco de Dados', 'Primária', 'Chave da linha'], ['Banco de Dados', 'X', 'curta'], ['', 'ATOMO', 'sem disciplina'], ['Banco de Dados', 'TUPLA', '=HYPERLINK("x")']],
   }) as unknown as { importadas: number; por_disciplina: Record<string, number> };
   assert.equal(r.importadas, 2);
   assert.equal(r.por_disciplina['Banco de Dados'], 2);
-  assert.equal(r.por_disciplina['Informática Básica'], 0);
+  assert.equal(r.por_disciplina['Informática Básica'], undefined);
   assert.deepEqual(p.sheets.CruzBanco.map((x) => [x.palavra, x.dica]), [['PRIMARIA', 'Chave da linha'], ['TUPLA', '\'=HYPERLINK("x")']]);
   p.call('cruzBancoImport', { substituir: false, linhas: [['Informática Básica', 'MOUSE', 'Aponta']] });
   assert.equal(p.sheets.CruzBanco.length, 3);
-  assert.throws(() => p.call('cruzBancoImport', { linhas: [['Química', 'ATOMO', 'x']] }), /Nenhuma linha válida/);
+  assert.throws(() => p.call('cruzBancoImport', { linhas: [['', 'ATOMO', 'x'], ['Química', 'AB', 'curta']] }), /Nenhuma linha válida/);
 });
 
 test('ao liberar, o servidor monta uma grade válida só com a disciplina da sala', () => {
@@ -237,7 +237,7 @@ test('Cruzada Online (v20): sala com tipo próprio; cria com a disciplina, o alu
   assert.equal(Number(sala.total_fases), g.palavras.length);
   const info = new Set(p.sheets.CruzBanco.filter((b) => b.disciplina === 'Informática Básica').map((b) => b.palavra));
   assert.ok(g.palavras.every((w) => info.has(w.palavra)));
-  assert.throws(() => (ctx.createRoom as (q: unknown) => unknown)({ tipo: 'cruz', disciplina: 'Química' }), /Escolha a disciplina/);
+  assert.throws(() => (ctx.createRoom as (q: unknown) => unknown)({ tipo: 'cruz', disciplina: '' }), /Escolha ao menos uma disciplina/);
 });
 
 test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no ranking', () => {
@@ -288,9 +288,9 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
   assert.ok(p.sheets.CtfAlunos.every((x) => x.xp === 0 && x.xp_cruz === 0));
 
   assert.throws(() => call('cruzTreinoEstado', { gid: 1 }), /expirou/);
-  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Química' }), /assunto/);
+  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Química' }), /poucas palavras ativas para Química/);
   p.sheets.CruzBanco.length = 0;
-  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Banco de Dados' }), /Ainda não há palavras/);
+  assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Banco de Dados' }), /poucas palavras ativas para Banco de Dados/);
 });
 
 test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala aberta', () => {
@@ -348,12 +348,13 @@ test('v22: perguntas ativas do Banco viram palavras, cada uma no seu assunto, e 
     perguntaBanco(21, 'Banco de Dados', 'Joins', 'DESATIVADA', 'Pergunta desativada', { ativo: false }),
     perguntaBanco(22, 'Banco de Dados', 'Joins', 'CHAVE', 'A chave é aquilo que identifica a linha'), // a pergunta entrega a resposta
     perguntaBanco(23, 'Banco de Dados', 'Joins', 'SO', 'Resposta curta demais'),
-    perguntaBanco(24, 'Química', 'Átomos', 'PROTON', 'Disciplina que não existe na Cruzada'),
+    perguntaBanco(24, 'Química', 'Átomos', 'PROTON', 'Partícula de carga positiva do núcleo'),
     perguntaBanco(25, 'Banco de Dados', 'Joins', 'DISTINCT', 'x'.repeat(250)), // dica longa demais
   );
   const r = p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> };
   assert.deepEqual(r.assuntos['Banco de Dados'], [{ assunto: 'Chaves', n: 6 }, { assunto: 'Joins', n: 6 }]);
-  assert.deepEqual(r.assuntos['Informática Básica'], []);
+  assert.deepEqual(r.assuntos['Química'], [{ assunto: 'Átomos', n: 1 }], 'qualquer disciplina do Banco aparece');
+  assert.deepEqual(Object.keys(r.assuntos), ['Banco de Dados', 'Química']);
   assert.ok(!JSON.stringify(r).includes('INNER'), 'nenhuma resposta sai na lista de assuntos');
 });
 
@@ -400,5 +401,23 @@ test('v22: a nova grade da sala respeita os assuntos gravados nela', () => {
   const joins = new Set(['INNER', 'LEFT', 'RIGHT', 'CROSS', 'NATURAL', 'OUTER']);
   for (const w of p.grade().palavras) assert.ok(joins.has(w.palavra), `${w.palavra} não é de Joins`);
   p.sala.cruzadinha_assuntos = JSON.stringify(['Assunto inexistente']);
-  assert.throws(() => liberar(p, 3, 6, true), /Os assuntos escolhidos têm só 0 palavra/);
+  assert.throws(() => liberar(p, 3, 6, true), /O recorte escolhido tem só 0 palavra/);
+});
+
+test('v23: seleção com várias disciplinas e assuntos; disciplina inteira ou só alguns assuntos', () => {
+  const p = comBanco();
+  p.sheets.Banco.length = 12;
+  ['Rede', 'Cabo', 'Roteador', 'Switch', 'Firewall', 'Gateway'].forEach((r, i) =>
+    p.sheets.Banco.push(perguntaBanco(40 + i, 'Redes de Computadores', i < 3 ? 'Equipamentos' : 'Segurança', r, `Equipamento ou proteção numero ${i} da infraestrutura`)));
+  const a = p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> };
+  assert.deepEqual(Object.keys(a.assuntos), ['Banco de Dados', 'Redes de Computadores']);
+  const g = (selecao: unknown) => {
+    const t = p.call('cruzTreinoNovo', { selecao, palavras: 6, dicas: 0 });
+    return (JSON.parse((p.ctx.CacheService as { getScriptCache(): { get(k: string): string } }).getScriptCache().get(`cruzT_${t.cruz.grade.id}`)) as { grade: { palavras: Palavra[] } }).grade.palavras.map((w) => w.palavra);
+  };
+  const redes = new Set(['REDE', 'CABO', 'ROTEADOR', 'SWITCH', 'FIREWALL', 'GATEWAY']);
+  assert.ok(g([{ disciplina: 'Redes de Computadores', assuntos: [] }]).every((w) => redes.has(w)));
+  const mista = g([{ disciplina: 'Redes de Computadores', assuntos: ['Equipamentos'] }, { disciplina: 'Banco de Dados', assuntos: ['Joins'] }]);
+  assert.ok(mista.length >= 5 && mista.every((w) => ['REDE', 'CABO', 'ROTEADOR', 'INNER', 'LEFT', 'RIGHT', 'CROSS', 'NATURAL', 'OUTER'].includes(w)), mista.join());
+  assert.throws(() => g([{ disciplina: 'Redes de Computadores', assuntos: ['Equipamentos'] }]), /só 3 palavra\(s\)/);
 });

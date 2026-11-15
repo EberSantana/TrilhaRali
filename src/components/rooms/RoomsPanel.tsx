@@ -16,8 +16,7 @@ import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
-import { AssuntosPicker, palavrasDisponiveis, useCruzAssuntos } from '../cruz/AssuntosPicker';
-import { CRUZ_DISCIPLINAS, type CruzDisciplina } from '../../utils/cruzBanco';
+import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from '../cruz/SelecaoCruz';
 
 const POLL_MS = 10_000;
 
@@ -91,8 +90,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [nome, setNome] = useState('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
   const [ordem, setOrdem] = useState<CtfOrdem>('livre');
-  const [novaDisc, setNovaDisc] = useState<CruzDisciplina>('Banco de Dados');
-  const [novaAssuntos, setNovaAssuntos] = useState<string[]>([]);
+  const [novaSelecao, setNovaSelecao] = useState<Selecao>({});
   const { mapa: mapaAssuntos, erro: erroAssuntos } = useCruzAssuntos(apiUrl && isValidApiUrl(apiUrl) ? apiUrl : undefined);
   const [novaPalavras, setNovaPalavras] = useState(12);
   const [novaDicas, setNovaDicas] = useState(10);
@@ -222,14 +220,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     setError('');
     try {
       if (cruzSala) {
-        const nomeCruz = nome.trim() || `Cruzada · ${novaAssuntos.length === 1 ? novaAssuntos[0] : novaDisc}`;
+        const nomeCruz = nome.trim() || `Cruzada · ${rotuloSelecao(mapaAssuntos, novaSelecao).slice(0, 60)}`;
         const r = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>(
           'createRoom',
-          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', disciplina: novaDisc, assuntos: novaAssuntos, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
+          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', selecao: selecaoParaEnvio(mapaAssuntos, novaSelecao), palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
           apiUrl,
         );
         if (r.tipo !== 'cruz') {
-          throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 22) e publique uma nova versão.');
+          throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 23) e publique uma nova versão.');
         }
         const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeCruz, api: apiUrl, criada: Date.now() };
         persist([st, ...allRooms]);
@@ -638,17 +636,13 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 <Puzzle className="w-4 h-4" /> Cruzadinha da sala
               </legend>
               <p className="text-[11px] text-slate-400">
-                O servidor monta a grade com as palavras da disciplina e dos assuntos que você marcar (vindas das perguntas do Banco e da aba CruzBanco) e o aluno entra direto nela. O ranking conta as palavras acertadas.
+                O servidor monta a grade com as palavras da disciplina e dos assuntos que você marcar, de qualquer disciplina do Banco (vindas das perguntas do Banco e da aba CruzBanco), e o aluno entra direto nela. O ranking conta as palavras acertadas.
               </p>
-              <label className="block space-y-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Disciplina</span>
-                <select value={novaDisc} onChange={(e) => { setNovaDisc(e.target.value as CruzDisciplina); setNovaAssuntos([]); }} className={input}>
-                  {CRUZ_DISCIPLINAS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </label>
-              {!erroAssuntos && <AssuntosPicker lista={mapaAssuntos?.[novaDisc]} carregando={!mapaAssuntos} valor={novaAssuntos} onChange={setNovaAssuntos} cor="emerald" />}
+              {erroAssuntos ? (
+                <p className="text-xs text-rose-300">Não consegui carregar as disciplinas do servidor. Atualize o Apps Script (versão 23) e tente de novo.</p>
+              ) : (
+                <SelecaoCruz mapa={mapaAssuntos} valor={novaSelecao} onChange={setNovaSelecao} cor="emerald" />
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Palavras (6 a 25)</span>
@@ -738,7 +732,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
 
-          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy || (cruzSala && (palavrasDisponiveis(mapaAssuntos?.[novaDisc], novaAssuntos) ?? 99) < 6)} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
+          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy || (cruzSala && !erroAssuntos && totalSelecionado(mapaAssuntos, novaSelecao) < 6)} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
             Criar sala e gerar token
           </Btn>
         </form>
