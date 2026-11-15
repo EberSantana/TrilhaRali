@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v17.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v18.**
 
 ### Configuração inicial
 
@@ -323,7 +323,8 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
-| **v17** | Cruzadinha 100% no servidor: grade montada pelo Apps Script a partir da aba `CruzBanco` (editável); aluno recebe a grade sem letras; `cruzState`, `cruzCheck` e `cruzHint`; dicas registradas em `CtfCruzDicas`; botão *Nova grade* |
+| **v18** | Banco da Cruzadinha fora do código público: o professor importa a lista pelo painel (*Banco de palavras*), e ela existe só na aba `CruzBanco` da planilha (`cruzBancoImport`, `cruzBancoResumo`) |
+| v17 | Cruzadinha 100% no servidor: grade montada pelo Apps Script a partir da aba `CruzBanco` (editável); aluno recebe a grade sem letras; `cruzState`, `cruzCheck` e `cruzHint`; dicas registradas em `CtfCruzDicas`; botão *Nova grade* |
 | v16 | Cruzadinha: grade de até 25 palavras (banco com 32 por disciplina); no modo CTF Dinâmico quem fecha a palavra primeiro ganha mais (aba `CtfCruzCapturas`) |
 | v15 | O servidor confere a Cruzadinha: o professor grava o gabarito (palavras da grade) ao liberar; o aluno envia as palavras resolvidas e o nível de ajuda; o XP é recalculado no servidor (coluna `cruzadinha_gabarito`) |
 | v14 | Professor define quantas palavras tem a grade da Cruzadinha (6 a 16; coluna `cruzadinha_palavras`) |
@@ -348,7 +349,7 @@ Salas criadas em versões anteriores continuam funcionando.
 | `CtfCapturas` | Cada captura: posição, XP e horário |
 | `CtfLog`, `CtfResumo`, `CtfAnalise` | Registro e análise (v11) |
 | `Banco` | Banco de perguntas do professor |
-| `CruzBanco` | Palavras e dicas da Cruzadinha (disciplina, palavra, dica, ativo). Preenchida com o banco padrão na primeira vez; edite, inclua ou marque `não` em *ativo* |
+| `CruzBanco` | Palavras e dicas da Cruzadinha (disciplina, palavra, dica, ativo). Importadas pelo painel (*Banco de palavras*, arquivo `disciplina;palavra;dica`); o repositório não traz nenhum banco, para os alunos não acharem as respostas. Marque `não` em *ativo* para tirar uma palavra |
 | `CtfCruzCapturas`, `CtfCruzDicas` | Palavras acertadas (com a posição) e dicas usadas na Cruzadinha |
 | `NfcPublicadas` | Conjunto publicado para o Rali NFC |
 
@@ -457,7 +458,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v17)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v18)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

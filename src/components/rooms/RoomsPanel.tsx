@@ -15,6 +15,7 @@ import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
+import { CruzBancoPanel } from './CruzBancoPanel';
 
 const POLL_MS = 10_000;
 
@@ -376,6 +377,12 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
   const [dicasCruz, setDicasCruz] = useState(10);
   const [palavrasCruz, setPalavrasCruz] = useState(12);
+  const [bancoCruzAberto, setBancoCruzAberto] = useState(false);
+  const cruzBancoCall = useCallback(
+    <T,>(acao: string, dados: Record<string, unknown> = {}) =>
+      activeRoom ? ctfCall<T>(acao, { token: activeRoom.token, adminKey: activeRoom.adminKey, ...dados }, activeRoom.api) : Promise.reject(new Error('Abra uma sala primeiro.')),
+    [activeRoom],
+  );
   // O servidor monta a grade a partir da aba CruzBanco da planilha e guarda as respostas; nova = gerar outra grade
   const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz, nova = false) => {
     if (!activeRoom) return;
@@ -765,10 +772,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               Nova grade
                             </Btn>
                           )}
+                          <Btn size="sm" variant="ghost" onClick={() => setBancoCruzAberto((v) => !v)} title="Importar e conferir o banco de palavras da Cruzadinha (fica só na sua planilha)">
+                            Banco de palavras
+                          </Btn>
                         </>
                       )}
                       <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
                     </div>
+                    {!nfc && bancoCruzAberto && <CruzBancoPanel call={cruzBancoCall} />}
                   </div>
                   <QrImage text={inviteLink} size={132} label="QR code do convite" />
                 </div>
