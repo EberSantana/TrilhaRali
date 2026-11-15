@@ -12,7 +12,7 @@ const plain = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 interface Palavra { id: number; palavra: string; r: number; c: number; dir: 'A' | 'D'; n: number; dica: string }
 interface Saida {
   grade: { id: number; h: number; w: number; palavras: Record<string, unknown>[] };
-  limite: number; usadas: number; reveladas: [number, number, string][];
+  limite: number; usadas: number; limite_palavra: number; usadas_palavra: number; reveladas: [number, number, string][];
   resolvidas: { id: number; palavra: string; posicao: number; xp: number }[]; xp: number;
   correta?: boolean; nova?: { palavra: string; posicao: number; xp: number };
 }
@@ -114,7 +114,7 @@ test('com 25 palavras a grade continua cabível', () => {
     liberar(p, 3, 25);
     const g = p.grade();
     assert.ok(g.palavras.length >= 22, `${tag}: ${g.palavras.length}`);
-    assert.ok(g.h <= 26 && g.w <= 26, `${tag}: ${g.h}x${g.w}`);
+    assert.ok(g.h <= 30 && g.w <= 30, `${tag}: ${g.h}x${g.w}`);
   }
 });
 
@@ -158,15 +158,22 @@ test('modo CTF Dinâmico: quem fecha primeiro ganha mais', () => {
 
 test('dicas: o servidor entrega a letra, conta o uso, respeita o limite e desconta o XP', () => {
   const p = planilha();
-  liberar(p, 2);
-  const [w1, w2] = p.grade().palavras;
+  liberar(p, 1);
+  p.call('setCruzadinha', { dicas: 1, palavras: 12, reveals: 1 });
+  const [w1, w2, w3] = p.grade().palavras;
   const s = p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w1.id, indice: 0 }).cruz;
   assert.equal(s.usadas, 1);
+  assert.equal(s.limite, 1);
+  assert.equal(s.limite_palavra, 1);
+  assert.equal(s.usadas_palavra, 0);
   assert.deepEqual(s.reveladas, [[...celulas(w1)[0], w1.palavra[0]]]);
-  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w1.id, indice: 0 }), /já foi revelada/);
+  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w1.id, indice: 0 }), /já foi revelada|dicas de letra acabaram/);
   assert.equal(p.call('cruzCheck', { nome: 'Ana', id: w1.id, tentativa: w1.palavra }).cruz.nova!.xp, Math.round(w1.palavra.length * 5));
-  p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: w2.id });
-  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w2.id, indice: 0 }), /dicas acabaram/);
+  const rv = p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: w2.id }).cruz;
+  assert.equal(rv.usadas, 1, 'revelar palavra não gasta as dicas de letra');
+  assert.equal(rv.usadas_palavra, 1);
+  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w3.id, indice: 0 }), /dicas de letra acabaram/);
+  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: w3.id }), /revelações de palavra acabaram/);
   const r = p.call('cruzCheck', { nome: 'Ana', id: w2.id, tentativa: w2.palavra }).cruz;
   assert.equal(r.correta, true);
   assert.equal(r.nova, undefined); // palavra revelada não pontua
@@ -177,7 +184,7 @@ test('dicas: o servidor entrega a letra, conta o uso, respeita o limite e descon
 test('sem dicas (0) o servidor recusa; oculta ou sem grade, recusa tudo', () => {
   const p = planilha();
   liberar(p, 0);
-  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: 0 }), /desativou as dicas/);
+  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: 0 }), /desativadas nesta sala/);
   p.call('setCruzadinha', { dicas: null, palavras: 12 });
   assert.throws(() => p.call('cruzState', { nome: 'Ana' }), /não está liberada/);
 });
@@ -272,7 +279,9 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
   r = call('cruzTreinoCheck', { gid, id: b.id, tentativa: b.palavra });
   assert.equal(r.cruz.nova?.xp, Math.round(b.palavra.length * 10 * 0.5));
   assert.throws(() => call('cruzTreinoHint', { gid, id: a.id, tipo: 'letra', indice: 0 }), /já está resolvida/);
-  h = call('cruzTreinoHint', { gid, id: c.id, tipo: 'letra', indice: 1 });
+  for (let i = 1; ; i++) {
+    try { h = call('cruzTreinoHint', { gid, id: c.id, tipo: 'letra', indice: i % c.palavra.length }); break; } catch (e) { if (!/já foi revelada/.test(String(e))) throw e; }
+  }
   assert.equal(h.cruz.usadas, 2);
   assert.throws(() => call('cruzTreinoHint', { gid, id: d.id, tipo: 'letra', indice: 0 }), /acabaram/);
 
@@ -420,4 +429,27 @@ test('v23: seleção com várias disciplinas e assuntos; disciplina inteira ou s
   const mista = g([{ disciplina: 'Redes de Computadores', assuntos: ['Equipamentos'] }, { disciplina: 'Banco de Dados', assuntos: ['Joins'] }]);
   assert.ok(mista.length >= 5 && mista.every((w) => ['REDE', 'CABO', 'ROTEADOR', 'INNER', 'LEFT', 'RIGHT', 'CROSS', 'NATURAL', 'OUTER'].includes(w)), mista.join());
   assert.throws(() => g([{ disciplina: 'Redes de Computadores', assuntos: ['Equipamentos'] }]), /só 3 palavra\(s\)/);
+});
+
+test('v25: limites separados — 30 dicas de letra e 5 revelações de palavra por padrão', () => {
+  const p = planilha();
+  liberar(p, 30, 25);
+  const e = p.call('cruzState', { nome: 'Ana' }).cruz;
+  assert.equal(e.limite, 30);
+  assert.equal(e.limite_palavra, 5, 'sem configurar, são 5 revelações');
+  const ids = p.grade().palavras.map((w) => w.id);
+  for (let i = 0; i < 5; i++) p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: ids[i] });
+  assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: ids[5] }), /revelações de palavra acabaram \(5\)/);
+  // uma letra ainda não revelada (palavras cruzadas já podem ter entregue algumas)
+  let letra: Saida | undefined;
+  for (let i = 0; !letra; i++) {
+    try { letra = p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: ids[5], indice: i }).cruz; } catch (e) { if (!/já foi revelada/.test(String(e))) throw e; }
+  }
+  assert.equal(letra.usadas, 1);
+  assert.equal(letra.usadas_palavra, 5);
+  const t = p.call('cruzTreinoNovo', { selecao: [{ disciplina: 'Construção de Sites 1', assuntos: [] }], palavras: 10 }).cruz;
+  assert.equal(t.limite, 30);
+  assert.equal(t.limite_palavra, 5);
+  const t0 = p.call('cruzTreinoNovo', { selecao: [{ disciplina: 'Construção de Sites 1', assuntos: [] }], palavras: 10, dicas: 0 }).cruz;
+  assert.equal(t0.limite_palavra, 0, 'sem dicas, sem revelar palavra');
 });

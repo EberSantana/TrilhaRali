@@ -32,7 +32,8 @@ export const CruzTreino: React.FC = () => {
   const { mapa, erro: erroAssuntos } = useCruzAssuntos();
   const total = totalSelecionado(mapa, selecao);
   const [palavras, setPalavras] = useState(12);
-  const [dicas, setDicas] = useState(10);
+  const [dicas, setDicas] = useState(30);
+  const [reveals, setReveals] = useState(5);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -41,7 +42,7 @@ export const CruzTreino: React.FC = () => {
     setOcupado(true);
     setErro('');
     try {
-      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { selecao: selecaoParaEnvio(mapa, selecao), palavras, dicas });
+      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { selecao: selecaoParaEnvio(mapa, selecao), palavras, dicas, reveals });
       const novo: Salvo = { gid: r.cruz.grade.id, rotulo: rotuloSelecao(mapa, selecao) };
       localStorage.setItem(KEY_TREINO, JSON.stringify(novo));
       setSalvo(novo);
@@ -126,8 +127,12 @@ export const CruzTreino: React.FC = () => {
           <input type="number" min={6} max={25} value={palavras} onChange={(e) => setPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={campo} />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Dicas (0 a 30)</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Dicas de letra (0 a 30)</span>
           <input type="number" min={0} max={30} value={dicas} onChange={(e) => setDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={campo} />
+        </label>
+        <label className="block space-y-1.5 col-span-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Revelar palavra (0 a 10)</span>
+          <input type="number" min={0} max={10} value={reveals} onChange={(e) => setReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={campo} />
         </label>
       </div>
 

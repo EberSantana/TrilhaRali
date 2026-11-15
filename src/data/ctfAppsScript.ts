@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 24 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 25 });
 }
 
 function doPost(e) {
@@ -230,6 +230,7 @@ function roomInfo(room) {
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
+    cruzadinha_reveals: cruzadinhaReveals(room),
     cruzadinha_palavras: cruzadinhaPalavras(room),
     cruzadinha_assuntos: cruzRotulos(cruzSelecaoSala(room)),
     cruzadinha_versao: cruzadinhaDicas(room) === null ? undefined : (cruzGrade(room) || {}).id,
@@ -350,7 +351,7 @@ function createCruzRoom(req) {
     banco_liberado: false,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
     tipo: 'cruz', ordem: 'cruzadinha',
-    cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc,
+    cruzadinha_dicas: dicas, cruzadinha_reveals: cruzLimiteReveals(req.reveals, 5), cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc,
     cruzadinha_assuntos: JSON.stringify(sel)
   });
   logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + cruzRotulos(sel).join(', ') + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
@@ -696,6 +697,22 @@ function setTerminal(req) {
 // letras. Cada palavra completa e conferida aqui (cruzCheck), as dicas sao entregues e contadas aqui (cruzHint)
 // e o XP e calculado aqui. No modo CTF Dinamico, quem fecha a palavra primeiro ganha mais (regra das missoes).
 
+// "Revelar palavra" tem limite proprio (padrao 5, maximo 10), separado das dicas de letra. Coluna vazia = padrao;
+// sem dicas de letra (0) tambem nao ha como revelar palavra.
+function cruzadinhaReveals(room) {
+  var d = cruzadinhaDicas(room);
+  if (d === 0) return 0;
+  var v = room.cruzadinha_reveals;
+  if (v === '' || v === null || v === undefined) return 5;
+  var n = Number(v);
+  return isNaN(n) ? 5 : Math.max(0, Math.min(10, Math.floor(n)));
+}
+
+function cruzLimiteReveals(v, padrao) {
+  if (v === null || v === undefined || v === '') return padrao;
+  return Math.max(0, Math.min(10, Math.floor(Number(v)) || 0));
+}
+
 // Coluna vazia = Cruzadinha oculta; 0 = liberada sem dicas.
 function cruzadinhaDicas(room) {
   var v = room.cruzadinha_dicas;
@@ -963,6 +980,7 @@ function setCruzadinha(req) {
   var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
   var upd = { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras };
+  if (req.reveals !== undefined) upd.cruzadinha_reveals = cruzLimiteReveals(req.reveals, 5);
   var atual = cruzGrade(room);
   if (dicas !== '' && (!atual || req.nova === true || cruzadinhaPalavras(room) !== palavras)) {
     var sel = cruzSelecaoSala(room);
@@ -996,7 +1014,7 @@ function cruzContexto(req, escrita) {
     return String(d.token) === room.token && String(d.grade) === gid && d.nome_key === key;
   });
   var caps = readRows('CtfCruzCapturas').filter(function (c) { return String(c.token) === room.token && String(c.grade) === gid; });
-  return { room: room, grade: grade, limite: limite, key: key, me: me, dicas: dicas, caps: caps };
+  return { room: room, grade: grade, limite: limite, limitePal: cruzadinhaReveals(room), key: key, me: me, dicas: dicas, caps: caps };
 }
 
 // Casas reveladas por dica: { "r,c": letra }
@@ -1035,7 +1053,9 @@ function cruzSaida(ctx) {
       })
     },
     limite: ctx.limite,
-    usadas: ctx.dicas.length,
+    usadas: ctx.dicas.filter(function (d) { return d.tipo !== 'palavra'; }).length,
+    limite_palavra: ctx.limitePal,
+    usadas_palavra: ctx.dicas.filter(function (d) { return d.tipo === 'palavra'; }).length,
     reveladas: Object.keys(rev).map(function (k) { var rc = k.split(','); return [Number(rc[0]), Number(rc[1]), rev[k]]; }),
     resolvidas: resolvidas,
     xp: xp
@@ -1100,7 +1120,7 @@ function treinoPut(t) {
 
 function treinoCtx(t) {
   var caps = t.resolvidas.map(function (r) { return { nome_key: 'treino', palavra_id: r.id, posicao: 1, xp: r.xp }; });
-  return { grade: t.grade, limite: t.limite, key: 'treino', dicas: t.dicas, caps: caps };
+  return { grade: t.grade, limite: t.limite, limitePal: t.limitePal === undefined ? Math.min(5, t.limite) : t.limitePal, key: 'treino', dicas: t.dicas, caps: caps };
 }
 
 function treinoRetorno(t, extra) {
@@ -1113,12 +1133,13 @@ function cruzTreinoNovo(req) {
   var sel = cruzSelecaoReq(req);
   if (!sel.length) fail('Escolha ao menos uma disciplina para a cruzada.');
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
-  var dicas = req.dicas === undefined || req.dicas === null || req.dicas === '' ? 10 : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
+  var dicas = req.dicas === undefined || req.dicas === null || req.dicas === '' ? 30 : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
+  var reveals = dicas === 0 ? 0 : cruzLimiteReveals(req.reveals, 5);
   var banco = cruzFonte(sel);
   if (banco.length < 6) fail(cruzPoucas(sel, banco.length));
   var grade = cruzMontar(banco, palavras);
   grade.id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
-  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [], selecao: sel };
+  var t = { grade: grade, limite: dicas, limitePal: reveals, dicas: [], resolvidas: [], selecao: sel };
   treinoPut(t);
   return treinoRetorno(t);
 }
@@ -1145,12 +1166,13 @@ function cruzTreinoCheck(req) {
 
 function cruzTreinoHint(req) {
   var t = treinoGet(req.gid);
-  if (t.dicas.length >= t.limite) fail(t.limite ? 'Suas dicas acabaram.' : 'As dicas estão desativadas neste treino.');
+  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
+  var c0 = treinoCtx(t);
+  cruzLimiteDica(c0, tipo, 'neste treino');
   var p = t.grade.palavras[Number(req.id)];
   if (!p) fail('Palavra não encontrada.');
   var ctx = treinoCtx(t);
   if (cruzMinhas(ctx)[p.id]) fail('Essa palavra já está resolvida.');
-  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
   var indice = tipo === 'letra' ? Math.floor(Number(req.indice)) : '';
   var cel = cruzCelulas(p), rev = cruzReveladas(ctx);
   if (tipo === 'letra') {
@@ -1194,13 +1216,23 @@ function cruzBancoImport(req) {
 }
 
 // Dica: o servidor entrega a letra (ou a palavra) e conta o uso. Nao gasta dica com letra ja conhecida.
+// Cada tipo de dica tem o seu limite: letras (cruzadinha_dicas) e revelar palavra (cruzadinha_reveals)
+function cruzLimiteDica(ctx, tipo, onde) {
+  var usadas = ctx.dicas.filter(function (d) { return (d.tipo === 'palavra') === (tipo === 'palavra'); }).length;
+  var limite = tipo === 'palavra' ? ctx.limitePal : ctx.limite;
+  if (usadas >= limite) {
+    if (!ctx.limite) fail('As dicas estão desativadas ' + onde + '.');
+    fail(tipo === 'palavra' ? 'Suas revelações de palavra acabaram (' + limite + ').' : 'Suas dicas de letra acabaram (' + limite + ').');
+  }
+}
+
 function cruzHint(req) {
   var ctx = cruzContexto(req, true);
-  if (ctx.dicas.length >= ctx.limite) fail(ctx.limite ? 'Suas dicas acabaram.' : 'O professor desativou as dicas nesta sala.');
+  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
+  cruzLimiteDica(ctx, tipo, 'nesta sala');
   var p = ctx.grade.palavras[Number(req.id)];
   if (!p) fail('Palavra não encontrada.');
   if (cruzMinhas(ctx)[p.id]) fail('Essa palavra já está resolvida.');
-  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
   var indice = tipo === 'letra' ? Math.floor(Number(req.indice)) : '';
   var cel = cruzCelulas(p), rev = cruzReveladas(ctx);
   if (tipo === 'letra') {
