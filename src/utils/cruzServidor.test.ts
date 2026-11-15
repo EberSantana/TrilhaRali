@@ -504,3 +504,15 @@ test('v28: grande ranking — só entra quem terminou, o servidor grava os ponto
   assert.ok(lista.some((x) => x.nome === "'=Bia"), 'nome com fórmula é neutralizado');
   assert.equal(call('cruzRanking', {}).total, 2);
 });
+
+test('v29: palavra com todas as letras reveladas por dica conta como feita para o ranking', () => {
+  const p = comBanco();
+  const call = (fn: string, req: Record<string, unknown>) => p.call(fn, req) as unknown as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const gid = call('cruzTreinoNovo', { selecao: [{ disciplina: 'Banco de Dados', assuntos: [] }], palavras: 6, dicas: 30, reveals: 5 }).cruz.grade.id as number;
+  const gab = (p.ctx.treinoGet as (g: number) => { grade: { palavras: Palavra[] } })(gid).grade.palavras;
+  call('cruzTreinoHint', { gid, tipo: 'palavra', id: gab[0].id }); // revelar palavra: vale 0
+  gab.forEach((w) => call('cruzTreinoCheck', { gid, id: w.id, tentativa: w.palavra }));
+  const r = call('cruzTreinoRanking', { gid, nome: 'Junior' }).ranking;
+  assert.equal(r.nome, 'Junior');
+  assert.ok(r.pontos > 0);
+});

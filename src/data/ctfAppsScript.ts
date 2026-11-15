@@ -46,7 +46,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 28 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 29 });
 }
 
 function doPost(e) {
@@ -1200,7 +1200,12 @@ function cruzTreinoRanking(req) {
   var t = treinoGet(req.gid);
   var nome = cruzRankingNome(req.nome);
   var s = cruzSaida(treinoCtx(t));
-  if (!s.grade.palavras.length || s.resolvidas.length < s.grade.palavras.length) fail('Termine a cruzada para entrar no ranking.');
+  // Palavra conta como feita se foi acertada OU se todas as letras foram reveladas por dica (vale 0 e nao fica nas resolvidas)
+  var rev = cruzReveladas(treinoCtx(t)), minhas = cruzMinhas(treinoCtx(t));
+  var feitas = t.grade.palavras.filter(function (p) {
+    return minhas[p.id] || cruzCelulas(p).every(function (rc) { return rev[rc[0] + ',' + rc[1]]; });
+  }).length;
+  if (!s.grade.palavras.length || feitas < s.grade.palavras.length) fail('Termine a cruzada para entrar no ranking.');
   if (t.ranqueado) fail('Esta cruzada já está no ranking.');
   var assuntos = (t.selecao || []).map(function (e) { return e[1] ? e[0] + ' › ' + e[1] : e[0]; }).join(' + ').substring(0, 120);
   var quando = new Date().toISOString();
