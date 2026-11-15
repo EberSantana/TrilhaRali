@@ -24,6 +24,8 @@ export interface CtfRoomInfo {
   cruzadinha?: number | null;
   /** palavras da grade da Cruzadinha, de 6 a 25 (ausente = 12) */
   cruzadinha_palavras?: number;
+  /** limite de "Revelar palavra" por aluno (script v25+) */
+  cruzadinha_reveals?: number;
   /** assuntos escolhidos para a grade da Cruzada (vazio/ausente = todos); script v22+ */
   cruzadinha_assuntos?: string[];
   /** identificador da grade atual (muda quando o professor gera outra); script v17+ */
@@ -205,8 +207,12 @@ export interface CtfDebrief {
 export interface CruzPalavra { id: number; n: number; dir: 'A' | 'D'; r: number; c: number; tam: number; dica: string }
 export interface CruzEstado {
   grade: { id: number; h: number; w: number; palavras: CruzPalavra[] };
+  /** dicas de letra: total e usadas */
   limite: number;
   usadas: number;
+  /** "Revelar palavra": total e usadas (script v25+; ausente = mesmo limite das letras) */
+  limite_palavra?: number;
+  usadas_palavra?: number;
   /** casas reveladas por dica: [linha, coluna, letra] */
   reveladas: [number, number, string][];
   resolvidas: { id: number; palavra: string; posicao: number; xp: number }[];

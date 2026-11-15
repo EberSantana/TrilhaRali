@@ -141,6 +141,9 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   );
   const completa = palavras.length > 0 && feitas.size === palavras.length;
   const restantes = Math.max(0, (est?.limite ?? 0) - (est?.usadas ?? 0));
+  // "Revelar palavra" tem limite próprio (servidor v25+); em servidor antigo vale o mesmo total das letras
+  const limitePal = est?.limite_palavra ?? est?.limite ?? 0;
+  const restantesPal = Math.max(0, limitePal - (est?.usadas_palavra ?? (est?.limite_palavra === undefined ? est?.usadas ?? 0 : 0)));
   // Quanto cada palavra vale agora: 10 por letra; letra revelada por dica corta pela metade; tudo revelado vale 0
   const valeAgora = useCallback(
     (p: CruzPalavra) => {
@@ -345,8 +348,12 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
 
   const pedirDica = async (tipo: 'letra' | 'palavra') => {
     if (bloqueada || completa || ocupado) return;
-    if (restantes <= 0) {
-      dizer(est.limite === 0 ? 'O professor desativou as dicas.' : 'Suas dicas acabaram.');
+    if (est.limite === 0) {
+      dizer('As dicas estão desativadas.');
+      return;
+    }
+    if (tipo === 'letra' ? restantes <= 0 : restantesPal <= 0) {
+      dizer(tipo === 'letra' ? 'Suas dicas de letra acabaram.' : 'Suas revelações de palavra acabaram.');
       return;
     }
     if (feitas.has(atual.id)) {
@@ -396,8 +403,11 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
             {feitas.size}/{palavras.length} palavras
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{est.xp} {treino ? 'pts' : 'XP'}</span>
-          <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas restantes (definidas pelo professor)">
+          <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas de letra restantes (definidas pelo professor)">
             💡 {restantes}/{est.limite}
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Revelar palavra: restantes (definidas pelo professor)">
+            👁 {restantesPal}/{limitePal}
           </span>
         </div>
       </header>
@@ -478,10 +488,10 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
               {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Conferir palavra
             </button>
             <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('letra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
-              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra <span className="text-[10px] font-bold text-amber-300">(vale metade)</span>
+              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra <span className="text-[10px] font-bold text-amber-300">(vale metade · {restantes} restam)</span>
             </button>
-            <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('palavra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
-              <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra <span className="text-[10px] font-bold text-amber-300">(vale 0)</span>
+            <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('palavra')} disabled={bloqueada || ocupado || restantesPal <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
+              <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra <span className="text-[10px] font-bold text-amber-300">(vale 0 · {restantesPal} restam)</span>
             </button>
             <button type="button" onMouseDown={semFoco} onClick={apagarPalavra} disabled={bloqueada} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Eraser className="w-4 h-4 text-slate-300" /> Apagar palavra
@@ -490,7 +500,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
           <p className="text-[11px] text-slate-500 min-h-[1rem]" role="status">
             {aviso ||
               (est.limite > 0
-                ? `A palavra é conferida ao completar. Cada dica gasta 1 das suas ${est.limite} (restam ${restantes}). Dica de letra: a palavra vale metade. Revelar palavra: vale 0. Cada palavra vale 10 por letra.`
+                ? `A palavra é conferida ao completar. Dica de letra (restam ${restantes} de ${est.limite}): a palavra vale metade. Revelar palavra (restam ${restantesPal} de ${limitePal}): vale 0. Cada palavra vale 10 por letra.`
                 : 'A palavra é conferida ao completar. O professor desativou as dicas nesta sala.')}
           </p>
         </div>

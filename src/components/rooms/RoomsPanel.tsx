@@ -93,7 +93,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [novaSelecao, setNovaSelecao] = useState<Selecao>({});
   const { mapa: mapaAssuntos, erro: erroAssuntos } = useCruzAssuntos(apiUrl && isValidApiUrl(apiUrl) ? apiUrl : undefined);
   const [novaPalavras, setNovaPalavras] = useState(12);
-  const [novaDicas, setNovaDicas] = useState(10);
+  const [novaDicas, setNovaDicas] = useState(30);
+  const [novaReveals, setNovaReveals] = useState(5);
   const cruzSala = tipo === 'cruz';
   const [usarTimer, setUsarTimer] = useState(false);
   const [minutos, setMinutos] = useState(60);
@@ -223,7 +224,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         const nomeCruz = nome.trim() || `Cruzada · ${rotuloSelecao(mapaAssuntos, novaSelecao).slice(0, 60)}`;
         const r = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>(
           'createRoom',
-          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', selecao: selecaoParaEnvio(mapaAssuntos, novaSelecao), palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
+          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', selecao: selecaoParaEnvio(mapaAssuntos, novaSelecao), palavras: novaPalavras, dicas: novaDicas, reveals: novaReveals, ...(usarTimer ? { minutos } : {}) },
           apiUrl,
         );
         if (r.tipo !== 'cruz') {
@@ -405,7 +406,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     }
   };
 
-  const [dicasCruz, setDicasCruz] = useState(10);
+  const [dicasCruz, setDicasCruz] = useState(30);
+  const [revealsCruz, setRevealsCruz] = useState(5);
   const [palavrasCruz, setPalavrasCruz] = useState(12);
   const [bancoCruzAberto, setBancoCruzAberto] = useState(false);
   const cruzBancoCall = useCallback(
@@ -414,10 +416,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     [activeRoom],
   );
   // O servidor monta a grade a partir da aba CruzBanco da planilha e guarda as respostas; nova = gerar outra grade
-  const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz, nova = false) => {
+  const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz, nova = false, reveals = revealsCruz) => {
     if (!activeRoom) return;
     try {
-      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras, nova }, activeRoom.api);
+      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras, nova, reveals }, activeRoom.api);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
@@ -427,7 +429,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     const d = view?.sala.cruzadinha;
     if (typeof d === 'number') setDicasCruz(d);
     if (view?.sala.cruzadinha_palavras) setPalavrasCruz(view.sala.cruzadinha_palavras);
-  }, [view?.sala.cruzadinha, view?.sala.cruzadinha_palavras]);
+    if (typeof view?.sala.cruzadinha_reveals === 'number') setRevealsCruz(view.sala.cruzadinha_reveals);
+  }, [view?.sala.cruzadinha, view?.sala.cruzadinha_palavras, view?.sala.cruzadinha_reveals]);
 
   const [debrief, setDebrief] = useState<CtfDebrief | null>(null);
   const [debriefErr, setDebriefErr] = useState('');
@@ -649,8 +652,12 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   <input type="number" min={6} max={25} value={novaPalavras} onChange={(e) => setNovaPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={input} />
                 </label>
                 <label className="block space-y-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dicas por aluno</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dicas de letra (0 a 30)</span>
                   <input type="number" min={0} max={30} value={novaDicas} onChange={(e) => setNovaDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={input} />
+                </label>
+                <label className="block space-y-1 col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Revelar palavra (0 a 10)</span>
+                  <input type="number" min={0} max={10} value={novaReveals} onChange={(e) => setNovaReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={input} />
                 </label>
               </div>
               <p className="text-[11px] text-slate-500">Para trocar ou incluir palavras, use “Banco de palavras” no passo 2 de qualquer sala; perguntas novas do Banco de perguntas entram sozinhas, pelo assunto.</p>
@@ -824,8 +831,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                       </Btn>}
                       {cruzSala && (
                         <>
-                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas dicas cada aluno pode usar na Cruzadinha (0 = sem dicas)">
-                            Dicas
+                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas dicas de letra cada aluno pode usar na Cruzadinha (0 = sem dicas)">
+                            Dicas de letra
                             <input
                               type="number"
                               min={0}
@@ -833,6 +840,18 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               value={dicasCruz}
                               onChange={(e) => setDicasCruz(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))}
                               onBlur={() => view?.sala.cruzadinha != null && dicasCruz !== view.sala.cruzadinha && setCruzadinha(dicasCruz)}
+                              className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
+                            />
+                          </label>
+                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas vezes cada aluno pode usar Revelar palavra (0 a 10; vale 0 pontos)">
+                            Revelar palavra
+                            <input
+                              type="number"
+                              min={0}
+                              max={10}
+                              value={revealsCruz}
+                              onChange={(e) => setRevealsCruz(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))}
+                              onBlur={() => view?.sala.cruzadinha != null && revealsCruz !== (view.sala.cruzadinha_reveals ?? 5) && setCruzadinha(dicasCruz, palavrasCruz, false, revealsCruz)}
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />
                           </label>
