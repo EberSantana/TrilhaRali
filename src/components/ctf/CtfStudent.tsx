@@ -274,7 +274,17 @@ export const CtfStudent: React.FC = () => {
       {temLab && <LabInformatica />}
       {temAtelie && <AtelieWeb />}
       {typeof sala.cruzadinha === 'number' && (
-        <Cruzadinha token={sala.token} nome={aluno.nome} dicas={sala.cruzadinha} tags={tagsSala} bloqueada={locked} />
+        <Cruzadinha
+          token={sala.token}
+          nome={aluno.nome}
+          dicas={sala.cruzadinha}
+          tags={tagsSala}
+          bloqueada={locked}
+          onXp={async (xpCruz) => {
+            const s = await ctfCall<CtfState>('cruzSubmit', { token: sala.token, nome: aluno.nome, xp: xpCruz });
+            setState(s);
+          }}
+        />
       )}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
