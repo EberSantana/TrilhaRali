@@ -18,6 +18,7 @@ var SHEET_HEADERS = {
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
+  CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
@@ -42,7 +43,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 15 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 16 });
 }
 
 function doPost(e) {
@@ -627,17 +628,17 @@ function cruzadinhaDicas(room) {
   return isNaN(n) ? null : Math.max(0, Math.min(30, Math.floor(n)));
 }
 
-// Quantidade de palavras da grade (6 a 16; vazio = 12, o padrao das versoes anteriores).
+// Quantidade de palavras da grade (6 a 25; vazio = 12, o padrao das versoes anteriores).
 function cruzadinhaPalavras(room) {
   var n = Number(room.cruzadinha_palavras);
-  return !n || isNaN(n) ? 12 : Math.max(6, Math.min(16, Math.floor(n)));
+  return !n || isNaN(n) ? 12 : Math.max(6, Math.min(25, Math.floor(n)));
 }
 
 function setCruzadinha(req) {
   var room = requireAdmin(req);
   var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var palavras = Math.max(6, Math.min(16, Math.floor(Number(req.palavras)) || 12));
-  var gab = (Array.isArray(req.gabarito) ? req.gabarito : []).map(function (p) { return String(p).toUpperCase(); }).filter(function (p) { return /^[A-Z]{2,16}$/.test(p); }).slice(0, 20).join(',');
+  var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
+  var gab = (Array.isArray(req.gabarito) ? req.gabarito : []).map(function (p) { return String(p).toUpperCase(); }).filter(function (p) { return /^[A-Z]{2,16}$/.test(p); }).slice(0, 30).join(',');
   updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_gabarito: gab });
   room.cruzadinha_gabarito = gab;
   room.cruzadinha_dicas = dicas;
@@ -647,8 +648,8 @@ function setCruzadinha(req) {
 
 // XP da Cruzadinha: o servidor confere as palavras. O professor grava o gabarito da sala (as palavras da grade)
 // ao liberar a Cruzadinha; o aparelho do aluno envia as palavras que resolveu e o nivel de ajuda de cada uma
-// (0 sem dica, 1 com dica de letra, 2 revelada). O XP e recalculado aqui: so conta palavra do gabarito, sem
-// repeticao, entao o total nunca passa do maximo da grade. xp_cruz so sobe, e o XP do aluno recebe a diferenca.
+// (0 sem dica, 1 com dica de letra, 2 revelada). O XP e calculado aqui: so conta palavra do gabarito, e cada
+// palavra so pontua uma vez por aluno (aba CtfCruzCapturas, que tambem guarda a ordem de quem fechou primeiro).
 function cruzDisciplinas(room) {
   var set = {};
   readRows('CtfMissoes').forEach(function (m) {
@@ -686,21 +687,35 @@ function cruzSubmit(req) {
   if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
   if ((Number(req.dicas) || 0) > limite) fail('Você passou do limite de dicas da sala.');
 
-  var vistas = {};
-  var novo = 0;
+  // Cada palavra vale 10 XP por letra. No modo CTF Dinamico, quem fecha a palavra primeiro leva o valor cheio
+  // e os seguintes perdem 10% por posicao (piso de 40%), a mesma regra das missoes. A dica desconta por cima.
+  var capturas = readRows('CtfCruzCapturas').filter(function (c) { return String(c.token) === room.token; });
+  var minhas = {};
+  var porPalavra = {};
+  capturas.forEach(function (c) {
+    porPalavra[c.palavra] = (porPalavra[c.palavra] || 0) + 1;
+    if (c.nome_key === key) minhas[c.palavra] = true;
+  });
+  var novas = [];
+  var ganho = 0;
   (Array.isArray(req.palavras) ? req.palavras : []).forEach(function (par) {
     var palavra = String(par && par[0] || '').toUpperCase();
     var ajuda = Number(par && par[1]) === 2 ? 2 : Number(par && par[1]) === 1 ? 1 : 0;
-    if (vistas[palavra] || gabarito.indexOf(palavra) < 0) return;
-    vistas[palavra] = true;
-    novo += cruzXpPalavra(palavra.length, ajuda);
+    if (minhas[palavra] || gabarito.indexOf(palavra) < 0) return;
+    minhas[palavra] = true;
+    var posicao = (porPalavra[palavra] || 0) + 1;
+    porPalavra[palavra] = posicao;
+    var xp = ajuda === 2 ? 0 : Math.round(pontos(palavra.length * 10, posicao, room.modo) * (ajuda === 1 ? 0.5 : 1));
+    appendObj('CtfCruzCapturas', { token: room.token, nome_key: key, palavra: palavra, posicao: posicao, ajuda: ajuda, xp: xp, timestamp: new Date().toISOString() });
+    novas.push({ palavra: palavra, posicao: posicao, xp: xp });
+    ganho += xp;
   });
-  var antigo = Number(me.xp_cruz) || 0;
-  if (novo > antigo) {
-    updateRow('CtfAlunos', me._row, { xp: Number(me.xp) + (novo - antigo), xp_cruz: novo });
+  var total = (Number(me.xp_cruz) || 0) + ganho;
+  if (novas.length) {
+    updateRow('CtfAlunos', me._row, { xp: Number(me.xp) + ganho, xp_cruz: total });
   }
   var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
-  st.cruz = { xp: Math.max(novo, antigo) };
+  st.cruz = { xp: total, novas: novas };
   return st;
 }
 

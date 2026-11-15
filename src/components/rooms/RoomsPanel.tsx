@@ -752,14 +752,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />
                           </label>
-                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas palavras tem a grade (6 a 16). Defina antes de liberar: mudar com a sala em andamento refaz a grade.">
+                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas palavras tem a grade (6 a 25). Defina antes de liberar: mudar com a sala em andamento refaz a grade.">
                             Palavras
                             <input
                               type="number"
                               min={6}
-                              max={16}
+                              max={25}
                               value={palavrasCruz}
-                              onChange={(e) => setPalavrasCruz(Math.max(6, Math.min(16, Math.floor(Number(e.target.value)) || 6)))}
+                              onChange={(e) => setPalavrasCruz(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))}
                               onBlur={() => view?.sala.cruzadinha != null && palavrasCruz !== (view.sala.cruzadinha_palavras ?? 12) && setCruzadinha(dicasCruz, palavrasCruz)}
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />

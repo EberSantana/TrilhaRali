@@ -121,7 +121,8 @@ export function montarGrade(banco: PalavraCruz[], semente: number, max = 12): Gr
   for (let it = 0; it < 300; it++) {
     const cs = tentar(base, rnd, it % 2 === 1);
     const m = medir(cs);
-    const sc = cs.length * 1000 - Math.max(m.h, m.w) * 10 - m.h * m.w;
+    // Mais palavras primeiro; depois, grade compacta e não muito larga (o celular tem pouca largura)
+    const sc = cs.length * 1000 - Math.max(m.h, m.w) * 30 - m.w * 10 - m.h * m.w;
     if (!melhor || sc > melhor.sc) melhor = { cs, sc };
   }
   const cs = melhor!.cs;

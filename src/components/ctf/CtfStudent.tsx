@@ -24,7 +24,7 @@ import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { LinuxTerminal } from './LinuxTerminal';
 import { LabInformatica } from './LabInformatica';
 import { AtelieWeb } from './AtelieWeb';
-import { Cruzadinha } from './Cruzadinha';
+import { Cruzadinha, type RespostaXp } from './Cruzadinha';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -285,6 +285,7 @@ export const CtfStudent: React.FC = () => {
           onXp={async ({ palavras, dicas }) => {
             const s = await ctfCall<CtfState>('cruzSubmit', { token: sala.token, nome: aluno.nome, palavras, dicas });
             setState(s);
+            return (s as CtfState & { cruz?: RespostaXp }).cruz;
           }}
         />
       )}
