@@ -21,7 +21,7 @@ export interface CtfRoomInfo {
   terminal?: boolean; // professor liberou o terminal Linux simulado
   /** dicas por aluno na Cruzadinha (0 = sem dicas); null/ausente = ambiente oculto (script v12+) */
   cruzadinha?: number | null;
-  /** palavras da grade da Cruzadinha, de 6 a 16 (script v14+; ausente = 12) */
+  /** palavras da grade da Cruzadinha, de 6 a 25 (script v16+; ausente = 12) */
   cruzadinha_palavras?: number;
   /** disciplinas das missões da sala, para escolher o vocabulário da Cruzadinha (script v15+) */
   cruzadinha_disc?: string[];

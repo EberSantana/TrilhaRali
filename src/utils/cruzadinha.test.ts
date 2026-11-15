@@ -32,7 +32,7 @@ test('o banco só tem palavras A-Z, sem repetição por disciplina', () => {
       assert.ok(!vistas.has(p), `${disc}: repetida ${p}`);
       vistas.add(p);
     }
-    assert.ok(lista.length >= 12, disc);
+    assert.ok(lista.length >= 30, disc);
   }
 });
 
@@ -75,11 +75,19 @@ test('semente diferente pode gerar outra grade', () => {
   assert.notDeepEqual(a.palavras.map((p) => p.palavra).sort(), b.palavras.map((p) => p.palavra).sort());
 });
 
-test('montarGrade respeita a quantidade pedida pelo professor (6 a 16)', () => {
-  const banco = [...BANCO_CRUZADINHA['Informática Básica'], ...BANCO_CRUZADINHA['Construção de Sites 1']];
-  for (const n of [6, 10, 16]) {
+test('montarGrade respeita a quantidade pedida pelo professor (6 a 25)', () => {
+  const banco = BANCO_CRUZADINHA['Informática Básica'];
+  for (const n of [6, 10, 16, 25]) {
     const g = montarGrade(banco, hashTexto('QTD' + n), n);
     assert.ok(g.palavras.length <= n, `${n}: gerou ${g.palavras.length}`);
     assert.ok(g.palavras.length >= n - 3, `${n}: só encaixou ${g.palavras.length}`);
+  }
+});
+
+test('com 25 palavras a grade continua cabível (até 24x24) em todas as disciplinas', () => {
+  for (const [disc, lista] of Object.entries(BANCO_CRUZADINHA)) {
+    const g = montarGrade(lista, hashTexto('MAX' + disc), 25);
+    assert.ok(g.palavras.length >= 22, `${disc}: ${g.palavras.length}`);
+    assert.ok(g.h <= 24 && g.w <= 24, `${disc}: ${g.h}x${g.w}`);
   }
 });

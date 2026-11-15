@@ -21,7 +21,13 @@ interface Props {
   /** sala encerrada ou tempo esgotado */
   bloqueada?: boolean;
   /** envia o XP acumulado ao ranking da sala; se ausente, o XP é só de treino */
-  onXp?: (resultado: { palavras: [string, 0 | 1 | 2][]; dicas: number }) => Promise<unknown>;
+  onXp?: (resultado: { palavras: [string, 0 | 1 | 2][]; dicas: number }) => Promise<RespostaXp | void>;
+}
+
+/** O que o servidor devolve: XP total da Cruzadinha no ranking e as palavras pontuadas neste envio. */
+export interface RespostaXp {
+  xp: number;
+  novas?: { palavra: string; posicao: number; xp: number }[];
 }
 
 interface Salvo {
@@ -31,9 +37,11 @@ interface Salvo {
   usadas: number;
   /** maior XP já aceito pelo servidor */
   enviado: number;
+  /** XP da Cruzadinha que já está no ranking (calculado pelo servidor) */
+  xpServ: number;
 }
 
-const VAZIO: Salvo = { vals: {}, dicaCel: {}, ajuda: {}, usadas: 0, enviado: 0 };
+const VAZIO: Salvo = { vals: {}, dicaCel: {}, ajuda: {}, usadas: 0, enviado: 0, xpServ: 0 };
 const k = (r: number, c: number) => `${r},${c}`;
 
 function carregar(chave: string): Salvo {
@@ -41,7 +49,7 @@ function carregar(chave: string): Salvo {
     const raw = localStorage.getItem(chave);
     if (!raw) return VAZIO;
     const o = JSON.parse(raw) as Partial<Salvo>;
-    return { vals: o.vals ?? {}, dicaCel: o.dicaCel ?? {}, ajuda: o.ajuda ?? {}, usadas: Number(o.usadas) || 0, enviado: Number(o.enviado) || 0 };
+    return { vals: o.vals ?? {}, dicaCel: o.dicaCel ?? {}, ajuda: o.ajuda ?? {}, usadas: Number(o.usadas) || 0, enviado: Number(o.enviado) || 0, xpServ: Number(o.xpServ) || 0 };
   } catch {
     return VAZIO;
   }
@@ -66,6 +74,11 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
   const [erradas, setErradas] = useState<Record<string, true>>({});
   const [aviso, setAviso] = useState('');
   const entrada = useRef<HTMLInputElement>(null);
+  const gradeRef = useRef<HTMLDivElement>(null);
+  // Grades grandes rolam no celular: mantém a casa ativa visível
+  useEffect(() => {
+    gradeRef.current?.querySelector<HTMLElement>(`[data-cel="${sel.r},${sel.c}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [sel.r, sel.c]);
   const avisoT = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -104,12 +117,14 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
     if (!temRanking || bloqueada || xp <= salvo.enviado) return;
     const t = window.setTimeout(async () => {
       try {
-        await onXpRef.current?.({
+        const r = await onXpRef.current?.({
           palavras: grade.palavras.filter((p) => feitas.has(p.id)).map((p) => [p.palavra, (salvo.ajuda[p.id] ?? 0) as 0 | 1 | 2]),
           dicas: salvo.usadas,
         });
-        setSalvo((s) => ({ ...s, enviado: Math.max(s.enviado, xp) }));
+        setSalvo((s) => ({ ...s, enviado: Math.max(s.enviado, xp), xpServ: r ? Math.max(s.xpServ, r.xp) : s.xpServ }));
         setEnvio('ok');
+        const n = r?.novas?.filter((x) => x.xp > 0) ?? [];
+        if (n.length) dizer(n.map((x) => `${x.palavra}: +${x.xp} XP (${x.posicao}º a resolver)`).join(' · '));
       } catch {
         setEnvio('erro');
         window.setTimeout(() => setTentativa((n) => n + 1), 8000);
@@ -283,7 +298,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
         for (const [r, c] of palavraAtual.celulas) {
           vals[k(r, c)] = info.get(k(r, c))!.ans;
           dicaCel[k(r, c)] = true;
-          for (const id of Object.values(info.get(k(r, c))!.ids) as number[]) if (id !== palavraAtual.id) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
+          for (const id of Object.values(info.get(k(r, c))!.ids) as number[]) if (id !== palavraAtual.id && !feitas.has(id)) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
         }
         ajuda[palavraAtual.id] = 2;
         return { ...s, vals, dicaCel, ajuda, usadas: s.usadas + 1 };
@@ -312,7 +327,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
     }
   }, [completa]);
 
-  const tamCelula = Math.min(44, Math.floor(640 / grade.w));
+  const tamCelula = Math.max(24, Math.min(44, Math.floor(640 / grade.w)));
   const lista = (dir: Dir) => [...grade.palavras].filter((p) => p.dir === dir).sort((a, b) => a.n - b.n);
 
   return (
@@ -325,7 +340,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5 text-xs font-black">
           <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200">{feitas.size}/{grade.palavras.length} palavras</span>
-          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{xp} XP{temRanking && envio === 'ok' && xp > 0 && xp <= salvo.enviado ? ' ✓' : ''}</span>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{temRanking ? salvo.xpServ : xp} XP{temRanking && xp > salvo.enviado ? ' …' : temRanking && envio === 'ok' && salvo.xpServ > 0 ? ' ✓' : ''}</span>
           <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas restantes (definidas pelo professor)">
             💡 {restantes}/{dicas}
           </span>
@@ -345,8 +360,9 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
             <div
               role="grid"
               aria-label="Grade da cruzadinha"
-              className="mx-auto grid gap-[2px]"
-              style={{ gridTemplateColumns: `repeat(${grade.w}, minmax(0, 1fr))`, maxWidth: tamCelula * grade.w + grade.w * 2 }}
+              ref={gradeRef}
+              className="mx-auto grid gap-[2px] w-max sm:w-auto"
+              style={{ gridTemplateColumns: `repeat(${grade.w}, minmax(24px, 1fr))`, maxWidth: tamCelula * grade.w + grade.w * 2 }}
             >
               {Array.from({ length: grade.h }, (_, r) =>
                 Array.from({ length: grade.w }, (_, c) => {
@@ -371,6 +387,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
                   return (
                     <button
                       key={chaveCel}
+                      data-cel={chaveCel}
                       type="button"
                       role="gridcell"
                       aria-label={`Linha ${r + 1}, coluna ${c + 1}${o.num ? `, início da palavra ${o.num}` : ''}${v ? `, letra ${v}` : ', vazia'}`}
@@ -423,7 +440,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
             <div className="sm:col-span-2 lg:col-span-1 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-3 text-center">
               <Trophy className="w-8 h-8 mx-auto text-amber-400" />
               <p className="font-black text-white">Cruzadinha concluída!</p>
-              <p className="text-sm text-amber-200">{xp} XP{temRanking ? ' no ranking' : ' de treino'}</p>
+              <p className="text-sm text-amber-200">{temRanking ? `${salvo.xpServ} XP no ranking` : `${xp} XP de treino`}</p>
             </div>
           )}
           {(['A', 'D'] as Dir[]).map((d) => (
