@@ -14,13 +14,13 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp', 'grade', 'palavra_id'],
   CtfCruzDicas: ['token', 'grade', 'nome_key', 'tipo', 'palavra_id', 'indice', 'timestamp'],
-  CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo'],
+  CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo', 'assunto'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 21 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 22 });
 }
 
 function doPost(e) {
@@ -87,6 +87,7 @@ function route(req) {
     case 'cruzState': return cruzState(req);
     case 'cruzBancoImport': return cruzBancoImport(req);
     case 'cruzBancoResumo': return cruzBancoResumo(req);
+    case 'cruzAssuntos': return cruzAssuntos(req);
     case 'cruzCheck': return cruzCheck(req);
     case 'cruzHint': return cruzHint(req);
     case 'cruzTreinoNovo': return cruzTreinoNovo(req);
@@ -230,6 +231,7 @@ function roomInfo(room) {
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
     cruzadinha_palavras: cruzadinhaPalavras(room),
+    cruzadinha_assuntos: cruzAssuntosSala(room),
     cruzadinha_versao: cruzadinhaDicas(room) === null ? undefined : (cruzGrade(room) || {}).id,
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
@@ -332,8 +334,9 @@ function createCruzRoom(req) {
   if (CRUZ_DISCIPLINAS.indexOf(disc) < 0) fail('Escolha a disciplina da Cruzadinha.');
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
   var dicas = Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var banco = cruzBanco().filter(function (b) { return b.disciplina === disc; });
-  if (banco.length < 6) fail('O banco da Cruzadinha tem poucas palavras ativas para ' + disc + '. Importe as palavras em "Banco de palavras".');
+  var assuntos = cruzAssuntosReq(req.assuntos);
+  var banco = cruzFonte([disc], assuntos);
+  if (banco.length < 6) fail(cruzPoucas(disc, assuntos, banco.length));
   var grade = cruzMontar(banco, palavras);
   var nome = String(req.nome || 'Cruzadinha').substring(0, 80);
   var modo = req.modo === 'ctf_dynamic' ? 'ctf_dynamic' : 'fixed';
@@ -347,9 +350,10 @@ function createCruzRoom(req) {
     banco_liberado: false,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
     tipo: 'cruz', ordem: 'cruzadinha',
-    cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc
+    cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc,
+    cruzadinha_assuntos: assuntos.length ? JSON.stringify(assuntos) : ''
   });
-  logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + disc + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
+  logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + disc + (assuntos.length ? ' (' + assuntos.join(', ') + ')' : '') + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
   return { token: token, adminKey: adminKey, total: grade.palavras.length, tipo: 'cruz', ordem: 'cruzadinha' };
 }
 
@@ -727,14 +731,96 @@ function cruzLetras(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
 }
 
-// Banco de palavras: aba CruzBanco (disciplina, palavra, dica, ativo). Marque "nao" em ativo para tirar uma palavra.
+// Banco de palavras: aba CruzBanco (disciplina, palavra, dica, ativo, assunto). Marque "nao" em ativo para tirar uma palavra.
+// Desde a v22 as perguntas ativas do Banco de perguntas tambem viram palavras: a resposta (uma ou duas palavras,
+// 3 a 16 letras) e a palavra e a pergunta e a dica, no mesmo assunto. A aba CruzBanco vence se a palavra se repetir.
+function cruzAssuntoLimpo(v) {
+  var a = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim();
+  return a || 'Geral';
+}
+
+function cruzDiscDe(txt) {
+  var k = cruzLetras(txt);
+  for (var i = 0; i < CRUZ_DISCIPLINAS.length; i++) if (cruzLetras(CRUZ_DISCIPLINAS[i]) === k) return CRUZ_DISCIPLINAS[i];
+  return '';
+}
+
 function cruzBanco() {
-  return readRows('CruzBanco').filter(function (r) {
+  var out = [], vistas = {};
+  readRows('CruzBanco').forEach(function (r) {
     var a = cruzLetras(r.ativo);
-    return a !== 'NAO' && a !== 'FALSE' && a !== 'N';
-  }).map(function (r) {
-    return { disciplina: String(r.disciplina || '').trim(), palavra: cruzLetras(r.palavra), dica: String(r.dica || '').trim() };
-  }).filter(function (r) { return r.palavra.length >= 3 && r.palavra.length <= 16 && r.dica; });
+    if (a === 'NAO' || a === 'FALSE' || a === 'N') return;
+    var disc = String(r.disciplina || '').trim(), palavra = cruzLetras(r.palavra), dica = String(r.dica || '').trim();
+    if (palavra.length < 3 || palavra.length > 16 || !dica || vistas[disc + '|' + palavra]) return;
+    vistas[disc + '|' + palavra] = true;
+    out.push({ disciplina: disc, assunto: cruzAssuntoLimpo(r.assunto), palavra: palavra, dica: dica, fonte: 'palavras' });
+  });
+  readRows('Banco').forEach(function (r) {
+    if (!(r.ativo === true || String(r.ativo).toLowerCase() === 'true')) return;
+    var disc = cruzDiscDe(r.disciplina);
+    var bruta = String(r.resposta === undefined || r.resposta === null ? '' : r.resposta).trim();
+    if (!disc || !/^[A-Za-zÀ-ÿ]+([ -][A-Za-zÀ-ÿ]+)?$/.test(bruta)) return;
+    var palavra = cruzLetras(bruta), dica = String(r.pergunta || '').replace(/\s+/g, ' ').trim();
+    if (palavra.length < 3 || palavra.length > 16 || !dica || dica.length > 200) return;
+    if (cruzLetras(dica).indexOf(palavra) >= 0) return; // a pergunta entregaria a resposta
+    if (vistas[disc + '|' + palavra]) return;
+    vistas[disc + '|' + palavra] = true;
+    out.push({ disciplina: disc, assunto: cruzAssuntoLimpo(r.assunto), palavra: palavra, dica: dica, fonte: 'banco' });
+  });
+  return out;
+}
+
+// Lista de assuntos pedida pelo aluno ou pelo professor (ate 30, texto curto); vazia = todos os assuntos.
+function cruzAssuntosReq(v) {
+  var out = [];
+  (Array.isArray(v) ? v : []).slice(0, 30).forEach(function (a) {
+    var t = cruzAssuntoLimpo(a).substring(0, 80);
+    if (out.indexOf(t) < 0) out.push(t);
+  });
+  return out;
+}
+
+function cruzAssuntosSala(room) {
+  try {
+    var v = JSON.parse(room.cruzadinha_assuntos || '[]');
+    return Array.isArray(v) ? cruzAssuntosReq(v) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Palavras das disciplinas, so dos assuntos escolhidos (nenhum escolhido = todos).
+function cruzFonte(discs, assuntos) {
+  var set = {};
+  assuntos.forEach(function (a) { set[cruzLetras(a)] = true; });
+  return cruzBanco().filter(function (b) {
+    return discs.indexOf(b.disciplina) >= 0 && (!assuntos.length || set[cruzLetras(b.assunto)]);
+  });
+}
+
+function cruzPoucas(disc, assuntos, n) {
+  return assuntos.length
+    ? 'Os assuntos escolhidos têm só ' + n + ' palavra(s) em ' + disc + ' (mínimo 6). Marque mais assuntos.'
+    : 'O banco da Cruzadinha tem poucas palavras ativas para ' + disc + '. Importe as palavras em "Banco de palavras" ou cadastre perguntas de resposta curta no Banco de perguntas.';
+}
+
+// Assuntos de cada disciplina com a quantidade de palavras (so contagens; nada de resposta sai daqui).
+function cruzAssuntos(req) {
+  var cache = CacheService.getScriptCache();
+  var guardado = cache.get('cruzAssuntos_v22');
+  if (guardado) return JSON.parse(guardado);
+  var por = {};
+  CRUZ_DISCIPLINAS.forEach(function (d) { por[d] = {}; });
+  cruzBanco().forEach(function (b) {
+    if (por[b.disciplina]) por[b.disciplina][b.assunto] = (por[b.disciplina][b.assunto] || 0) + 1;
+  });
+  var out = {};
+  CRUZ_DISCIPLINAS.forEach(function (d) {
+    out[d] = Object.keys(por[d]).sort().map(function (a) { return { assunto: a, n: por[d][a] }; });
+  });
+  var r = { assuntos: out };
+  cache.put('cruzAssuntos_v22', JSON.stringify(r), 60);
+  return r;
 }
 
 function cruzEmbaralhar(a) {
@@ -845,8 +931,9 @@ function setCruzadinha(req) {
   var atual = cruzGrade(room);
   if (dicas !== '' && (!atual || req.nova === true || cruzadinhaPalavras(room) !== palavras)) {
     var disc = cruzDisciplinas(room);
-    var banco = cruzBanco().filter(function (b) { return disc.indexOf(b.disciplina) >= 0; });
-    if (banco.length < 6) fail('O banco da Cruzadinha tem poucas palavras ativas para: ' + disc.join(', ') + '. Importe as palavras em "Banco de palavras".');
+    var assuntos = cruzAssuntosSala(room);
+    var banco = cruzFonte(disc, assuntos);
+    if (banco.length < 6) fail(cruzPoucas(disc.join(', '), assuntos, banco.length));
     var nova = cruzMontar(banco, palavras);
     upd.cruzadinha_grade = JSON.stringify(nova);
     if (isCruz(room)) upd.total_fases = nova.palavras.length;
@@ -993,11 +1080,12 @@ function cruzTreinoNovo(req) {
   if (CRUZ_DISCIPLINAS.indexOf(disc) < 0) fail('Escolha o assunto da cruzada.');
   var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
   var dicas = req.dicas === undefined || req.dicas === null || req.dicas === '' ? 10 : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var banco = cruzBanco().filter(function (b) { return b.disciplina === disc; });
-  if (banco.length < 6) fail('Ainda não há palavras suficientes para ' + disc + '. Avise o professor.');
+  var assuntos = cruzAssuntosReq(req.assuntos);
+  var banco = cruzFonte([disc], assuntos);
+  if (banco.length < 6) fail(assuntos.length ? cruzPoucas(disc, assuntos, banco.length) : 'Ainda não há palavras suficientes para ' + disc + '. Avise o professor.');
   var grade = cruzMontar(banco, palavras);
   grade.id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
-  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [] };
+  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [], assuntos: assuntos };
   treinoPut(t);
   return treinoRetorno(t);
 }
@@ -1046,8 +1134,14 @@ function cruzBancoResumo(req) {
   requireAdmin(req);
   var por = {};
   CRUZ_DISCIPLINAS.forEach(function (d) { por[d] = 0; });
-  cruzBanco().forEach(function (b) { if (por[b.disciplina] !== undefined) por[b.disciplina]++; });
-  return { por_disciplina: por };
+  var doBanco = {};
+  CRUZ_DISCIPLINAS.forEach(function (d) { doBanco[d] = 0; });
+  cruzBanco().forEach(function (b) {
+    if (por[b.disciplina] === undefined) return;
+    por[b.disciplina]++;
+    if (b.fonte === 'banco') doBanco[b.disciplina]++;
+  });
+  return { por_disciplina: por, do_banco: doBanco };
 }
 
 function cruzBancoImport(req) {
@@ -1057,12 +1151,13 @@ function cruzBancoImport(req) {
     var d = String(l && l[0] || '').trim();
     var p = cruzLetras(l && l[1]);
     var dica = safeText(String(l && l[2] || '').trim().substring(0, 200));
-    if (CRUZ_DISCIPLINAS.indexOf(d) >= 0 && p.length >= 3 && p.length <= 16 && dica) vals.push([d, p, dica, 'sim']);
+    var assunto = l && l[3] ? safeText(cruzAssuntoLimpo(l[3]).substring(0, 80)) : '';
+    if (CRUZ_DISCIPLINAS.indexOf(d) >= 0 && p.length >= 3 && p.length <= 16 && dica) vals.push([d, p, dica, 'sim', assunto]);
   });
-  if (!vals.length) fail('Nenhuma linha válida. Use o formato: disciplina;palavra;dica');
+  if (!vals.length) fail('Nenhuma linha válida. Use o formato: disciplina;assunto;palavra;dica');
   var sh = getSheet('CruzBanco');
   if (req.substituir === true && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
-  sh.getRange(sh.getLastRow() + 1, 1, vals.length, 4).setValues(vals);
+  sh.getRange(sh.getLastRow() + 1, 1, vals.length, 5).setValues(vals);
   var r = cruzBancoResumo(req);
   r.importadas = vals.length;
   return r;

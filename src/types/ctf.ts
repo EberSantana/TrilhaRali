@@ -24,6 +24,8 @@ export interface CtfRoomInfo {
   cruzadinha?: number | null;
   /** palavras da grade da Cruzadinha, de 6 a 25 (ausente = 12) */
   cruzadinha_palavras?: number;
+  /** assuntos escolhidos para a grade da Cruzada (vazio/ausente = todos); script v22+ */
+  cruzadinha_assuntos?: string[];
   /** identificador da grade atual (muda quando o professor gera outra); script v17+ */
   cruzadinha_versao?: number;
   debriefing?: boolean; // professor liberou o gabarito (debriefing) para os alunos

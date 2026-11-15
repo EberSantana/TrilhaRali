@@ -37,10 +37,28 @@ test('lerBanco: aceita ; ou tabulação, apelidos de disciplina, acento e cabeç
       'BD;primaria;repetida\n',
   );
   assert.deepEqual(r.linhas, [
-    ['Banco de Dados', 'PRIMARIA', 'Chave que identifica a linha'],
-    ['Construção de Sites 1', 'HREF', 'Atributo do link'],
-    ['Fundamentos de Sistemas Operacionais', 'GREP', 'Procura texto; em arquivos'],
+    ['Banco de Dados', 'PRIMARIA', 'Chave que identifica a linha', ''],
+    ['Construção de Sites 1', 'HREF', 'Atributo do link', ''],
+    ['Fundamentos de Sistemas Operacionais', 'GREP', 'Procura texto; em arquivos', ''],
   ]);
+  assert.equal(r.comAssunto, false);
   assert.equal(r.erros.length, 4);
   assert.match(r.erros[0], /química/);
+});
+
+test('lerBanco: com cabeçalho disciplina;assunto;palavra;dica lê o assunto de cada linha', () => {
+  const r = lerBanco(
+    'disciplina;assunto;palavra;dica\n' +
+      'bd;Joins;Inner;Junção só com par; nas duas tabelas\n' +
+      'sites\tHTML\thref\tAtributo do link\n' +
+      'bd;;VIEW;Tabela virtual\n' +
+      'bd;Joins;inner;repetida\n',
+  );
+  assert.equal(r.comAssunto, true);
+  assert.deepEqual(r.linhas, [
+    ['Banco de Dados', 'INNER', 'Junção só com par; nas duas tabelas', 'Joins'],
+    ['Construção de Sites 1', 'HREF', 'Atributo do link', 'HTML'],
+    ['Banco de Dados', 'VIEW', 'Tabela virtual', ''],
+  ]);
+  assert.equal(r.erros.length, 1);
 });
