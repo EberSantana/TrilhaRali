@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -27,7 +27,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -42,7 +42,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 11 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 12 });
 }
 
 function doPost(e) {
@@ -79,6 +79,7 @@ function route(req) {
     case 'setStatus': return setStatus(req);
     case 'setBanco': return setBanco(req);
     case 'setTerminal': return setTerminal(req);
+    case 'setCruzadinha': return setCruzadinha(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
     case 'debriefStudent': return debriefStudent(req);
@@ -214,6 +215,7 @@ function roomInfo(room) {
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
+    cruzadinha: cruzadinhaDicas(room),
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
@@ -608,6 +610,23 @@ function setTerminal(req) {
   var liberado = req.liberado === true;
   updateRow('CtfSalas', room._row, { terminal_liberado: liberado });
   room.terminal_liberado = liberado;
+  return { sala: roomInfo(room) };
+}
+
+// Cruzadinha: ambiente de estudo liberado pelo professor, com limite de dicas por aluno.
+// A coluna fica vazia quando o ambiente esta oculto; 0 = liberado sem dicas.
+function cruzadinhaDicas(room) {
+  var v = room.cruzadinha_dicas;
+  if (v === '' || v === null || v === undefined) return null;
+  var n = Number(v);
+  return isNaN(n) ? null : Math.max(0, Math.min(30, Math.floor(n)));
+}
+
+function setCruzadinha(req) {
+  var room = requireAdmin(req);
+  var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
+  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas });
+  room.cruzadinha_dicas = dicas;
   return { sala: roomInfo(room) };
 }
 

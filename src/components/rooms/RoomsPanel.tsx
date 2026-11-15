@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
@@ -374,6 +374,21 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     }
   };
 
+  const [dicasCruz, setDicasCruz] = useState(10);
+  const setCruzadinha = async (dicas: number | null) => {
+    if (!activeRoom) return;
+    try {
+      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas }, activeRoom.api);
+      loadView();
+    } catch (err) {
+      setMonitorError(err instanceof Error ? err.message : String(err));
+    }
+  };
+  useEffect(() => {
+    const d = view?.sala.cruzadinha;
+    if (typeof d === 'number') setDicasCruz(d);
+  }, [view?.sala.cruzadinha]);
+
   const [debrief, setDebrief] = useState<CtfDebrief | null>(null);
   const [debriefErr, setDebriefErr] = useState('');
   const [debriefBusy, setDebriefBusy] = useState(false);
@@ -713,6 +728,25 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                       <Btn size="sm" disabled={!view} onClick={toggleTerminal} icon={<Terminal className="w-4 h-4" />} title="Mostra ou esconde o terminal Linux simulado para os alunos">
                         Terminal Linux: {view?.sala.terminal ? 'liberado' : 'oculto'}
                       </Btn>
+                      {!nfc && (
+                        <>
+                          <Btn size="sm" disabled={!view} onClick={() => setCruzadinha(view?.sala.cruzadinha == null ? dicasCruz : null)} icon={<Puzzle className="w-4 h-4" />} title="Mostra ou esconde a Cruzadinha (ambiente de estudo) para os alunos">
+                            Cruzadinha: {view?.sala.cruzadinha != null ? 'liberada' : 'oculta'}
+                          </Btn>
+                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas dicas cada aluno pode usar na Cruzadinha (0 = sem dicas)">
+                            Dicas
+                            <input
+                              type="number"
+                              min={0}
+                              max={30}
+                              value={dicasCruz}
+                              onChange={(e) => setDicasCruz(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))}
+                              onBlur={() => view?.sala.cruzadinha != null && dicasCruz !== view.sala.cruzadinha && setCruzadinha(dicasCruz)}
+                              className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
+                            />
+                          </label>
+                        </>
+                      )}
                       <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
                     </div>
                   </div>
