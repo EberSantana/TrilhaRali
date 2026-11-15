@@ -21,10 +21,10 @@ export interface CtfRoomInfo {
   terminal?: boolean; // professor liberou o terminal Linux simulado
   /** dicas por aluno na Cruzadinha (0 = sem dicas); null/ausente = ambiente oculto (script v12+) */
   cruzadinha?: number | null;
-  /** palavras da grade da Cruzadinha, de 6 a 25 (script v16+; ausente = 12) */
+  /** palavras da grade da Cruzadinha, de 6 a 25 (ausente = 12) */
   cruzadinha_palavras?: number;
-  /** disciplinas das missões da sala, para escolher o vocabulário da Cruzadinha (script v15+) */
-  cruzadinha_disc?: string[];
+  /** identificador da grade atual (muda quando o professor gera outra); script v17+ */
+  cruzadinha_versao?: number;
   debriefing?: boolean; // professor liberou o gabarito (debriefing) para os alunos
   banco: boolean; // professor liberou o download do banco de dados para os alunos
   /** cronômetro da sala (null = sala sem tempo); ausente em backends antigos */
@@ -196,4 +196,20 @@ export interface CtfDebrief {
   sala: CtfRoomInfo;
   itens: CtfDebriefItem[];
   total_alunos: number;
+}
+
+/** Cruzadinha vista pelo aluno (script v17+): a grade vem sem as letras. */
+export interface CruzPalavra { id: number; n: number; dir: 'A' | 'D'; r: number; c: number; tam: number; dica: string }
+export interface CruzEstado {
+  grade: { id: number; h: number; w: number; palavras: CruzPalavra[] };
+  limite: number;
+  usadas: number;
+  /** casas reveladas por dica: [linha, coluna, letra] */
+  reveladas: [number, number, string][];
+  resolvidas: { id: number; palavra: string; posicao: number; xp: number }[];
+  /** XP desta grade (já somado ao ranking) */
+  xp: number;
+  correta?: boolean;
+  id?: number;
+  nova?: { palavra: string; posicao: number; xp: number };
 }

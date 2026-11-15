@@ -1,6 +1,7 @@
 /**
- * Banco de palavras da Cruzadinha (ambiente de estudo do CTF). Cada palavra vem sem acento e em maiúsculas, com
- * uma dica curta. São termos gerais da disciplina: não repetem o gabarito das missões da sala.
+ * Banco PADRÃO de palavras da Cruzadinha. Ele não é usado pela tela do aluno: vai embutido no Apps Script e
+ * preenche a aba CruzBanco da planilha na primeira vez. Dali em diante o servidor usa a aba (o professor pode
+ * editar, incluir ou desativar palavras) e monta a grade; o aluno nunca recebe as letras.
  */
 export type DisciplinaCruz = 'Banco de Dados' | 'Informática Básica' | 'Construção de Sites 1' | 'Fundamentos de Sistemas Operacionais';
 export type PalavraCruz = readonly [palavra: string, dica: string];
@@ -143,26 +144,3 @@ export const BANCO_CRUZADINHA: Record<DisciplinaCruz, PalavraCruz[]> = {
     ['MAN', 'Abre o manual de um comando'],
   ],
 };
-
-/** Mantém só nomes de disciplina que existem no banco (o servidor envia os nomes). */
-export function disciplinasValidas(nomes: string[] | undefined): DisciplinaCruz[] {
-  return (nomes ?? []).filter((n): n is DisciplinaCruz => n in BANCO_CRUZADINHA);
-}
-
-export function bancoDas(disc: DisciplinaCruz[]): PalavraCruz[] {
-  return disc.flatMap((d) => BANCO_CRUZADINHA[d]);
-}
-
-/** Disciplinas de uma sala, a partir das tags das missões (info_ / web_ / linux_; o resto é Banco de Dados). */
-export function disciplinasDasTags(tags: string[]): DisciplinaCruz[] {
-  const set = new Set<DisciplinaCruz>();
-  for (const t of tags) {
-    const k = t.toLowerCase();
-    if (!k) continue;
-    if (k.startsWith('info_')) set.add('Informática Básica');
-    else if (k.startsWith('web_')) set.add('Construção de Sites 1');
-    else if (k.startsWith('linux_')) set.add('Fundamentos de Sistemas Operacionais');
-    else set.add('Banco de Dados');
-  }
-  return set.size ? [...set] : ['Banco de Dados'];
-}
