@@ -1,158 +1,232 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Eraser, Eye, Lightbulb, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
+import { CheckCircle2, Eraser, Eye, Lightbulb, Loader2, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { bancoDas, disciplinasDasTags, disciplinasValidas } from '../../data/cruzadinhaBanco';
-import { hashTexto, letraNormalizada, montarGrade, xpPalavra, type Dir, type PalavraGrade } from '../../utils/cruzadinha';
+import type { CruzEstado, CruzPalavra } from '../../types/ctf';
+import { letraNormalizada } from '../../utils/cruzadinha';
 import { playSound } from '../../utils/audio';
 
+type Dir = 'A' | 'D';
+
+export interface CruzApi {
+  estado: () => Promise<CruzEstado>;
+  conferir: (id: number, tentativa: string) => Promise<CruzEstado>;
+  dica: (tipo: 'letra' | 'palavra', id: number, indice?: number) => Promise<CruzEstado>;
+}
+
 interface Props {
-  /** token da sala: define a cruzadinha (a mesma para todos) e a chave do progresso salvo */
   token: string;
-  /** nome do aluno (chave do progresso salvo) */
   nome: string;
-  /** dicas por aluno, definidas pelo professor */
-  dicas: number;
-  /** quantidade de palavras da grade, definida pelo professor (padrão 12) */
-  palavras?: number;
-  /** disciplinas da sala informadas pelo servidor (têm prioridade sobre as tags) */
-  disciplinas?: string[];
-  /** tags das missões da sala, usadas se o servidor não informar as disciplinas */
-  tags: string[];
+  /** identificador da grade (muda quando o professor gera outra) */
+  versao?: number;
   /** sala encerrada ou tempo esgotado */
   bloqueada?: boolean;
-  /** envia o XP acumulado ao ranking da sala; se ausente, o XP é só de treino */
-  onXp?: (resultado: { palavras: [string, 0 | 1 | 2][]; dicas: number }) => Promise<RespostaXp | void>;
+  api: CruzApi;
 }
 
-/** O que o servidor devolve: XP total da Cruzadinha no ranking e as palavras pontuadas neste envio. */
-export interface RespostaXp {
-  xp: number;
-  novas?: { palavra: string; posicao: number; xp: number }[];
-}
-
-interface Salvo {
-  vals: Record<string, string>;
-  dicaCel: Record<string, true>;
-  ajuda: Record<number, 1 | 2>;
-  usadas: number;
-  /** maior XP já aceito pelo servidor */
-  enviado: number;
-  /** XP da Cruzadinha que já está no ranking (calculado pelo servidor) */
-  xpServ: number;
-}
-
-const VAZIO: Salvo = { vals: {}, dicaCel: {}, ajuda: {}, usadas: 0, enviado: 0, xpServ: 0 };
 const k = (r: number, c: number) => `${r},${c}`;
+const celulas = (p: CruzPalavra): [number, number][] =>
+  Array.from({ length: p.tam }, (_, i) => (p.dir === 'A' ? [p.r, p.c + i] : [p.r + i, p.c]) as [number, number]);
 
-function carregar(chave: string): Salvo {
-  try {
-    const raw = localStorage.getItem(chave);
-    if (!raw) return VAZIO;
-    const o = JSON.parse(raw) as Partial<Salvo>;
-    return { vals: o.vals ?? {}, dicaCel: o.dicaCel ?? {}, ajuda: o.ajuda ?? {}, usadas: Number(o.usadas) || 0, enviado: Number(o.enviado) || 0, xpServ: Number(o.xpServ) || 0 };
-  } catch {
-    return VAZIO;
-  }
-}
-
-/** Cruzadinha: ambiente de estudo do CTF. A grade é gerada no navegador a partir do vocabulário da disciplina da sala. */
-export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tags, bloqueada = false, onXp }: Props) {
-  const chave = `cruzadinha:${token}:${nome.trim().toLowerCase()}`;
-  const tagsKey = tags.join('|');
-  const disciplinasKey = (disciplinas ?? []).join('|');
-  const grade = useMemo(() => {
-    const validas = disciplinasValidas(disciplinasKey ? disciplinasKey.split('|') : []);
-    const disc = validas.length ? validas : disciplinasDasTags(tagsKey ? tagsKey.split('|') : []);
-    return montarGrade(bancoDas(disc), hashTexto(token), palavras);
-  }, [token, tagsKey, disciplinasKey, palavras]);
-
-  const [salvo, setSalvo] = useState<Salvo>(() => carregar(chave));
-  const [sel, setSel] = useState<{ r: number; c: number; dir: Dir }>(() => {
-    const p = [...grade.palavras].sort((a, b) => a.n - b.n)[0];
-    return { r: p.r, c: p.c, dir: p.dir };
-  });
-  const [erradas, setErradas] = useState<Record<string, true>>({});
+/**
+ * Cruzadinha: ambiente do CTF. O servidor monta a grade e manda só o desenho e as dicas, sem as letras.
+ * O aluno digita aqui; cada palavra completa é conferida no servidor, que também entrega e conta as dicas.
+ */
+export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Props) {
+  const apiRef = useRef(api);
+  apiRef.current = api;
+  const [est, setEst] = useState<CruzEstado | null>(null);
+  const [erroCarga, setErroCarga] = useState('');
+  const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [erradas, setErradas] = useState<Record<string, true>>({});
+  const [sel, setSel] = useState<{ r: number; c: number; dir: Dir } | null>(null);
+  const avisoT = useRef<number | undefined>(undefined);
   const entrada = useRef<HTMLInputElement>(null);
   const gradeRef = useRef<HTMLDivElement>(null);
-  // Grades grandes rolam no celular: mantém a casa ativa visível
-  useEffect(() => {
-    gradeRef.current?.querySelector<HTMLElement>(`[data-cel="${sel.r},${sel.c}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [sel.r, sel.c]);
-  const avisoT = useRef<number | undefined>(undefined);
+  const tentadas = useRef<Record<number, string>>({});
 
+  const dizer = useCallback((t: string) => {
+    setAviso(t);
+    window.clearTimeout(avisoT.current);
+    avisoT.current = window.setTimeout(() => setAviso(''), 2600);
+  }, []);
+
+  // Carrega a grade (e de novo quando o professor gera outra)
   useEffect(() => {
+    let vivo = true;
+    setErroCarga('');
+    apiRef.current
+      .estado()
+      .then((e) => {
+        if (!vivo) return;
+        setEst(e);
+        setSel(null);
+      })
+      .catch((err) => vivo && setErroCarga(err instanceof Error ? err.message : String(err)));
+    return () => {
+      vivo = false;
+    };
+  }, [versao]);
+
+  const gid = est?.grade.id ?? 0;
+  const chave = `cruzadinha:${token}:${nome.trim().toLowerCase()}:${gid}`;
+  const [vals, setVals] = useState<Record<string, string>>({});
+  const [valsDe, setValsDe] = useState('');
+  useEffect(() => {
+    if (!gid) return;
     try {
-      localStorage.setItem(chave, JSON.stringify(salvo));
+      setVals(JSON.parse(localStorage.getItem(chave) || '{}'));
     } catch {
-      // armazenamento indisponível: o progresso fica só nesta sessão
+      setVals({});
     }
-  }, [chave, salvo]);
+    setValsDe(chave);
+    tentadas.current = {};
+  }, [chave, gid]);
+  useEffect(() => {
+    if (!gid || valsDe !== chave) return;
+    try {
+      localStorage.setItem(chave, JSON.stringify(vals));
+    } catch {
+      // sem armazenamento: o que foi digitado fica só nesta sessão
+    }
+  }, [chave, gid, vals, valsDe]);
 
+  const palavras = useMemo(() => est?.grade.palavras ?? [], [est]);
   const info = useMemo(() => {
-    const m = new Map<string, { ans: string; num: number; ids: Partial<Record<Dir, number>> }>();
-    for (const p of grade.palavras) {
-      p.celulas.forEach(([r, c], i) => {
-        const o = m.get(k(r, c)) ?? { ans: p.palavra[i], num: 0, ids: {} };
+    const m = new Map<string, { num: number; ids: Partial<Record<Dir, number>> }>();
+    for (const p of palavras) {
+      celulas(p).forEach(([r, c], i) => {
+        const o = m.get(k(r, c)) ?? { num: 0, ids: {} };
         o.ids[p.dir] = p.id;
         if (i === 0) o.num = p.n;
         m.set(k(r, c), o);
       });
     }
     return m;
-  }, [grade]);
+  }, [palavras]);
 
-  const feita = useCallback((p: PalavraGrade) => p.celulas.every(([r, c], i) => salvo.vals[k(r, c)] === p.palavra[i]), [salvo.vals]);
-  const feitas = useMemo(() => new Set(grade.palavras.filter(feita).map((p) => p.id)), [grade, feita]);
-  const xp = useMemo(
-    () => grade.palavras.filter((p) => feitas.has(p.id)).reduce((a, p) => a + xpPalavra(p.palavra.length, (salvo.ajuda[p.id] ?? 0) as 0 | 1 | 2), 0),
-    [grade, feitas, salvo.ajuda],
+  // Letras que vieram do servidor: dicas e palavras já acertadas
+  const fixas = useMemo(() => {
+    const f: Record<string, { l: string; dica: boolean }> = {};
+    for (const [r, c, l] of est?.reveladas ?? []) f[k(r, c)] = { l, dica: true };
+    for (const s of est?.resolvidas ?? []) {
+      const p = palavras.find((x) => x.id === s.id);
+      if (p) celulas(p).forEach(([r, c], i) => (f[k(r, c)] = f[k(r, c)] ?? { l: s.palavra[i] ?? '', dica: false }));
+    }
+    return f;
+  }, [est, palavras]);
+
+  const letra = useCallback((r: number, c: number) => fixas[k(r, c)]?.l ?? vals[k(r, c)] ?? '', [fixas, vals]);
+  const resolvidas = useMemo(() => new Set((est?.resolvidas ?? []).map((s) => s.id)), [est]);
+  const feitas = useMemo(
+    () => new Set(palavras.filter((p) => resolvidas.has(p.id) || celulas(p).every(([r, c]) => fixas[k(r, c)])).map((p) => p.id)),
+    [palavras, resolvidas, fixas],
   );
-  const onXpRef = useRef(onXp);
-  onXpRef.current = onXp;
-  const [envio, setEnvio] = useState<'' | 'ok' | 'erro'>('');
-  const [tentativa, setTentativa] = useState(0);
-  const temRanking = Boolean(onXp);
-  useEffect(() => {
-    if (!temRanking || bloqueada || xp <= salvo.enviado) return;
-    const t = window.setTimeout(async () => {
-      try {
-        const r = await onXpRef.current?.({
-          palavras: grade.palavras.filter((p) => feitas.has(p.id)).map((p) => [p.palavra, (salvo.ajuda[p.id] ?? 0) as 0 | 1 | 2]),
-          dicas: salvo.usadas,
-        });
-        setSalvo((s) => ({ ...s, enviado: Math.max(s.enviado, xp), xpServ: r ? Math.max(s.xpServ, r.xp) : s.xpServ }));
-        setEnvio('ok');
-        const n = r?.novas?.filter((x) => x.xp > 0) ?? [];
-        if (n.length) dizer(n.map((x) => `${x.palavra}: +${x.xp} XP (${x.posicao}º a resolver)`).join(' · '));
-      } catch {
-        setEnvio('erro');
-        window.setTimeout(() => setTentativa((n) => n + 1), 8000);
-      }
-    }, 500);
-    return () => window.clearTimeout(t);
-  }, [xp, salvo.enviado, temRanking, bloqueada, tentativa, grade, feitas, salvo.ajuda, salvo.usadas]);
-  const restantes = Math.max(0, dicas - salvo.usadas);
-  const completa = feitas.size === grade.palavras.length;
+  const completa = palavras.length > 0 && feitas.size === palavras.length;
+  const restantes = Math.max(0, (est?.limite ?? 0) - (est?.usadas ?? 0));
 
-  const palavraAtual = useMemo(() => {
+  useEffect(() => {
+    if (!sel && palavras.length) {
+      const p = [...palavras].sort((a, b) => a.n - b.n)[0];
+      setSel({ r: p.r, c: p.c, dir: p.dir });
+    }
+  }, [palavras, sel]);
+
+  useEffect(() => {
+    if (sel) gradeRef.current?.querySelector<HTMLElement>(`[data-cel="${sel.r},${sel.c}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [sel]);
+
+  const atual = useMemo(() => {
+    if (!sel) return null;
     const o = info.get(k(sel.r, sel.c));
     const id = o?.ids[sel.dir] ?? o?.ids[sel.dir === 'A' ? 'D' : 'A'];
-    return grade.palavras.find((p) => p.id === id) ?? grade.palavras[0];
-  }, [info, sel, grade]);
+    return palavras.find((p) => p.id === id) ?? null;
+  }, [info, sel, palavras]);
 
-  const travada = (r: number, c: number) => {
-    if (bloqueada) return true;
-    if (salvo.dicaCel[k(r, c)]) return true;
-    const o = info.get(k(r, c));
-    return Object.values(o?.ids ?? {}).some((id) => feitas.has(id as number));
-  };
+  const aplicar = useCallback(
+    (e: CruzEstado) => {
+      setEst(e);
+      if (e.nova) {
+        playSound('success', true);
+        dizer(e.nova.xp > 0 ? `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)` : `✔ ${e.nova.palavra}`);
+      }
+    },
+    [dizer],
+  );
 
-  const dizer = (t: string) => {
-    setAviso(t);
-    window.clearTimeout(avisoT.current);
-    avisoT.current = window.setTimeout(() => setAviso(''), 2200);
-  };
+  // Confere no servidor uma palavra completa (sem repetir a mesma tentativa automaticamente)
+  const conferir = useCallback(
+    async (p: CruzPalavra, manual = false) => {
+      const tentativa = celulas(p).map(([r, c]) => letra(r, c)).join('');
+      if (tentativa.length < p.tam) {
+        if (manual) dizer('Complete a palavra antes de conferir.');
+        return;
+      }
+      if (!manual && tentadas.current[p.id] === tentativa) return;
+      tentadas.current[p.id] = tentativa;
+      setOcupado(true);
+      try {
+        const e = await apiRef.current.conferir(p.id, tentativa);
+        aplicar(e);
+        if (!e.correta) {
+          playSound('error', true);
+          const ruins: Record<string, true> = {};
+          celulas(p).forEach(([r, c]) => {
+            if (!fixas[k(r, c)]) ruins[k(r, c)] = true;
+          });
+          setErradas(ruins);
+          window.setTimeout(() => setErradas({}), 1000);
+          dizer(`${p.n} ${p.dir === 'A' ? 'horizontal' : 'vertical'}: ainda não está certa.`);
+        }
+      } catch (err) {
+        delete tentadas.current[p.id];
+        dizer(err instanceof Error ? err.message : String(err));
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [letra, fixas, aplicar, dizer],
+  );
+
+  // Ao completar uma palavra, ela vai sozinha para o servidor conferir
+  useEffect(() => {
+    if (ocupado || bloqueada) return;
+    const pronta = palavras.find((p) => {
+      if (feitas.has(p.id)) return false;
+      const t = celulas(p).map(([r, c]) => letra(r, c)).join('');
+      return t.length === p.tam && tentadas.current[p.id] !== t;
+    });
+    if (pronta) void conferir(pronta);
+  }, [letra, ocupado, bloqueada, palavras, feitas, conferir]);
+
+  const parabens = useRef(false);
+  useEffect(() => {
+    if (completa && !parabens.current) {
+      parabens.current = true;
+      try {
+        confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#f59e0b', '#38bdf8'] });
+      } catch {
+        // ignore
+      }
+    }
+  }, [completa]);
+
+  if (erroCarga) {
+    return (
+      <section className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 text-sm text-slate-300" aria-label="Cruzadinha">
+        <span className="font-black text-white">Cruzadinha:</span> {erroCarga}
+      </section>
+    );
+  }
+  if (!est || !sel || !atual) {
+    return (
+      <section className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-2 text-sm text-slate-400" aria-label="Cruzadinha">
+        <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> Carregando a Cruzadinha…
+      </section>
+    );
+  }
+
+  const travada = (r: number, c: number) => bloqueada || Boolean(fixas[k(r, c)]);
 
   const selecionar = (r: number, c: number, alternar = false) => {
     const o = info.get(k(r, c));
@@ -164,76 +238,71 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
     entrada.current?.focus({ preventScroll: true });
   };
 
-  const irPara = (p: PalavraGrade) => {
-    const alvo = p.celulas.find(([r, c]) => !salvo.vals[k(r, c)]) ?? p.celulas[0];
+  const irPara = (p: CruzPalavra) => {
+    const alvo = celulas(p).find(([r, c]) => !letra(r, c)) ?? celulas(p)[0];
     setSel({ r: alvo[0], c: alvo[1], dir: p.dir });
     entrada.current?.focus({ preventScroll: true });
   };
 
+  const indiceAtual = () => celulas(atual).findIndex(([r, c]) => r === sel.r && c === sel.c);
   const avancar = (voltar = false) => {
-    const i = palavraAtual.celulas.findIndex(([r, c]) => r === sel.r && c === sel.c);
-    const prox = palavraAtual.celulas[i + (voltar ? -1 : 1)];
-    if (prox) setSel({ r: prox[0], c: prox[1], dir: palavraAtual.dir });
+    const prox = celulas(atual)[indiceAtual() + (voltar ? -1 : 1)];
+    if (prox) setSel({ r: prox[0], c: prox[1], dir: atual.dir });
   };
 
-  const digitar = (letra: string) => {
+  const digitar = (l: string) => {
     if (bloqueada || completa) return;
-    if (travada(sel.r, sel.c)) {
-      avancar();
-      return;
-    }
-    const chaveCel = k(sel.r, sel.c);
-    setSalvo((s) => ({ ...s, vals: { ...s.vals, [chaveCel]: letra } }));
+    if (!travada(sel.r, sel.c)) setVals((v) => ({ ...v, [k(sel.r, sel.c)]: l }));
     avancar();
   };
 
   const apagar = () => {
     if (bloqueada || completa) return;
-    const atual = k(sel.r, sel.c);
-    if (salvo.vals[atual] && !travada(sel.r, sel.c)) {
-      setSalvo((s) => {
-        const vals = { ...s.vals };
-        delete vals[atual];
-        return { ...s, vals };
+    const aqui = k(sel.r, sel.c);
+    if (vals[aqui] && !travada(sel.r, sel.c)) {
+      setVals((v) => {
+        const n = { ...v };
+        delete n[aqui];
+        return n;
       });
       return;
     }
-    const i = palavraAtual.celulas.findIndex(([r, c]) => r === sel.r && c === sel.c);
-    const ant = palavraAtual.celulas[i - 1];
+    const ant = celulas(atual)[indiceAtual() - 1];
     if (!ant) return;
-    setSel({ r: ant[0], c: ant[1], dir: palavraAtual.dir });
+    setSel({ r: ant[0], c: ant[1], dir: atual.dir });
     if (!travada(ant[0], ant[1])) {
-      setSalvo((s) => {
-        const vals = { ...s.vals };
-        delete vals[k(ant[0], ant[1])];
-        return { ...s, vals };
+      setVals((v) => {
+        const n = { ...v };
+        delete n[k(ant[0], ant[1])];
+        return n;
       });
     }
   };
 
   const mover = (dr: number, dc: number) => {
-    const r = sel.r + dr;
-    const c = sel.c + dc;
-    if (info.has(k(r, c))) selecionar(r, c);
+    if (info.has(k(sel.r + dr, sel.c + dc))) selecionar(sel.r + dr, sel.c + dc);
   };
 
   const proximaPalavra = (voltar: boolean) => {
-    const ord = [...grade.palavras].sort((a, b) => a.n - b.n || a.dir.localeCompare(b.dir));
-    const i = ord.findIndex((p) => p.id === palavraAtual.id);
+    const ord = [...palavras].sort((a, b) => a.n - b.n || a.dir.localeCompare(b.dir));
+    const i = ord.findIndex((p) => p.id === atual.id);
     irPara(ord[(i + (voltar ? -1 : 1) + ord.length) % ord.length]);
   };
 
   const aoTeclar = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    switch (e.key) {
-      case 'Backspace': e.preventDefault(); apagar(); return;
-      case 'ArrowRight': e.preventDefault(); mover(0, 1); return;
-      case 'ArrowLeft': e.preventDefault(); mover(0, -1); return;
-      case 'ArrowDown': e.preventDefault(); mover(1, 0); return;
-      case 'ArrowUp': e.preventDefault(); mover(-1, 0); return;
-      case 'Tab':
-      case 'Enter': e.preventDefault(); proximaPalavra(e.shiftKey); return;
-      default:
+    const acoes: Record<string, () => void> = {
+      Backspace: apagar,
+      ArrowRight: () => mover(0, 1),
+      ArrowLeft: () => mover(0, -1),
+      ArrowDown: () => mover(1, 0),
+      ArrowUp: () => mover(-1, 0),
+      Tab: () => proximaPalavra(e.shiftKey),
+      Enter: () => proximaPalavra(e.shiftKey),
+    };
+    if (acoes[e.key]) {
+      e.preventDefault();
+      acoes[e.key]();
     }
   };
 
@@ -244,105 +313,59 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
     if (l) digitar(l);
   };
 
-  const verificar = () => {
-    const ruins: Record<string, true> = {};
-    for (const [chaveCel, v] of Object.entries(salvo.vals)) {
-      if (info.get(chaveCel)?.ans !== v && !salvo.dicaCel[chaveCel]) ruins[chaveCel] = true;
-    }
-    const n = Object.keys(ruins).length;
-    if (n) {
-      setErradas(ruins);
-      window.setTimeout(() => setErradas({}), 1000);
-      playSound('error', true);
-      dizer(`${n} ${n === 1 ? 'letra errada' : 'letras erradas'}`);
-    } else {
-      dizer('Nenhuma letra errada até aqui.');
-    }
-  };
-
-  const comDica = (fn: () => void) => {
-    if (bloqueada || completa) return;
+  const pedirDica = async (tipo: 'letra' | 'palavra') => {
+    if (bloqueada || completa || ocupado) return;
     if (restantes <= 0) {
-      dizer(dicas === 0 ? 'O professor desativou as dicas.' : 'Suas dicas acabaram.');
+      dizer(est.limite === 0 ? 'O professor desativou as dicas.' : 'Suas dicas acabaram.');
       return;
     }
-    fn();
+    if (feitas.has(atual.id)) {
+      dizer('Essa palavra já está resolvida.');
+      return;
+    }
+    if (tipo === 'letra' && fixas[k(sel.r, sel.c)]) {
+      dizer('Escolha uma letra que ainda não foi revelada.');
+      return;
+    }
+    setOcupado(true);
+    try {
+      aplicar(await apiRef.current.dica(tipo, atual.id, tipo === 'letra' ? indiceAtual() : undefined));
+      if (tipo === 'letra') avancar();
+    } catch (err) {
+      dizer(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOcupado(false);
+    }
   };
-
-  const dicaLetra = () =>
-    comDica(() => {
-      const chaveCel = k(sel.r, sel.c);
-      if (travada(sel.r, sel.c) || salvo.vals[chaveCel] === info.get(chaveCel)?.ans) {
-        dizer('Escolha uma letra que ainda não foi resolvida.');
-        return;
-      }
-      const o = info.get(chaveCel)!;
-      setSalvo((s) => {
-        const ajuda = { ...s.ajuda };
-        for (const id of Object.values(o.ids) as number[]) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
-        return { ...s, vals: { ...s.vals, [chaveCel]: o.ans }, dicaCel: { ...s.dicaCel, [chaveCel]: true }, ajuda, usadas: s.usadas + 1 };
-      });
-      avancar();
-    });
-
-  const dicaPalavra = () =>
-    comDica(() => {
-      if (feitas.has(palavraAtual.id)) {
-        dizer('Essa palavra já está resolvida.');
-        return;
-      }
-      setSalvo((s) => {
-        const vals = { ...s.vals };
-        const dicaCel = { ...s.dicaCel };
-        const ajuda = { ...s.ajuda };
-        for (const [r, c] of palavraAtual.celulas) {
-          vals[k(r, c)] = info.get(k(r, c))!.ans;
-          dicaCel[k(r, c)] = true;
-          for (const id of Object.values(info.get(k(r, c))!.ids) as number[]) if (id !== palavraAtual.id && !feitas.has(id)) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
-        }
-        ajuda[palavraAtual.id] = 2;
-        return { ...s, vals, dicaCel, ajuda, usadas: s.usadas + 1 };
-      });
-    });
 
   const apagarPalavra = () => {
     if (bloqueada || completa) return;
-    setSalvo((s) => {
-      const vals = { ...s.vals };
-      for (const [r, c] of palavraAtual.celulas) if (!travada(r, c)) delete vals[k(r, c)];
-      return { ...s, vals };
+    setVals((v) => {
+      const n = { ...v };
+      for (const [r, c] of celulas(atual)) if (!travada(r, c)) delete n[k(r, c)];
+      return n;
     });
   };
 
-  const parabens = useRef(false);
-  useEffect(() => {
-    if (completa && !parabens.current) {
-      parabens.current = true;
-      playSound('success', true);
-      try {
-        confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 }, colors: ['#10b981', '#34d399', '#f59e0b', '#38bdf8'] });
-      } catch {
-        // ignore
-      }
-    }
-  }, [completa]);
-
-  const tamCelula = Math.max(24, Math.min(44, Math.floor(640 / grade.w)));
-  const lista = (dir: Dir) => [...grade.palavras].filter((p) => p.dir === dir).sort((a, b) => a.n - b.n);
+  const { h, w } = est.grade;
+  const tamCelula = Math.max(24, Math.min(44, Math.floor(640 / w)));
+  const lista = (dir: Dir) => palavras.filter((p) => p.dir === dir).sort((a, b) => a.n - b.n);
+  const semFoco = (e: React.MouseEvent) => e.preventDefault();
+  const btn = 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition disabled:opacity-45 disabled:cursor-not-allowed';
 
   return (
     <section className="bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden min-w-0" aria-label="Cruzadinha">
       <header className="px-4 py-3 flex flex-wrap items-center gap-2 border-b border-slate-800 bg-emerald-500/5">
         <Puzzle className="w-5 h-5 text-emerald-300" />
         <h3 className="font-black text-white">Cruzadinha</h3>
-        <span className="text-xs text-slate-400 hidden sm:inline">
-          {temRanking ? 'Vocabulário da disciplina. O XP das palavras soma no ranking da sala.' : 'Treino de vocabulário da disciplina. O XP daqui não entra no ranking.'}
-        </span>
+        <span className="text-xs text-slate-400 hidden sm:inline">Vocabulário da disciplina. Cada palavra certa soma XP no ranking da sala.</span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5 text-xs font-black">
-          <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200">{feitas.size}/{grade.palavras.length} palavras</span>
-          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{temRanking ? salvo.xpServ : xp} XP{temRanking && xp > salvo.enviado ? ' …' : temRanking && envio === 'ok' && salvo.xpServ > 0 ? ' ✓' : ''}</span>
+          <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200">
+            {feitas.size}/{palavras.length} palavras
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{est.xp} XP</span>
           <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas restantes (definidas pelo professor)">
-            💡 {restantes}/{dicas}
+            💡 {restantes}/{est.limite}
           </span>
         </div>
       </header>
@@ -351,33 +374,33 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
         <div className="lg:col-span-3 space-y-3 min-w-0">
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2" aria-live="polite">
             <div className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-              {palavraAtual.n} {palavraAtual.dir === 'A' ? 'Horizontal →' : 'Vertical ↓'} · {palavraAtual.palavra.length} letras
+              {atual.n} {atual.dir === 'A' ? 'Horizontal →' : 'Vertical ↓'} · {atual.tam} letras
             </div>
-            <div className="text-sm sm:text-base font-bold text-white">{palavraAtual.dica}</div>
+            <div className="text-sm sm:text-base font-bold text-white">{atual.dica}</div>
           </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 overflow-auto">
             <div
+              ref={gradeRef}
               role="grid"
               aria-label="Grade da cruzadinha"
-              ref={gradeRef}
               className="mx-auto grid gap-[2px] w-max sm:w-auto"
-              style={{ gridTemplateColumns: `repeat(${grade.w}, minmax(24px, 1fr))`, maxWidth: tamCelula * grade.w + grade.w * 2 }}
+              style={{ gridTemplateColumns: `repeat(${w}, minmax(24px, 1fr))`, maxWidth: tamCelula * w + w * 2 }}
             >
-              {Array.from({ length: grade.h }, (_, r) =>
-                Array.from({ length: grade.w }, (_, c) => {
+              {Array.from({ length: h }, (_, r) =>
+                Array.from({ length: w }, (_, c) => {
                   const o = info.get(k(r, c));
                   if (!o) return <div key={k(r, c)} aria-hidden="true" className="aspect-square" />;
-                  const chaveCel = k(r, c);
-                  const v = salvo.vals[chaveCel] ?? '';
+                  const ch = k(r, c);
+                  const v = letra(r, c);
                   const ativa = sel.r === r && sel.c === c;
-                  const naPalavra = palavraAtual.celulas.some(([x, y]) => x === r && y === c);
+                  const naPalavra = celulas(atual).some(([x, y]) => x === r && y === c);
                   const ok = Object.values(o.ids).some((id) => feitas.has(id as number));
-                  const cor = erradas[chaveCel]
+                  const cor = erradas[ch]
                     ? 'bg-rose-300 border-rose-500 text-rose-900'
                     : ativa
                       ? 'bg-emerald-300 border-emerald-600 text-emerald-950 ring-2 ring-emerald-400 z-10'
-                      : salvo.dicaCel[chaveCel]
+                      : fixas[ch]?.dica
                         ? 'bg-sky-200 border-sky-500 text-sky-900'
                         : ok
                           ? 'bg-emerald-200 border-emerald-500 text-emerald-900'
@@ -386,8 +409,8 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
                             : 'bg-slate-100 border-slate-400 text-slate-900';
                   return (
                     <button
-                      key={chaveCel}
-                      data-cel={chaveCel}
+                      key={ch}
+                      data-cel={ch}
                       type="button"
                       role="gridcell"
                       aria-label={`Linha ${r + 1}, coluna ${c + 1}${o.num ? `, início da palavra ${o.num}` : ''}${v ? `, letra ${v}` : ', vazia'}`}
@@ -417,21 +440,24 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={verificar} disabled={bloqueada} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-sm font-black active:scale-[0.98] transition">
-              <ShieldCheck className="w-4 h-4" /> Verificar
+            <button type="button" onMouseDown={semFoco} onClick={() => conferir(atual, true)} disabled={bloqueada || ocupado || feitas.has(atual.id)} className={`${btn} bg-emerald-600 hover:bg-emerald-500 border-emerald-600 text-white font-black`}>
+              {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Conferir palavra
             </button>
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={dicaLetra} disabled={bloqueada || restantes <= 0} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-45 disabled:cursor-not-allowed text-slate-100 text-sm font-bold border border-slate-700 transition">
+            <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('letra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra
             </button>
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={dicaPalavra} disabled={bloqueada || restantes <= 0} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-45 disabled:cursor-not-allowed text-slate-100 text-sm font-bold border border-slate-700 transition">
+            <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('palavra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra
             </button>
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={apagarPalavra} disabled={bloqueada} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-45 text-slate-100 text-sm font-bold border border-slate-700 transition">
+            <button type="button" onMouseDown={semFoco} onClick={apagarPalavra} disabled={bloqueada} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Eraser className="w-4 h-4 text-slate-300" /> Apagar palavra
             </button>
           </div>
           <p className="text-[11px] text-slate-500 min-h-[1rem]" role="status">
-            {aviso || (envio === 'erro' ? 'Não consegui enviar o XP ao ranking agora. Tentando de novo…' : dicas > 0 ? `Cada dica gasta 1 das suas ${dicas}. Letra revelada vale metade do XP da palavra; palavra revelada vale 0.` : 'O professor desativou as dicas nesta sala.')}
+            {aviso ||
+              (est.limite > 0
+                ? `A palavra é conferida ao completar. Cada dica gasta 1 das suas ${est.limite}: palavra com letra revelada vale metade; palavra revelada vale 0.`
+                : 'A palavra é conferida ao completar. O professor desativou as dicas nesta sala.')}
           </p>
         </div>
 
@@ -440,7 +466,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
             <div className="sm:col-span-2 lg:col-span-1 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-3 text-center">
               <Trophy className="w-8 h-8 mx-auto text-amber-400" />
               <p className="font-black text-white">Cruzadinha concluída!</p>
-              <p className="text-sm text-amber-200">{temRanking ? `${salvo.xpServ} XP no ranking` : `${xp} XP de treino`}</p>
+              <p className="text-sm text-amber-200">{est.xp} XP no ranking</p>
             </div>
           )}
           {(['A', 'D'] as Dir[]).map((d) => (
@@ -448,7 +474,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
               <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-1.5">{d === 'A' ? 'Horizontais →' : 'Verticais ↓'}</h4>
               <ol className="space-y-1 max-h-72 overflow-auto pr-1">
                 {lista(d).map((p) => {
-                  const on = p.id === palavraAtual.id;
+                  const on = p.id === atual.id;
                   const ok = feitas.has(p.id);
                   return (
                     <li key={p.id}>
@@ -461,7 +487,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tag
                       >
                         <b className="text-emerald-300 min-w-[1.25rem]">{p.n}</b>
                         <span className={ok ? 'line-through' : ''}>
-                          {p.dica} <em className="not-italic text-slate-500">({p.palavra.length})</em>
+                          {p.dica} <em className="not-italic text-slate-500">({p.tam})</em>
                         </span>
                         {ok && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 ml-auto" />}
                       </button>

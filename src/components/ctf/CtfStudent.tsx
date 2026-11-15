@@ -2,7 +2,8 @@ import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { CtfState } from '../../types/ctf';
+import type { CruzEstado, CtfState } from '../../types/ctf';
+import type { CruzApi } from './Cruzadinha';
 import {
   clearStudentSession,
   ctfCall, startPolling,
@@ -24,7 +25,7 @@ import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { LinuxTerminal } from './LinuxTerminal';
 import { LabInformatica } from './LabInformatica';
 import { AtelieWeb } from './AtelieWeb';
-import { Cruzadinha, type RespostaXp } from './Cruzadinha';
+import { Cruzadinha } from './Cruzadinha';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -234,6 +235,17 @@ export const CtfStudent: React.FC = () => {
   }
 
   // ---------- Jogo ----------
+  // Cruzadinha: o servidor confere as palavras e entrega as dicas; as respostas atualizam o XP e o ranking.
+  const cruzCall = async (acao: string, extra: Record<string, unknown> = {}) => {
+    const s = await ctfCall<CtfState & { cruz: CruzEstado }>(acao, { token: session.token, nome: session.nome, ...extra });
+    setState(s);
+    return s.cruz;
+  };
+  const cruzApi: CruzApi = {
+    estado: () => cruzCall('cruzState'),
+    conferir: (id, tentativa) => cruzCall('cruzCheck', { id, tentativa }),
+    dica: (tipo, id, indice) => cruzCall('cruzHint', { tipo, id, indice }),
+  };
   const { sala, aluno, missao, ranking } = state;
   const closed = sala.status === 'encerrada';
   const timeUp = Boolean(timer) && phase === 'fim';
@@ -277,16 +289,9 @@ export const CtfStudent: React.FC = () => {
         <Cruzadinha
           token={sala.token}
           nome={aluno.nome}
-          dicas={sala.cruzadinha}
-          palavras={sala.cruzadinha_palavras}
-          disciplinas={sala.cruzadinha_disc}
-          tags={tagsSala}
+          versao={sala.cruzadinha_versao}
           bloqueada={locked}
-          onXp={async ({ palavras, dicas }) => {
-            const s = await ctfCall<CtfState>('cruzSubmit', { token: sala.token, nome: aluno.nome, palavras, dicas });
-            setState(s);
-            return (s as CtfState & { cruz?: RespostaXp }).cruz;
-          }}
+          api={cruzApi}
         />
       )}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />

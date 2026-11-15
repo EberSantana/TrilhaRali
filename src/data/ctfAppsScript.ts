@@ -6,6 +6,8 @@
  * As respostas ficam apenas na planilha: o aluno recebe somente a pergunta da fase atual e a
  * validação (e o avanço de fase) acontece no servidor.
  */
+import { BANCO_CRUZADINHA } from './cruzadinhaBanco';
+
 export const CTF_APPS_SCRIPT = String.raw`// ==========================================================
 // RALI IFSTB - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensoes > Apps Script de uma planilha NOVA.
@@ -14,11 +16,13 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
-  CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp'],
+  CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp', 'grade', 'palavra_id'],
+  CtfCruzDicas: ['token', 'grade', 'nome_key', 'tipo', 'palavra_id', 'indice', 'timestamp'],
+  CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
@@ -28,7 +32,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzSubmit: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -43,7 +47,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 16 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 17 });
 }
 
 function doPost(e) {
@@ -81,7 +85,9 @@ function route(req) {
     case 'setBanco': return setBanco(req);
     case 'setTerminal': return setTerminal(req);
     case 'setCruzadinha': return setCruzadinha(req);
-    case 'cruzSubmit': return cruzSubmit(req);
+    case 'cruzState': return cruzState(req);
+    case 'cruzCheck': return cruzCheck(req);
+    case 'cruzHint': return cruzHint(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
     case 'debriefStudent': return debriefStudent(req);
@@ -219,7 +225,7 @@ function roomInfo(room) {
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
     cruzadinha_palavras: cruzadinhaPalavras(room),
-    cruzadinha_disc: cruzadinhaDicas(room) === null ? undefined : cruzDisciplinas(room),
+    cruzadinha_versao: cruzadinhaDicas(room) === null ? undefined : (cruzGrade(room) || {}).id,
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
@@ -599,7 +605,6 @@ function teacherRoom(req) {
     };
   });
   var sala = roomInfo(room);
-  sala.cruzadinha_disc = cruzDisciplinas(room);
   return { sala: sala, alunos: alunos };
 }
 
@@ -619,8 +624,14 @@ function setTerminal(req) {
   return { sala: roomInfo(room) };
 }
 
-// Cruzadinha: ambiente de estudo liberado pelo professor, com limite de dicas por aluno.
-// A coluna fica vazia quando o ambiente esta oculto; 0 = liberado sem dicas.
+// ---------- Cruzadinha ----------
+// Desde a v17 a grade e montada AQUI, a partir da aba CruzBanco (o professor pode editar, incluir ou desativar
+// palavras), e fica gravada na sala. O aluno recebe so o desenho da grade, os numeros e as dicas, sem as
+// letras. Cada palavra completa e conferida aqui (cruzCheck), as dicas sao entregues e contadas aqui (cruzHint)
+// e o XP e calculado aqui. No modo CTF Dinamico, quem fecha a palavra primeiro ganha mais (regra das missoes).
+var CRUZ_BANCO_PADRAO = /*CRUZ_BANCO_PADRAO*/{};
+
+// Coluna vazia = Cruzadinha oculta; 0 = liberada sem dicas.
 function cruzadinhaDicas(room) {
   var v = room.cruzadinha_dicas;
   if (v === '' || v === null || v === undefined) return null;
@@ -628,28 +639,12 @@ function cruzadinhaDicas(room) {
   return isNaN(n) ? null : Math.max(0, Math.min(30, Math.floor(n)));
 }
 
-// Quantidade de palavras da grade (6 a 25; vazio = 12, o padrao das versoes anteriores).
+// Quantidade de palavras da grade (6 a 25; vazio = 12).
 function cruzadinhaPalavras(room) {
   var n = Number(room.cruzadinha_palavras);
   return !n || isNaN(n) ? 12 : Math.max(6, Math.min(25, Math.floor(n)));
 }
 
-function setCruzadinha(req) {
-  var room = requireAdmin(req);
-  var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
-  var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
-  var gab = (Array.isArray(req.gabarito) ? req.gabarito : []).map(function (p) { return String(p).toUpperCase(); }).filter(function (p) { return /^[A-Z]{2,16}$/.test(p); }).slice(0, 30).join(',');
-  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_gabarito: gab });
-  room.cruzadinha_gabarito = gab;
-  room.cruzadinha_dicas = dicas;
-  room.cruzadinha_palavras = palavras;
-  return { sala: roomInfo(room) };
-}
-
-// XP da Cruzadinha: o servidor confere as palavras. O professor grava o gabarito da sala (as palavras da grade)
-// ao liberar a Cruzadinha; o aparelho do aluno envia as palavras que resolveu e o nivel de ajuda de cada uma
-// (0 sem dica, 1 com dica de letra, 2 revelada). O XP e calculado aqui: so conta palavra do gabarito, e cada
-// palavra so pontua uma vez por aluno (aba CtfCruzCapturas, que tambem guarda a ordem de quem fechou primeiro).
 function cruzDisciplinas(room) {
   var set = {};
   readRows('CtfMissoes').forEach(function (m) {
@@ -665,58 +660,262 @@ function cruzDisciplinas(room) {
   return lista.length ? lista : ['Banco de Dados'];
 }
 
-function cruzGabarito(room) {
-  return String(room.cruzadinha_gabarito || '').split(',').filter(function (p) { return /^[A-Z]{2,16}$/.test(p); });
+function cruzLetras(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
 }
 
-function cruzXpPalavra(tamanho, ajuda) {
-  if (ajuda === 2) return 0;
-  return Math.round(tamanho * 10 * (ajuda === 1 ? 0.5 : 1));
+// Banco de palavras: aba CruzBanco. Na primeira vez ela e preenchida com o banco padrao.
+function cruzBanco() {
+  var rows = readRows('CruzBanco');
+  if (!rows.length) {
+    var vals = [];
+    Object.keys(CRUZ_BANCO_PADRAO).forEach(function (d) {
+      CRUZ_BANCO_PADRAO[d].forEach(function (p) { vals.push([d, p[0], p[1], 'sim']); });
+    });
+    if (vals.length) getSheet('CruzBanco').getRange(2, 1, vals.length, 4).setValues(vals);
+    rows = readRows('CruzBanco');
+  }
+  return rows.filter(function (r) {
+    var a = cruzLetras(r.ativo);
+    return a !== 'NAO' && a !== 'FALSE' && a !== 'N';
+  }).map(function (r) {
+    return { disciplina: String(r.disciplina || '').trim(), palavra: cruzLetras(r.palavra), dica: String(r.dica || '').trim() };
+  }).filter(function (r) { return r.palavra.length >= 3 && r.palavra.length <= 16 && r.dica; });
 }
 
-function cruzSubmit(req) {
+function cruzEmbaralhar(a) {
+  a = a.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function cruzTentar(lista, porTamanho) {
+  var ws = cruzEmbaralhar(lista);
+  if (porTamanho) ws.sort(function (a, b) { return b.palavra.length - a.palavra.length; });
+  var g = {};
+  var col = [];
+  function k(r, c) { return r + ',' + c; }
+  function cabe(w, r, c, d) {
+    var dr = d === 'D' ? 1 : 0, dc = d === 'A' ? 1 : 0;
+    if (g[k(r - dr, c - dc)] || g[k(r + dr * w.length, c + dc * w.length)]) return -1;
+    var cruz = 0;
+    for (var i = 0; i < w.length; i++) {
+      var rr = r + dr * i, cc = c + dc * i, e = g[k(rr, cc)];
+      if (e) { if (e !== w[i]) return -1; cruz++; }
+      else if (g[k(rr + dc, cc + dr)] || g[k(rr - dc, cc - dr)]) return -1;
+    }
+    return cruz;
+  }
+  function por(p, r, c, d) {
+    var dr = d === 'D' ? 1 : 0, dc = d === 'A' ? 1 : 0;
+    for (var i = 0; i < p.palavra.length; i++) g[k(r + dr * i, c + dc * i)] = p.palavra[i];
+    col.push({ palavra: p.palavra, dica: p.dica, r: r, c: c, dir: d });
+  }
+  por(ws[0], 0, 0, 'A');
+  for (var x = 1; x < ws.length; x++) {
+    var p = ws[x], melhor = null, chaves = Object.keys(g);
+    for (var di = 0; di < 2; di++) {
+      var d = di ? 'D' : 'A';
+      for (var q = 0; q < chaves.length; q++) {
+        var rc = chaves[q].split(','), r = Number(rc[0]), c = Number(rc[1]), ch = g[chaves[q]];
+        for (var i = 0; i < p.palavra.length; i++) {
+          if (p.palavra[i] !== ch) continue;
+          var rr = d === 'A' ? r : r - i, cc = d === 'A' ? c - i : c, s = cabe(p.palavra, rr, cc, d);
+          if (s >= 1 && (!melhor || s > melhor[0] || (s === melhor[0] && Math.random() < 0.5))) melhor = [s, rr, cc, d];
+        }
+      }
+    }
+    if (melhor) por(p, melhor[1], melhor[2], melhor[3]);
+  }
+  return col;
+}
+
+function cruzMedir(cs) {
+  var r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity;
+  cs.forEach(function (x) {
+    r0 = Math.min(r0, x.r); c0 = Math.min(c0, x.c);
+    r1 = Math.max(r1, x.r + (x.dir === 'D' ? x.palavra.length - 1 : 0));
+    c1 = Math.max(c1, x.c + (x.dir === 'A' ? x.palavra.length - 1 : 0));
+  });
+  return { r0: r0, c0: c0, h: r1 - r0 + 1, w: c1 - c0 + 1 };
+}
+
+// Tenta varias disposicoes: mais palavras primeiro; depois grade compacta e nao muito larga (celular).
+function cruzMontar(banco, max) {
+  var vistas = {}, unicas = [];
+  banco.forEach(function (p) { if (!vistas[p.palavra]) { vistas[p.palavra] = 1; unicas.push(p); } });
+  var base = cruzEmbaralhar(unicas).slice(0, max);
+  var melhor = null;
+  for (var it = 0; it < 150; it++) {
+    var cs = cruzTentar(base, it % 2 === 1), m = cruzMedir(cs);
+    var sc = cs.length * 1000 - Math.max(m.h, m.w) * 30 - m.w * 10 - m.h * m.w;
+    if (!melhor || sc > melhor.sc) melhor = { cs: cs, sc: sc, m: m };
+  }
+  var mm = melhor.m, inicios = [];
+  melhor.cs.forEach(function (x) {
+    x.r -= mm.r0; x.c -= mm.c0;
+    if (inicios.indexOf(x.r * 1000 + x.c) < 0) inicios.push(x.r * 1000 + x.c);
+  });
+  inicios.sort(function (a, b) { return a - b; });
+  return {
+    id: Date.now(), h: mm.h, w: mm.w,
+    palavras: melhor.cs.map(function (x, i) {
+      return { id: i, palavra: x.palavra, dica: x.dica, r: x.r, c: x.c, dir: x.dir, n: inicios.indexOf(x.r * 1000 + x.c) + 1 };
+    })
+  };
+}
+
+function cruzCelulas(p) {
+  var out = [];
+  for (var i = 0; i < p.palavra.length; i++) out.push(p.dir === 'A' ? [p.r, p.c + i] : [p.r + i, p.c]);
+  return out;
+}
+
+function cruzGrade(room) {
+  try {
+    var g = JSON.parse(room.cruzadinha_grade || '');
+    return g && g.palavras && g.palavras.length ? g : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCruzadinha(req) {
+  var room = requireAdmin(req);
+  var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
+  var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
+  var upd = { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras };
+  var atual = cruzGrade(room);
+  if (dicas !== '' && (!atual || req.nova === true || cruzadinhaPalavras(room) !== palavras)) {
+    var disc = cruzDisciplinas(room);
+    var banco = cruzBanco().filter(function (b) { return disc.indexOf(b.disciplina) >= 0; });
+    if (banco.length < 6) fail('A aba CruzBanco tem poucas palavras ativas para: ' + disc.join(', ') + '.');
+    upd.cruzadinha_grade = JSON.stringify(cruzMontar(banco, palavras));
+  }
+  updateRow('CtfSalas', room._row, upd);
+  for (var kk in upd) room[kk] = upd[kk];
+  logEvento(room, 'cruzadinha', dicas === '' ? 'oculta' : 'liberada: ' + palavras + ' palavras, ' + dicas + ' dicas');
+  return { sala: roomInfo(room) };
+}
+
+function cruzContexto(req, escrita) {
   var room = requireRoom(req.token);
-  if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
-  requireTimerOpen(parseTimer(room.timer), Date.now());
+  if (escrita) {
+    if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
+    requireTimerOpen(parseTimer(room.timer), Date.now());
+  }
   var limite = cruzadinhaDicas(room);
   if (limite === null) fail('A Cruzadinha não está liberada nesta sala.');
-  var gabarito = cruzGabarito(room);
-  if (!gabarito.length) fail('O professor precisa liberar a Cruzadinha de novo para gravar o gabarito.');
+  var grade = cruzGrade(room);
+  if (!grade) fail('O professor precisa liberar a Cruzadinha de novo.');
   var key = norm(req.nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
-  if ((Number(req.dicas) || 0) > limite) fail('Você passou do limite de dicas da sala.');
+  var gid = String(grade.id);
+  var dicas = readRows('CtfCruzDicas').filter(function (d) {
+    return String(d.token) === room.token && String(d.grade) === gid && d.nome_key === key;
+  });
+  var caps = readRows('CtfCruzCapturas').filter(function (c) { return String(c.token) === room.token && String(c.grade) === gid; });
+  return { room: room, grade: grade, limite: limite, key: key, me: me, dicas: dicas, caps: caps };
+}
 
-  // Cada palavra vale 10 XP por letra. No modo CTF Dinamico, quem fecha a palavra primeiro leva o valor cheio
-  // e os seguintes perdem 10% por posicao (piso de 40%), a mesma regra das missoes. A dica desconta por cima.
-  var capturas = readRows('CtfCruzCapturas').filter(function (c) { return String(c.token) === room.token; });
-  var minhas = {};
-  var porPalavra = {};
-  capturas.forEach(function (c) {
-    porPalavra[c.palavra] = (porPalavra[c.palavra] || 0) + 1;
-    if (c.nome_key === key) minhas[c.palavra] = true;
+// Casas reveladas por dica: { "r,c": letra }
+function cruzReveladas(ctx) {
+  var rev = {};
+  ctx.dicas.forEach(function (d) {
+    var p = ctx.grade.palavras[Number(d.palavra_id)];
+    if (!p) return;
+    var cel = cruzCelulas(p);
+    cel.forEach(function (rc, i) {
+      if (d.tipo === 'palavra' || i === Number(d.indice)) rev[rc[0] + ',' + rc[1]] = p.palavra[i];
+    });
   });
-  var novas = [];
-  var ganho = 0;
-  (Array.isArray(req.palavras) ? req.palavras : []).forEach(function (par) {
-    var palavra = String(par && par[0] || '').toUpperCase();
-    var ajuda = Number(par && par[1]) === 2 ? 2 : Number(par && par[1]) === 1 ? 1 : 0;
-    if (minhas[palavra] || gabarito.indexOf(palavra) < 0) return;
-    minhas[palavra] = true;
-    var posicao = (porPalavra[palavra] || 0) + 1;
-    porPalavra[palavra] = posicao;
-    var xp = ajuda === 2 ? 0 : Math.round(pontos(palavra.length * 10, posicao, room.modo) * (ajuda === 1 ? 0.5 : 1));
-    appendObj('CtfCruzCapturas', { token: room.token, nome_key: key, palavra: palavra, posicao: posicao, ajuda: ajuda, xp: xp, timestamp: new Date().toISOString() });
-    novas.push({ palavra: palavra, posicao: posicao, xp: xp });
-    ganho += xp;
+  return rev;
+}
+
+function cruzMinhas(ctx) {
+  var m = {};
+  ctx.caps.forEach(function (c) { if (c.nome_key === ctx.key) m[Number(c.palavra_id)] = c; });
+  return m;
+}
+
+// O que o aluno recebe: a grade SEM as letras, as casas reveladas por dica e as palavras que ele ja acertou.
+function cruzSaida(ctx) {
+  var rev = cruzReveladas(ctx), minhas = cruzMinhas(ctx), xp = 0;
+  var resolvidas = Object.keys(minhas).map(function (id) {
+    var c = minhas[id], p = ctx.grade.palavras[Number(id)];
+    xp += Number(c.xp) || 0;
+    return { id: Number(id), palavra: p ? p.palavra : '', posicao: Number(c.posicao), xp: Number(c.xp) || 0 };
   });
-  var total = (Number(me.xp_cruz) || 0) + ganho;
-  if (novas.length) {
-    updateRow('CtfAlunos', me._row, { xp: Number(me.xp) + ganho, xp_cruz: total });
-  }
-  var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
-  st.cruz = { xp: total, novas: novas };
+  return {
+    grade: {
+      id: ctx.grade.id, h: ctx.grade.h, w: ctx.grade.w,
+      palavras: ctx.grade.palavras.map(function (p) {
+        return { id: p.id, n: p.n, dir: p.dir, r: p.r, c: p.c, tam: p.palavra.length, dica: p.dica };
+      })
+    },
+    limite: ctx.limite,
+    usadas: ctx.dicas.length,
+    reveladas: Object.keys(rev).map(function (k) { var rc = k.split(','); return [Number(rc[0]), Number(rc[1]), rev[k]]; }),
+    resolvidas: resolvidas,
+    xp: xp
+  };
+}
+
+function cruzRetorno(ctx, extra) {
+  var st = ctx.room.tipo === 'rali' || isLivre(ctx.room) ? raliBuildState(ctx.room, ctx.key) : buildState(ctx.room, ctx.key);
+  st.cruz = cruzSaida(ctx);
+  for (var k in (extra || {})) st.cruz[k] = extra[k];
   return st;
+}
+
+function cruzState(req) {
+  return cruzRetorno(cruzContexto(req, false));
+}
+
+// Confere uma palavra completa. Palavra com casa revelada por dica vale metade; toda revelada vale 0.
+function cruzCheck(req) {
+  var ctx = cruzContexto(req, true);
+  var p = ctx.grade.palavras[Number(req.id)];
+  if (!p) fail('Palavra não encontrada.');
+  if (cruzLetras(req.tentativa) !== p.palavra) return cruzRetorno(ctx, { correta: false, id: p.id });
+  if (cruzMinhas(ctx)[p.id]) return cruzRetorno(ctx, { correta: true, id: p.id });
+  var rev = cruzReveladas(ctx), cel = cruzCelulas(p), ajudadas = 0;
+  cel.forEach(function (rc) { if (rev[rc[0] + ',' + rc[1]]) ajudadas++; });
+  if (ajudadas === cel.length) return cruzRetorno(ctx, { correta: true, id: p.id });
+  var posicao = ctx.caps.filter(function (c) { return Number(c.palavra_id) === p.id; }).length + 1;
+  var xp = Math.round(pontos(p.palavra.length * 10, posicao, ctx.room.modo) * (ajudadas ? 0.5 : 1));
+  var row = {
+    token: ctx.room.token, grade: ctx.grade.id, nome_key: ctx.key, palavra: p.palavra, palavra_id: p.id,
+    posicao: posicao, ajuda: ajudadas ? 1 : 0, xp: xp, timestamp: new Date().toISOString()
+  };
+  appendObj('CtfCruzCapturas', row);
+  ctx.caps.push(row);
+  updateRow('CtfAlunos', ctx.me._row, { xp: Number(ctx.me.xp) + xp, xp_cruz: (Number(ctx.me.xp_cruz) || 0) + xp });
+  return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp } });
+}
+
+// Dica: o servidor entrega a letra (ou a palavra) e conta o uso. Nao gasta dica com letra ja conhecida.
+function cruzHint(req) {
+  var ctx = cruzContexto(req, true);
+  if (ctx.dicas.length >= ctx.limite) fail(ctx.limite ? 'Suas dicas acabaram.' : 'O professor desativou as dicas nesta sala.');
+  var p = ctx.grade.palavras[Number(req.id)];
+  if (!p) fail('Palavra não encontrada.');
+  if (cruzMinhas(ctx)[p.id]) fail('Essa palavra já está resolvida.');
+  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
+  var indice = tipo === 'letra' ? Math.floor(Number(req.indice)) : '';
+  var cel = cruzCelulas(p), rev = cruzReveladas(ctx);
+  if (tipo === 'letra') {
+    if (!(indice >= 0 && indice < cel.length)) fail('Escolha uma letra da palavra.');
+    if (rev[cel[indice][0] + ',' + cel[indice][1]]) fail('Essa letra já foi revelada.');
+  }
+  var row = { token: ctx.room.token, grade: ctx.grade.id, nome_key: ctx.key, tipo: tipo, palavra_id: p.id, indice: indice, timestamp: new Date().toISOString() };
+  appendObj('CtfCruzDicas', row);
+  ctx.dicas.push(row);
+  return cruzRetorno(ctx, { dica: tipo, id: p.id });
 }
 
 // Debriefing: gabarito da sala (pergunta, resposta, explicacao e quantos acertaram).
@@ -1162,4 +1361,4 @@ function nfcSet() {
     })
   };
 }
-`;
+`.replace('/*CRUZ_BANCO_PADRAO*/{}', () => JSON.stringify(BANCO_CRUZADINHA));

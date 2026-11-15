@@ -15,8 +15,6 @@ import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
-import { disciplinasValidas } from '../../data/cruzadinhaBanco';
-import { gabaritoDaSala } from '../../utils/cruzadinha';
 
 const POLL_MS = 10_000;
 
@@ -378,13 +376,11 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
   const [dicasCruz, setDicasCruz] = useState(10);
   const [palavrasCruz, setPalavrasCruz] = useState(12);
-  const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz) => {
+  // O servidor monta a grade a partir da aba CruzBanco da planilha e guarda as respostas; nova = gerar outra grade
+  const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz, nova = false) => {
     if (!activeRoom) return;
     try {
-      // O servidor guarda as palavras da grade e confere o que cada aluno envia
-      const disc = disciplinasValidas(view?.sala.cruzadinha_disc);
-      const gabarito = dicas === null ? [] : gabaritoDaSala(activeRoom.token, disc.length ? disc : ['Banco de Dados'], palavras);
-      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras, gabarito }, activeRoom.api);
+      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras, nova }, activeRoom.api);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
@@ -764,6 +760,11 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />
                           </label>
+                          {view?.sala.cruzadinha != null && (
+                            <Btn size="sm" variant="ghost" onClick={() => window.confirm('Gerar uma grade nova? O que os alunos digitaram na grade atual se perde (o XP já ganho continua).') && setCruzadinha(dicasCruz, palavrasCruz, true)} title="Sorteia outra grade com as palavras da aba CruzBanco">
+                              Nova grade
+                            </Btn>
+                          )}
                         </>
                       )}
                       <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
