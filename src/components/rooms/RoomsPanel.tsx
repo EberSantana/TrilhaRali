@@ -37,6 +37,14 @@ const COPY: Record<RoomTipo, { nome: string; tagline: string; plural: string; si
     unidade: 'fases',
     entrada: 'com o token da sala e o próprio nome',
   },
+  cruz: {
+    nome: 'Cruzada Online',
+    tagline: 'Palavras cruzadas por assunto: o servidor monta a grade, confere as palavras e conta as dicas. Cada palavra certa soma no ranking.',
+    plural: 'alunos',
+    singular: 'aluno',
+    unidade: 'palavras',
+    entrada: 'com o token da sala e o próprio nome',
+  },
 };
 
 function useCopy() {
@@ -85,7 +93,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [novaDisc, setNovaDisc] = useState<CruzDisciplina>('Banco de Dados');
   const [novaPalavras, setNovaPalavras] = useState(12);
   const [novaDicas, setNovaDicas] = useState(10);
-  const cruzSala = tipo === 'ctf' && ordem === 'cruzadinha';
+  const cruzSala = tipo === 'cruz';
   const [usarTimer, setUsarTimer] = useState(false);
   const [minutos, setMinutos] = useState(60);
   const catalog = useMissions();
@@ -211,14 +219,14 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     setError('');
     try {
       if (cruzSala) {
-        const nomeCruz = nome.trim() || `Cruzadinha · ${novaDisc}`;
-        const r = await ctfCall<{ token: string; adminKey: string; ordem?: string }>(
+        const nomeCruz = nome.trim() || `Cruzada · ${novaDisc}`;
+        const r = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>(
           'createRoom',
-          { nome: nomeCruz, modo, tipo: 'ctf', ordem: 'cruzadinha', disciplina: novaDisc, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
+          { nome: nomeCruz, modo, tipo: 'cruz', ordem: 'cruzadinha', disciplina: novaDisc, palavras: novaPalavras, dicas: novaDicas, ...(usarTimer ? { minutos } : {}) },
           apiUrl,
         );
-        if (r.ordem !== 'cruzadinha') {
-          throw new Error('O servidor está numa versão antiga e não tem a sala de Cruzadinha. Atualize o script do Apps Script (versão 19) e publique uma nova versão.');
+        if (r.tipo !== 'cruz') {
+          throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 20) e publique uma nova versão.');
         }
         const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeCruz, api: apiUrl, criada: Date.now() };
         persist([st, ...allRooms]);
@@ -479,8 +487,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const porAcertos = nfc || livre || salaCruz;
   const unidade = salaCruz ? 'palavras' : livre ? 'desafios' : txt.unidade;
   const inviteLink = activeRoom ? buildStudentLink(activeRoom.token, activeRoom.api, tipo) : '';
-  const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo}` : '';
-  const Icon = nfc ? Radio : Flag;
+  const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo === 'cruz' ? 'cruzada' : tipo}` : '';
+  const Icon = nfc ? Radio : cruzSala ? Puzzle : Flag;
   const accentText = nfc ? 'text-emerald-300' : 'text-orange-300';
   const input = `w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 ${nfc ? 'focus:ring-emerald-500' : 'focus:ring-orange-500'}`;
   const accentCheck = nfc ? 'accent-emerald-600' : 'accent-orange-500';
@@ -502,7 +510,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           {tools && <div className="flex flex-wrap items-center gap-2">{tools}</div>}
         </div>
         <ol className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs" aria-label="Roteiro da aula">
-          {['Perguntas', 'Turma', 'Ao vivo', 'Resultados', 'Debriefing'].map((l, i) => {
+          {[cruzSala ? 'Assunto' : 'Perguntas', 'Turma', 'Ao vivo', 'Resultados', 'Debriefing'].map((l, i) => {
             const disabled = i > 0 && !activeRoom;
             return (
               <li key={l}>
@@ -527,7 +535,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 1 · Perguntas e nova sala */}
         <form id="passo-1" onSubmit={handleCreate} className="min-w-0 scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
-          <StepTitle n={1} title="Perguntas e nova sala" hint="Escolha o conteúdo e gere o token." tone={tone} />
+          <StepTitle n={1} title={cruzSala ? 'Assunto e nova sala' : 'Perguntas e nova sala'} hint={cruzSala ? 'Escolha o assunto e gere o token.' : 'Escolha o conteúdo e gere o token.'} tone={tone} />
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Nome da sala</span>
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Turma 2026.1 · Banco de Dados" className={input} />
@@ -554,11 +562,11 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             </p>
           </div>
 
-          {!nfc && (
+          {!nfc && !cruzSala && (
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Como os alunos avançam</span>
-              <div className="grid grid-cols-3 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
-                {([['livre', 'Livre'], ['sequencial', 'Em ordem'], ['cruzadinha', 'Cruzadinha']] as [CtfOrdem, string][]).map(([o, label]) => (
+              <div className="grid grid-cols-2 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
+                {([['livre', 'Livre'], ['sequencial', 'Em ordem']] as [CtfOrdem, string][]).map(([o, label]) => (
                   <button
                     key={o}
                     type="button"
@@ -574,9 +582,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               <p className="text-[11px] text-slate-500">
                 {ordem === 'livre'
                   ? 'Painel de desafios: cada aluno escolhe a ordem e o ranking é por pontos.'
-                  : ordem === 'cruzadinha'
-                    ? 'Sala só de palavras cruzadas: o aluno entra direto na Cruzadinha e cada palavra certa soma no ranking.'
-                    : 'Fase a fase: o aluno só libera a próxima fase ao acertar a atual.'}
+                  : 'Fase a fase: o aluno só libera a próxima fase ao acertar a atual.'}
               </p>
             </div>
           )}
@@ -784,19 +790,16 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Btn size="sm" onClick={() => copy('token', activeRoom.token)} icon={copied === 'token' ? <Check className="w-4 h-4 text-emerald-500" /> : <Clipboard className="w-4 h-4" />}>Copiar token</Btn>
                       <Btn size="sm" onClick={() => copy('link', inviteLink)} icon={copied === 'link' ? <Check className="w-4 h-4 text-emerald-500" /> : <Link2 className="w-4 h-4" />}>Copiar link de convite</Btn>
-                      {!nfc && (
+                      {!nfc && !cruzSala && (
                         <Btn size="sm" disabled={!view} onClick={toggleBanco} icon={<Database className="w-4 h-4" />} title="Mostra ou esconde o console SQLite e o download do banco para os alunos">
                           Console SQL: {view?.sala.banco ? 'liberado' : 'oculto'}
                         </Btn>
                       )}
-                      <Btn size="sm" disabled={!view} onClick={toggleTerminal} icon={<Terminal className="w-4 h-4" />} title="Mostra ou esconde o terminal Linux simulado para os alunos">
+                      {!cruzSala && <Btn size="sm" disabled={!view} onClick={toggleTerminal} icon={<Terminal className="w-4 h-4" />} title="Mostra ou esconde o terminal Linux simulado para os alunos">
                         Terminal Linux: {view?.sala.terminal ? 'liberado' : 'oculto'}
-                      </Btn>
-                      {!nfc && (
+                      </Btn>}
+                      {cruzSala && (
                         <>
-                          <Btn size="sm" disabled={!view} onClick={() => setCruzadinha(view?.sala.cruzadinha == null ? dicasCruz : null)} icon={<Puzzle className="w-4 h-4" />} title="Mostra ou esconde a Cruzadinha (ambiente de estudo) para os alunos">
-                            Cruzadinha: {view?.sala.cruzadinha != null ? 'liberada' : 'oculta'}
-                          </Btn>
                           <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas dicas cada aluno pode usar na Cruzadinha (0 = sem dicas)">
                             Dicas
                             <input
@@ -833,7 +836,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                       )}
                       <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
                     </div>
-                    {!nfc && bancoCruzAberto && <CruzBancoPanel call={cruzBancoCall} />}
+                    {cruzSala && bancoCruzAberto && <CruzBancoPanel call={cruzBancoCall} />}
                   </div>
                   <QrImage text={inviteLink} size={132} label="QR code do convite" />
                 </div>

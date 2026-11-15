@@ -1,10 +1,11 @@
 import React from 'react';
 
-export type ModuleId = 'nfc' | 'ctf';
+export type ModuleId = 'nfc' | 'ctf' | 'cruz';
 
 const MODULE: Record<ModuleId, { label: string; chip: string }> = {
   nfc: { label: 'Rali NFC', chip: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' },
   ctf: { label: 'CTF Online', chip: 'bg-orange-500/15 text-orange-300 border-orange-500/40' },
+  cruz: { label: 'Cruzada Online', chip: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40' },
 };
 
 /** Botão de ícone padrão das barras de ação (telão, painel e aluno). */

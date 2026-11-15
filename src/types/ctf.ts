@@ -3,7 +3,7 @@ import type { TimerInfo } from '../utils/timer';
 import type { Theme } from '../utils/theme';
 
 /** ctf = CTF Online (individual, fase a fase) · rali = Rali NFC (equipes, missões por etiqueta) */
-export type RoomTipo = 'ctf' | 'rali';
+export type RoomTipo = 'ctf' | 'rali' | 'cruz';
 
 /** livre = painel de desafios · sequencial = fase a fase */
 /** livre = painel de desafios; sequencial = fase a fase; cruzadinha = sala só com a Cruzadinha (script v19+) */

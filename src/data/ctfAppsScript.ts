@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 19 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 20 });
 }
 
 function doPost(e) {
@@ -88,6 +88,10 @@ function route(req) {
     case 'cruzBancoResumo': return cruzBancoResumo(req);
     case 'cruzCheck': return cruzCheck(req);
     case 'cruzHint': return cruzHint(req);
+    case 'cruzTreinoNovo': return cruzTreinoNovo(req);
+    case 'cruzTreinoEstado': return cruzTreinoEstado(req);
+    case 'cruzTreinoCheck': return cruzTreinoCheck(req);
+    case 'cruzTreinoHint': return cruzTreinoHint(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
     case 'debriefStudent': return debriefStudent(req);
@@ -218,7 +222,7 @@ function roomInfo(room) {
     nome: room.nome,
     status: room.status,
     modo: room.modo,
-    tipo: room.tipo === 'rali' ? 'rali' : 'ctf',
+    tipo: tipoOut(room),
     ordem: isCruz(room) ? 'cruzadinha' : isLivre(room) ? 'livre' : 'sequencial',
     total: Number(room.total_fases),
     banco: room.banco_liberado === true || String(room.banco_liberado).toLowerCase() === 'true',
@@ -310,8 +314,14 @@ function buildState(room, nomeKey) {
 
 // ---------- Acoes ----------
 
+// Cruzada Online e um modulo proprio (tipo 'cruz'). Salas da v19 (tipo ctf + ordem cruzadinha) continuam valendo.
 function isCruz(room) {
-  return room.tipo !== 'rali' && String(room.ordem) === 'cruzadinha';
+  return room.tipo !== 'rali' && (room.tipo === 'cruz' || String(room.ordem) === 'cruzadinha');
+}
+
+// Tipo mostrado fora do servidor: rali, cruz ou ctf
+function tipoOut(room) {
+  return room.tipo === 'rali' ? 'rali' : isCruz(room) ? 'cruz' : 'ctf';
 }
 
 // Sala de Cruzadinha: em vez de perguntas, o professor escolhe a disciplina; o servidor monta a grade na hora
@@ -335,15 +345,15 @@ function createCruzRoom(req) {
     modo: modo, criada_em: new Date().toISOString(), total_fases: grade.palavras.length,
     banco_liberado: false,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
-    tipo: 'ctf', ordem: 'cruzadinha',
+    tipo: 'cruz', ordem: 'cruzadinha',
     cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc
   });
-  logEvento({ token: token, nome: nome, tipo: 'ctf' }, 'criada', 'cruzadinha de ' + disc + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
-  return { token: token, adminKey: adminKey, total: grade.palavras.length, tipo: 'ctf', ordem: 'cruzadinha' };
+  logEvento({ token: token, nome: nome, tipo: 'cruz' }, 'criada', 'cruzada de ' + disc + '; ' + grade.palavras.length + ' palavras; ' + dicas + ' dicas; modo ' + modo);
+  return { token: token, adminKey: adminKey, total: grade.palavras.length, tipo: 'cruz', ordem: 'cruzadinha' };
 }
 
 function createRoom(req) {
-  if (req.tipo !== 'rali' && req.ordem === 'cruzadinha') return createCruzRoom(req);
+  if (req.tipo !== 'rali' && (req.tipo === 'cruz' || req.ordem === 'cruzadinha')) return createCruzRoom(req);
   var missions = req.missions || [];
   if (!missions.length) fail('Selecione ao menos uma missao.');
   if (missions.length > 200) fail('Maximo de 200 fases por sala.');
@@ -936,6 +946,83 @@ function cruzCheck(req) {
   return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp } });
 }
 
+// ---------- Cruzada Online: treino livre (sem sala, sem token, sem ranking) ----------
+// O aluno escolhe o assunto e o servidor monta a grade. O gabarito fica so no cache do servidor (6 h),
+// nunca na planilha nem no navegador. Conferencia e dicas funcionam como na sala, mas nada vai para o ranking.
+function treinoGet(gid) {
+  var raw = CacheService.getScriptCache().get('cruzT_' + String(gid));
+  if (!raw) fail('Este treino expirou. Gere uma nova cruzada.');
+  return JSON.parse(raw);
+}
+
+function treinoPut(t) {
+  CacheService.getScriptCache().put('cruzT_' + String(t.grade.id), JSON.stringify(t), 21600);
+}
+
+function treinoCtx(t) {
+  var caps = t.resolvidas.map(function (r) { return { nome_key: 'treino', palavra_id: r.id, posicao: 1, xp: r.xp }; });
+  return { grade: t.grade, limite: t.limite, key: 'treino', dicas: t.dicas, caps: caps };
+}
+
+function treinoRetorno(t, extra) {
+  var c = cruzSaida(treinoCtx(t));
+  for (var k in (extra || {})) c[k] = extra[k];
+  return { cruz: c };
+}
+
+function cruzTreinoNovo(req) {
+  var disc = String(req.disciplina || '');
+  if (CRUZ_DISCIPLINAS.indexOf(disc) < 0) fail('Escolha o assunto da cruzada.');
+  var palavras = Math.max(6, Math.min(25, Math.floor(Number(req.palavras)) || 12));
+  var dicas = req.dicas === undefined || req.dicas === null || req.dicas === '' ? 10 : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
+  var banco = cruzBanco().filter(function (b) { return b.disciplina === disc; });
+  if (banco.length < 6) fail('Ainda não há palavras suficientes para ' + disc + '. Avise o professor.');
+  var grade = cruzMontar(banco, palavras);
+  grade.id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  var t = { grade: grade, limite: dicas, dicas: [], resolvidas: [] };
+  treinoPut(t);
+  return treinoRetorno(t);
+}
+
+function cruzTreinoEstado(req) {
+  return treinoRetorno(treinoGet(req.gid));
+}
+
+function cruzTreinoCheck(req) {
+  var t = treinoGet(req.gid);
+  var p = t.grade.palavras[Number(req.id)];
+  if (!p) fail('Palavra não encontrada.');
+  var ctx = treinoCtx(t);
+  if (cruzLetras(req.tentativa) !== p.palavra) return treinoRetorno(t, { correta: false, id: p.id });
+  if (cruzMinhas(ctx)[p.id]) return treinoRetorno(t, { correta: true, id: p.id });
+  var rev = cruzReveladas(ctx), cel = cruzCelulas(p), ajudadas = 0;
+  cel.forEach(function (rc) { if (rev[rc[0] + ',' + rc[1]]) ajudadas++; });
+  if (ajudadas === cel.length) return treinoRetorno(t, { correta: true, id: p.id });
+  var xp = Math.round(p.palavra.length * 10 * (ajudadas ? 0.5 : 1));
+  t.resolvidas.push({ id: p.id, xp: xp });
+  treinoPut(t);
+  return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp } });
+}
+
+function cruzTreinoHint(req) {
+  var t = treinoGet(req.gid);
+  if (t.dicas.length >= t.limite) fail(t.limite ? 'Suas dicas acabaram.' : 'As dicas estão desativadas neste treino.');
+  var p = t.grade.palavras[Number(req.id)];
+  if (!p) fail('Palavra não encontrada.');
+  var ctx = treinoCtx(t);
+  if (cruzMinhas(ctx)[p.id]) fail('Essa palavra já está resolvida.');
+  var tipo = req.tipo === 'palavra' ? 'palavra' : 'letra';
+  var indice = tipo === 'letra' ? Math.floor(Number(req.indice)) : '';
+  var cel = cruzCelulas(p), rev = cruzReveladas(ctx);
+  if (tipo === 'letra') {
+    if (!(indice >= 0 && indice < cel.length)) fail('Escolha uma letra da palavra.');
+    if (rev[cel[indice][0] + ',' + cel[indice][1]]) fail('Essa letra já foi revelada.');
+  }
+  t.dicas.push({ tipo: tipo, palavra_id: p.id, indice: indice });
+  treinoPut(t);
+  return treinoRetorno(t, { dica: tipo, id: p.id });
+}
+
 // Banco da Cruzadinha pelo painel do professor (qualquer sala aberta por ele serve de chave).
 function cruzBancoResumo(req) {
   requireAdmin(req);
@@ -1068,7 +1155,7 @@ function logEvento(room, evento, detalhe) {
   try {
     appendObj('CtfLog', {
       quando: new Date().toISOString(), token: room.token, sala: safeText(room.nome),
-      tipo: room.tipo === 'rali' ? 'rali' : 'ctf', evento: evento, detalhe: safeText(detalhe)
+      tipo: tipoOut(room), evento: evento, detalhe: safeText(detalhe)
     });
   } catch (err) {}
 }
@@ -1090,7 +1177,7 @@ function gravarResumo(room) {
     var ini = new Date(room.criada_em).getTime();
     var fim = new Date(room.encerrada_em).getTime();
     var obj = {
-      token: room.token, sala: safeText(room.nome), tipo: room.tipo === 'rali' ? 'rali' : 'ctf',
+      token: room.token, sala: safeText(room.nome), tipo: tipoOut(room),
       criada_em: room.criada_em, encerrada_em: room.encerrada_em,
       duracao_min: ini && fim ? Math.round((fim - ini) / 60000) : '',
       perguntas: Number(room.total_fases), participantes: st.participantes, acertos: st.acertos,
@@ -1117,7 +1204,7 @@ function salasList(req) {
   var salas = readRows('CtfSalas').slice(-200).reverse().map(function (r) {
     var st = statsOf(r);
     return {
-      token: String(r.token), nome: String(r.nome), tipo: r.tipo === 'rali' ? 'rali' : 'ctf',
+      token: String(r.token), nome: String(r.nome), tipo: tipoOut(r),
       adminKey: String(r.admin_key), status: r.status === 'encerrada' ? 'encerrada' : 'aberta',
       criada: new Date(r.criada_em).getTime() || 0,
       encerrada: r.encerrada_em ? new Date(r.encerrada_em).getTime() || 0 : 0,

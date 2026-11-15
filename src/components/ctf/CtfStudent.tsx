@@ -1,6 +1,6 @@
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Send, Trophy, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { CruzEstado, CtfState } from '../../types/ctf';
 import type { CruzApi } from './Cruzadinha';
@@ -31,7 +31,23 @@ import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
 
 
-export const CtfStudent: React.FC = () => {
+const ACENTO = {
+  ctf: {
+    icone: 'bg-orange-500/15 border-orange-500/40', texto: 'text-orange-400', token: 'text-orange-300',
+    foco: 'focus:ring-orange-500', botao: 'bg-orange-600 hover:bg-orange-500', spin: 'text-orange-400',
+  },
+  cruz: {
+    icone: 'bg-cyan-500/15 border-cyan-500/40', texto: 'text-cyan-400', token: 'text-cyan-300',
+    foco: 'focus:ring-cyan-500', botao: 'bg-cyan-600 hover:bg-cyan-500', spin: 'text-cyan-400',
+  },
+} as const;
+
+/**
+ * Sala de aula do aluno. `modulo` diz em qual ambiente ele entrou: o CTF Online só abre salas de CTF e a
+ * Cruzada Online só abre salas de Cruzada (cada token pertence a um ambiente).
+ */
+export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ctf' }) => {
+  const ac = ACENTO[modulo];
   const link = useRef(parseCtfHash());
   const [session, setSession] = useState(getStudentSession);
   const [token, setToken] = useState(() => link.current.token || '');
@@ -71,6 +87,19 @@ export const CtfStudent: React.FC = () => {
     return startPolling(refresh);
   }, [session, refresh]);
 
+  // Sessão salva de outro ambiente (ex.: token de CTF aberto na Cruzada): volta para a entrada com o aviso.
+  const ordemSala = state?.sala.ordem;
+  const ambienteErrado = Boolean(ordemSala) && (modulo === 'cruz') !== (ordemSala === 'cruzadinha');
+  useEffect(() => {
+    if (!ambienteErrado) return;
+    clearStudentSession();
+    setSession(null);
+    setState(null);
+    setError(modulo === 'cruz'
+      ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
+      : 'Este token é de uma Cruzada Online. Abra a Cruzada Online na tela inicial.');
+  }, [ambienteErrado, modulo]);
+
   // Cronômetro da sala: conta no aparelho a partir do fim informado pelo servidor
   const timer = state?.sala.timer ?? null;
   const skewMs = useMemo(() => (state?.sala.agora ? Date.now() - state.sala.agora : 0), [state]);
@@ -87,6 +116,11 @@ export const CtfStudent: React.FC = () => {
     setError('');
     try {
       const s = await ctfCall<CtfState>('join', { token: token.trim(), nome, chave: getChave(token, nome) });
+      if ((modulo === 'cruz') !== (s.sala.ordem === 'cruzadinha')) {
+        throw new Error(modulo === 'cruz'
+          ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
+          : 'Este token é de uma Cruzada Online. Abra a Cruzada Online na tela inicial.');
+      }
       const next = { token: s.sala.token, nome: s.aluno.nome };
       saveChave(token, nome, (s as { chave?: string }).chave);
       saveStudentSession(next);
@@ -163,7 +197,7 @@ export const CtfStudent: React.FC = () => {
   if (session && !state && !error) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center text-slate-400 flex flex-col items-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-400" />
+        <Loader2 className={`w-8 h-8 animate-spin ${ac.spin}`} />
         <span className="text-sm">Voltando para a sala {session.token}…</span>
       </div>
     );
@@ -176,22 +210,22 @@ export const CtfStudent: React.FC = () => {
       <div className="max-w-md mx-auto px-4 py-10">
         <form onSubmit={handleJoin} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
           <div className="text-center space-y-1">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-orange-500/15 border border-orange-500/40 flex items-center justify-center">
-              <Flag className="w-7 h-7 text-orange-400" />
+            <div className={`mx-auto w-14 h-14 rounded-2xl border flex items-center justify-center ${ac.icone}`}>
+              {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
             </div>
-            <h2 className="text-2xl font-black text-white">Entrar no CTF</h2>
+            <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada' : 'Entrar no CTF'}</h2>
             <p className="text-sm text-slate-400">Digite o token da sala e seu nome.</p>
           </div>
 
           {!hasApi && (
             <div className="rounded-xl bg-amber-950/50 border border-amber-500/40 text-amber-200 text-xs p-3">
-              Este navegador ainda não conhece o servidor do CTF. Abra o <strong>link de convite</strong> enviado pelo professor.
+              Este navegador ainda não conhece o servidor. Abra o <strong>link de convite</strong> enviado pelo professor.
             </div>
           )}
 
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-orange-400" /> Token da sala
+              <KeyRound className={`w-3.5 h-3.5 ${ac.texto}`} /> Token da sala
             </span>
             <input
               value={token}
@@ -200,7 +234,7 @@ export const CtfStudent: React.FC = () => {
               autoCapitalize="characters"
               autoComplete="off"
               placeholder="ABC234"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-xl font-mono font-black tracking-[0.3em] text-center text-orange-300 placeholder-slate-700 focus:ring-2 focus:ring-orange-500 outline-none"
+              className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-xl font-mono font-black tracking-[0.3em] text-center placeholder-slate-700 focus:ring-2 outline-none ${ac.token} ${ac.foco}`}
             />
           </label>
 
@@ -212,7 +246,7 @@ export const CtfStudent: React.FC = () => {
               maxLength={40}
               autoComplete="name"
               placeholder="Nome e sobrenome"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 outline-none"
+              className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 outline-none ${ac.foco}`}
             />
           </label>
 
@@ -221,9 +255,9 @@ export const CtfStudent: React.FC = () => {
           <button
             type="submit"
             disabled={busy || token.trim().length < 4 || nome.trim().length < 2}
-            className="w-full py-3.5 rounded-xl font-black text-base bg-orange-600 hover:bg-orange-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center gap-2 transition active:scale-[0.98]"
+            className={`w-full py-3.5 rounded-xl font-black text-base ${ac.botao} disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center gap-2 transition active:scale-[0.98]`}
           >
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Flag className="w-5 h-5" />}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : modulo === 'cruz' ? <Puzzle className="w-5 h-5" /> : <Flag className="w-5 h-5" />}
             ENTRAR NA SALA
           </button>
           <p className="text-[11px] text-center text-slate-500">
@@ -262,7 +296,7 @@ export const CtfStudent: React.FC = () => {
 
   const barra = (
     <StudentBar
-      module="ctf"
+      module={sala.ordem === 'cruzadinha' ? 'cruz' : 'ctf'}
       context={sala.nome}
       name={aluno.nome}
     >
@@ -333,15 +367,6 @@ export const CtfStudent: React.FC = () => {
       {sala.terminal && <LinuxTerminal />}
       {temLab && <LabInformatica />}
       {temAtelie && <AtelieWeb />}
-      {typeof sala.cruzadinha === 'number' && (
-        <Cruzadinha
-          token={sala.token}
-          nome={aluno.nome}
-          versao={sala.cruzadinha_versao}
-          bloqueada={locked}
-          api={cruzApi}
-        />
-      )}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
       {/* Progresso */}

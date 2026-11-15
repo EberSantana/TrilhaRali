@@ -21,6 +21,8 @@ interface Props {
   /** sala encerrada ou tempo esgotado */
   bloqueada?: boolean;
   api: CruzApi;
+  /** treino livre: pontos só para você, sem ranking */
+  treino?: boolean;
 }
 
 const k = (r: number, c: number) => `${r},${c}`;
@@ -31,7 +33,7 @@ const celulas = (p: CruzPalavra): [number, number][] =>
  * Cruzadinha: ambiente do CTF. O servidor monta a grade e manda só o desenho e as dicas, sem as letras.
  * O aluno digita aqui; cada palavra completa é conferida no servidor, que também entrega e conta as dicas.
  */
-export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Props) {
+export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino = false }: Props) {
   const apiRef = useRef(api);
   apiRef.current = api;
   const [est, setEst] = useState<CruzEstado | null>(null);
@@ -148,10 +150,10 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Prop
       setEst(e);
       if (e.nova) {
         playSound('success', true);
-        dizer(e.nova.xp > 0 ? `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)` : `✔ ${e.nova.palavra}`);
+        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) : `✔ ${e.nova.palavra}`);
       }
     },
-    [dizer],
+    [dizer, treino],
   );
 
   // Confere no servidor uma palavra completa (sem repetir a mesma tentativa automaticamente)
@@ -357,13 +359,13 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Prop
     <section className="bg-slate-900 border border-emerald-500/30 rounded-2xl overflow-hidden min-w-0" aria-label="Cruzadinha">
       <header className="px-4 py-3 flex flex-wrap items-center gap-2 border-b border-slate-800 bg-emerald-500/5">
         <Puzzle className="w-5 h-5 text-emerald-300" />
-        <h3 className="font-black text-white">Cruzadinha</h3>
-        <span className="text-xs text-slate-400 hidden sm:inline">Vocabulário da disciplina. Cada palavra certa soma XP no ranking da sala.</span>
+        <h3 className="font-black text-white">Cruzada</h3>
+        <span className="text-xs text-slate-400 hidden sm:inline">{treino ? 'Treino livre: os pontos são só seus, sem ranking.' : 'Vocabulário da disciplina. Cada palavra certa soma XP no ranking da sala.'}</span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5 text-xs font-black">
           <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200">
             {feitas.size}/{palavras.length} palavras
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{est.xp} XP</span>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{est.xp} {treino ? 'pts' : 'XP'}</span>
           <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas restantes (definidas pelo professor)">
             💡 {restantes}/{est.limite}
           </span>
@@ -465,8 +467,8 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Prop
           {completa && (
             <div className="sm:col-span-2 lg:col-span-1 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-3 text-center">
               <Trophy className="w-8 h-8 mx-auto text-amber-400" />
-              <p className="font-black text-white">Cruzadinha concluída!</p>
-              <p className="text-sm text-amber-200">{est.xp} XP no ranking</p>
+              <p className="font-black text-white">Cruzada concluída!</p>
+              <p className="text-sm text-amber-200">{treino ? `${est.xp} pontos` : `${est.xp} XP no ranking`}</p>
             </div>
           )}
           {(['A', 'D'] as Dir[]).map((d) => (
