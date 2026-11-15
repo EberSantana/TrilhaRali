@@ -12,6 +12,8 @@ interface Props {
   nome: string;
   /** dicas por aluno, definidas pelo professor */
   dicas: number;
+  /** quantidade de palavras da grade, definida pelo professor (padrão 12) */
+  palavras?: number;
   /** tags das missões da sala, para escolher o vocabulário */
   tags: string[];
   /** sala encerrada ou tempo esgotado */
@@ -44,13 +46,13 @@ function carregar(chave: string): Salvo {
 }
 
 /** Cruzadinha: ambiente de estudo do CTF. A grade é gerada no navegador a partir do vocabulário da disciplina da sala. */
-export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false, onXp }: Props) {
+export function Cruzadinha({ token, nome, dicas, palavras = 12, tags, bloqueada = false, onXp }: Props) {
   const chave = `cruzadinha:${token}:${nome.trim().toLowerCase()}`;
   const tagsKey = tags.join('|');
   const grade = useMemo(() => {
     const banco: PalavraCruz[] = disciplinasDasTags(tagsKey ? tagsKey.split('|') : []).flatMap((d) => BANCO_CRUZADINHA[d]);
-    return montarGrade(banco, hashTexto(token), 12);
-  }, [token, tagsKey]);
+    return montarGrade(banco, hashTexto(token), palavras);
+  }, [token, tagsKey, palavras]);
 
   const [salvo, setSalvo] = useState<Salvo>(() => carregar(chave));
   const [sel, setSel] = useState<{ r: number; c: number; dir: Dir }>(() => {

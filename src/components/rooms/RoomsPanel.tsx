@@ -375,10 +375,11 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   };
 
   const [dicasCruz, setDicasCruz] = useState(10);
-  const setCruzadinha = async (dicas: number | null) => {
+  const [palavrasCruz, setPalavrasCruz] = useState(12);
+  const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz) => {
     if (!activeRoom) return;
     try {
-      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas }, activeRoom.api);
+      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras }, activeRoom.api);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
@@ -387,7 +388,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   useEffect(() => {
     const d = view?.sala.cruzadinha;
     if (typeof d === 'number') setDicasCruz(d);
-  }, [view?.sala.cruzadinha]);
+    if (view?.sala.cruzadinha_palavras) setPalavrasCruz(view.sala.cruzadinha_palavras);
+  }, [view?.sala.cruzadinha, view?.sala.cruzadinha_palavras]);
 
   const [debrief, setDebrief] = useState<CtfDebrief | null>(null);
   const [debriefErr, setDebriefErr] = useState('');
@@ -742,6 +744,18 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                               value={dicasCruz}
                               onChange={(e) => setDicasCruz(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))}
                               onBlur={() => view?.sala.cruzadinha != null && dicasCruz !== view.sala.cruzadinha && setCruzadinha(dicasCruz)}
+                              className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
+                            />
+                          </label>
+                          <label className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500" title="Quantas palavras tem a grade (6 a 16). Defina antes de liberar: mudar com a sala em andamento refaz a grade.">
+                            Palavras
+                            <input
+                              type="number"
+                              min={6}
+                              max={16}
+                              value={palavrasCruz}
+                              onChange={(e) => setPalavrasCruz(Math.max(6, Math.min(16, Math.floor(Number(e.target.value)) || 6)))}
+                              onBlur={() => view?.sala.cruzadinha != null && palavrasCruz !== (view.sala.cruzadinha_palavras ?? 12) && setCruzadinha(dicasCruz, palavrasCruz)}
                               className="w-16 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-black text-slate-800"
                             />
                           </label>
