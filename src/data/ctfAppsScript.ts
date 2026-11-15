@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 26 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 27 });
 }
 
 function doPost(e) {
@@ -760,6 +760,14 @@ function cruzDiscNome(v) {
   return String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().substring(0, 80);
 }
 
+// Pergunta do Banco so serve de dica de cruzada se ficar clara SEM alternativas e tiver uma unica resposta:
+// multipla escolha e perguntas do tipo "qual destes..." / "assinale..." / "abaixo" ficam de fora.
+function cruzPerguntaServe(r, dica) {
+  if (r.tipo === 'multipla') return false;
+  var t = ' ' + dica.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') + ' ';
+  return !/\b(qual|quais|que)\s+(destes?|destas?|dos|das|d[oa]s? seguintes?)\b|\b(dentre|assinale|marque|alternativas?|opcoes|opcao|abaixo|acima|seguintes?|a seguir|todas as anteriores|nenhuma das)\b/.test(t);
+}
+
 function cruzBanco() {
   var out = [], vistas = {};
   readRows('CruzBanco').forEach(function (r) {
@@ -778,6 +786,7 @@ function cruzBanco() {
     var palavra = cruzLetras(bruta), dica = String(r.pergunta || '').replace(/\s+/g, ' ').trim();
     if (palavra.length < 3 || palavra.length > 16 || !dica || dica.length > 200) return;
     if (cruzLetras(dica).indexOf(palavra) >= 0) return; // a pergunta entregaria a resposta
+    if (!cruzPerguntaServe(r, dica)) return;
     if (vistas[disc + '|' + palavra]) return;
     vistas[disc + '|' + palavra] = true;
     out.push({ disciplina: disc, assunto: cruzAssuntoLimpo(r.assunto), palavra: palavra, dica: dica, fonte: 'banco' });
