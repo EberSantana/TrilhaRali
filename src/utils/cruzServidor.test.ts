@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
+import { BANCO_TESTE } from './cruzBancoTeste';
 
-// Executa o código real da Cruzadinha do Apps Script (v17) num simulador mínimo da planilha.
+// Executa o código real da Cruzadinha do Apps Script (v18) num simulador mínimo da planilha.
 const trecho = (de: string, ate: string) => CTF_APPS_SCRIPT.slice(CTF_APPS_SCRIPT.indexOf(de), CTF_APPS_SCRIPT.indexOf(ate));
 type Row = Record<string, unknown> & { _row: number };
 const plain = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -21,7 +22,8 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
     CtfSalas: [{ _row: 2, token: 'T', status: 'aberta', modo, tipo: 'ctf', timer: '', cruzadinha_dicas: '', cruzadinha_palavras: '', cruzadinha_grade: '' }],
     CtfMissoes: tags.map((t, i) => ({ _row: i + 2, token: 'T', tag_id: t })),
     CtfAlunos: ['ana', 'bia', 'caio'].map((n, i) => ({ _row: i + 2, token: 'T', nome_key: n, xp: 0, xp_cruz: 0 })),
-    CtfCruzCapturas: [], CtfCruzDicas: [], CruzBanco: [],
+    CtfCruzCapturas: [], CtfCruzDicas: [],
+    CruzBanco: Object.entries(BANCO_TESTE).flatMap(([d, l]) => l.map(([palavra, dica]) => ({ disciplina: d, palavra, dica, ativo: 'sim' } as Record<string, unknown>))).map((r, i) => ({ ...r, _row: i + 2 })),
   };
   const sala = sheets.CtfSalas[0];
   const ctx: Record<string, unknown> = {
@@ -29,10 +31,13 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
     appendObj: (n: string, o: Record<string, unknown>) => sheets[n].push({ ...o, _row: sheets[n].length + 2 }),
     updateRow: (n: string, row: number, o: Record<string, unknown>) => Object.assign(sheets[n].find((r) => r._row === row)!, o),
     getSheet: (n: string) => ({
+      getLastRow: () => sheets[n].length + 1,
+      deleteRows: (de: number, qtd: number) => sheets[n].splice(de - 2, qtd),
       getRange: () => ({
         setValues: (vals: unknown[][]) => vals.forEach((v) => sheets[n].push({ _row: sheets[n].length + 2, disciplina: v[0], palavra: v[1], dica: v[2], ativo: v[3] })),
       }),
     }),
+    safeText: (v: string) => (/^[=+\-@]/.test(v) ? "'" + v : v),
     requireAdmin: () => sala, requireRoom: () => sala, roomInfo: () => ({}), logEvento: () => {},
     requireTimerOpen: () => {}, parseTimer: () => null, isLivre: () => false,
     buildState: () => ({}), raliBuildState: () => ({}),
@@ -51,10 +56,35 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
 const liberar = (p: ReturnType<typeof planilha>, dicas = 3, palavras = 12, nova = false) => p.call('setCruzadinha', { dicas, palavras, nova });
 const celulas = (p: Palavra) => [...p.palavra].map((_, i) => (p.dir === 'A' ? [p.r, p.c + i] : [p.r + i, p.c]));
 
-test('ao liberar, o servidor preenche a aba CruzBanco e monta uma grade válida só com a disciplina da sala', () => {
+test('o código público do script não traz nenhum banco de palavras', () => {
+  for (const lista of Object.values(BANCO_TESTE)) for (const [palavra, dica] of lista) assert.ok(!CTF_APPS_SCRIPT.includes(dica), palavra);
+  assert.ok(!/CARDINALIDADE|FORMULARIO|PROCESSADOR/.test(CTF_APPS_SCRIPT));
+});
+
+test('banco vazio: o servidor pede para importar as palavras', () => {
+  const p = planilha();
+  p.sheets.CruzBanco.length = 0;
+  assert.throws(() => liberar(p), /Importe as palavras/);
+});
+
+test('cruzBancoImport: importa, substitui, valida e protege contra fórmula', () => {
+  const p = planilha();
+  const r = p.call('cruzBancoImport', {
+    substituir: true,
+    linhas: [['Banco de Dados', 'Primária', 'Chave da linha'], ['Banco de Dados', 'X', 'curta'], ['Química', 'ATOMO', 'x'], ['Banco de Dados', 'TUPLA', '=HYPERLINK("x")']],
+  }) as unknown as { importadas: number; por_disciplina: Record<string, number> };
+  assert.equal(r.importadas, 2);
+  assert.equal(r.por_disciplina['Banco de Dados'], 2);
+  assert.equal(r.por_disciplina['Informática Básica'], 0);
+  assert.deepEqual(p.sheets.CruzBanco.map((x) => [x.palavra, x.dica]), [['PRIMARIA', 'Chave da linha'], ['TUPLA', '\'=HYPERLINK("x")']]);
+  p.call('cruzBancoImport', { substituir: false, linhas: [['Informática Básica', 'MOUSE', 'Aponta']] });
+  assert.equal(p.sheets.CruzBanco.length, 3);
+  assert.throws(() => p.call('cruzBancoImport', { linhas: [['Química', 'ATOMO', 'x']] }), /Nenhuma linha válida/);
+});
+
+test('ao liberar, o servidor monta uma grade válida só com a disciplina da sala', () => {
   const p = planilha();
   liberar(p, 3, 12);
-  assert.equal(p.sheets.CruzBanco.length, 128);
   const g = p.grade();
   assert.ok(g.palavras.length >= 11 && g.palavras.length <= 12);
   const sites = new Set(p.sheets.CruzBanco.filter((r) => r.disciplina === 'Construção de Sites 1').map((r) => r.palavra));

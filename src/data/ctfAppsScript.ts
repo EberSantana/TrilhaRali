@@ -6,8 +6,6 @@
  * As respostas ficam apenas na planilha: o aluno recebe somente a pergunta da fase atual e a
  * validação (e o avanço de fase) acontece no servidor.
  */
-import { BANCO_CRUZADINHA } from './cruzadinhaBanco';
-
 export const CTF_APPS_SCRIPT = String.raw`// ==========================================================
 // RALI IFSTB - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensoes > Apps Script de uma planilha NOVA.
@@ -32,7 +30,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -47,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 17 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 18 });
 }
 
 function doPost(e) {
@@ -86,6 +84,8 @@ function route(req) {
     case 'setTerminal': return setTerminal(req);
     case 'setCruzadinha': return setCruzadinha(req);
     case 'cruzState': return cruzState(req);
+    case 'cruzBancoImport': return cruzBancoImport(req);
+    case 'cruzBancoResumo': return cruzBancoResumo(req);
     case 'cruzCheck': return cruzCheck(req);
     case 'cruzHint': return cruzHint(req);
     case 'setDebriefing': return setDebriefing(req);
@@ -625,11 +625,11 @@ function setTerminal(req) {
 }
 
 // ---------- Cruzadinha ----------
-// Desde a v17 a grade e montada AQUI, a partir da aba CruzBanco (o professor pode editar, incluir ou desativar
-// palavras), e fica gravada na sala. O aluno recebe so o desenho da grade, os numeros e as dicas, sem as
+// A grade e montada AQUI, a partir da aba CruzBanco, e fica gravada na sala. Desde a v18 o banco de palavras
+// NAO vem no codigo (que e publico): o professor importa a lista pelo painel e ela existe so na planilha. O aluno recebe so o desenho da grade, os numeros e as dicas, sem as
 // letras. Cada palavra completa e conferida aqui (cruzCheck), as dicas sao entregues e contadas aqui (cruzHint)
 // e o XP e calculado aqui. No modo CTF Dinamico, quem fecha a palavra primeiro ganha mais (regra das missoes).
-var CRUZ_BANCO_PADRAO = /*CRUZ_BANCO_PADRAO*/{};
+var CRUZ_DISCIPLINAS = ['Banco de Dados', 'Informática Básica', 'Construção de Sites 1', 'Fundamentos de Sistemas Operacionais'];
 
 // Coluna vazia = Cruzadinha oculta; 0 = liberada sem dicas.
 function cruzadinhaDicas(room) {
@@ -664,18 +664,9 @@ function cruzLetras(s) {
   return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]/g, '');
 }
 
-// Banco de palavras: aba CruzBanco. Na primeira vez ela e preenchida com o banco padrao.
+// Banco de palavras: aba CruzBanco (disciplina, palavra, dica, ativo). Marque "nao" em ativo para tirar uma palavra.
 function cruzBanco() {
-  var rows = readRows('CruzBanco');
-  if (!rows.length) {
-    var vals = [];
-    Object.keys(CRUZ_BANCO_PADRAO).forEach(function (d) {
-      CRUZ_BANCO_PADRAO[d].forEach(function (p) { vals.push([d, p[0], p[1], 'sim']); });
-    });
-    if (vals.length) getSheet('CruzBanco').getRange(2, 1, vals.length, 4).setValues(vals);
-    rows = readRows('CruzBanco');
-  }
-  return rows.filter(function (r) {
+  return readRows('CruzBanco').filter(function (r) {
     var a = cruzLetras(r.ativo);
     return a !== 'NAO' && a !== 'FALSE' && a !== 'N';
   }).map(function (r) {
@@ -792,7 +783,7 @@ function setCruzadinha(req) {
   if (dicas !== '' && (!atual || req.nova === true || cruzadinhaPalavras(room) !== palavras)) {
     var disc = cruzDisciplinas(room);
     var banco = cruzBanco().filter(function (b) { return disc.indexOf(b.disciplina) >= 0; });
-    if (banco.length < 6) fail('A aba CruzBanco tem poucas palavras ativas para: ' + disc.join(', ') + '.');
+    if (banco.length < 6) fail('O banco da Cruzadinha tem poucas palavras ativas para: ' + disc.join(', ') + '. Importe as palavras em "Banco de palavras".');
     upd.cruzadinha_grade = JSON.stringify(cruzMontar(banco, palavras));
   }
   updateRow('CtfSalas', room._row, upd);
@@ -896,6 +887,33 @@ function cruzCheck(req) {
   ctx.caps.push(row);
   updateRow('CtfAlunos', ctx.me._row, { xp: Number(ctx.me.xp) + xp, xp_cruz: (Number(ctx.me.xp_cruz) || 0) + xp });
   return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp } });
+}
+
+// Banco da Cruzadinha pelo painel do professor (qualquer sala aberta por ele serve de chave).
+function cruzBancoResumo(req) {
+  requireAdmin(req);
+  var por = {};
+  CRUZ_DISCIPLINAS.forEach(function (d) { por[d] = 0; });
+  cruzBanco().forEach(function (b) { if (por[b.disciplina] !== undefined) por[b.disciplina]++; });
+  return { por_disciplina: por };
+}
+
+function cruzBancoImport(req) {
+  requireAdmin(req);
+  var vals = [];
+  (Array.isArray(req.linhas) ? req.linhas : []).slice(0, 3000).forEach(function (l) {
+    var d = String(l && l[0] || '').trim();
+    var p = cruzLetras(l && l[1]);
+    var dica = safeText(String(l && l[2] || '').trim().substring(0, 200));
+    if (CRUZ_DISCIPLINAS.indexOf(d) >= 0 && p.length >= 3 && p.length <= 16 && dica) vals.push([d, p, dica, 'sim']);
+  });
+  if (!vals.length) fail('Nenhuma linha válida. Use o formato: disciplina;palavra;dica');
+  var sh = getSheet('CruzBanco');
+  if (req.substituir === true && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
+  sh.getRange(sh.getLastRow() + 1, 1, vals.length, 4).setValues(vals);
+  var r = cruzBancoResumo(req);
+  r.importadas = vals.length;
+  return r;
 }
 
 // Dica: o servidor entrega a letra (ou a palavra) e conta o uso. Nao gasta dica com letra ja conhecida.
@@ -1361,4 +1379,4 @@ function nfcSet() {
     })
   };
 }
-`.replace('/*CRUZ_BANCO_PADRAO*/{}', () => JSON.stringify(BANCO_CRUZADINHA));
+`;

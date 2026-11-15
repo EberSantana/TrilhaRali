@@ -1,12 +1,11 @@
 /**
- * Banco PADRÃO de palavras da Cruzadinha. Ele não é usado pela tela do aluno: vai embutido no Apps Script e
- * preenche a aba CruzBanco da planilha na primeira vez. Dali em diante o servidor usa a aba (o professor pode
- * editar, incluir ou desativar palavras) e monta a grade; o aluno nunca recebe as letras.
+ * Banco de palavras SÓ PARA OS TESTES automáticos. Ele é público (está no repositório), então NÃO serve para
+ * sala de aula: o banco de verdade fica apenas na aba CruzBanco da planilha do professor, importado pelo painel.
  */
 export type DisciplinaCruz = 'Banco de Dados' | 'Informática Básica' | 'Construção de Sites 1' | 'Fundamentos de Sistemas Operacionais';
 export type PalavraCruz = readonly [palavra: string, dica: string];
 
-export const BANCO_CRUZADINHA: Record<DisciplinaCruz, PalavraCruz[]> = {
+export const BANCO_TESTE: Record<DisciplinaCruz, PalavraCruz[]> = {
   'Banco de Dados': [
     ['CARDINALIDADE', 'Quantidade de ocorrências entre duas entidades (1:N, N:N)'],
     ['TRANSACAO', 'Conjunto de operações tratado como uma unidade'],
