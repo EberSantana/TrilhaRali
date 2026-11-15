@@ -16,6 +16,8 @@ interface Props {
   tags: string[];
   /** sala encerrada ou tempo esgotado */
   bloqueada?: boolean;
+  /** envia o XP acumulado ao ranking da sala; se ausente, o XP é só de treino */
+  onXp?: (xp: number) => Promise<unknown>;
 }
 
 interface Salvo {
@@ -23,9 +25,11 @@ interface Salvo {
   dicaCel: Record<string, true>;
   ajuda: Record<number, 1 | 2>;
   usadas: number;
+  /** maior XP já aceito pelo servidor */
+  enviado: number;
 }
 
-const VAZIO: Salvo = { vals: {}, dicaCel: {}, ajuda: {}, usadas: 0 };
+const VAZIO: Salvo = { vals: {}, dicaCel: {}, ajuda: {}, usadas: 0, enviado: 0 };
 const k = (r: number, c: number) => `${r},${c}`;
 
 function carregar(chave: string): Salvo {
@@ -33,14 +37,14 @@ function carregar(chave: string): Salvo {
     const raw = localStorage.getItem(chave);
     if (!raw) return VAZIO;
     const o = JSON.parse(raw) as Partial<Salvo>;
-    return { vals: o.vals ?? {}, dicaCel: o.dicaCel ?? {}, ajuda: o.ajuda ?? {}, usadas: Number(o.usadas) || 0 };
+    return { vals: o.vals ?? {}, dicaCel: o.dicaCel ?? {}, ajuda: o.ajuda ?? {}, usadas: Number(o.usadas) || 0, enviado: Number(o.enviado) || 0 };
   } catch {
     return VAZIO;
   }
 }
 
 /** Cruzadinha: ambiente de estudo do CTF. A grade é gerada no navegador a partir do vocabulário da disciplina da sala. */
-export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Props) {
+export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false, onXp }: Props) {
   const chave = `cruzadinha:${token}:${nome.trim().toLowerCase()}`;
   const tagsKey = tags.join('|');
   const grade = useMemo(() => {
@@ -85,6 +89,25 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
     () => grade.palavras.filter((p) => feitas.has(p.id)).reduce((a, p) => a + xpPalavra(p.palavra.length, (salvo.ajuda[p.id] ?? 0) as 0 | 1 | 2), 0),
     [grade, feitas, salvo.ajuda],
   );
+  const onXpRef = useRef(onXp);
+  onXpRef.current = onXp;
+  const [envio, setEnvio] = useState<'' | 'ok' | 'erro'>('');
+  const [tentativa, setTentativa] = useState(0);
+  const temRanking = Boolean(onXp);
+  useEffect(() => {
+    if (!temRanking || bloqueada || xp <= salvo.enviado) return;
+    const t = window.setTimeout(async () => {
+      try {
+        await onXpRef.current?.(xp);
+        setSalvo((s) => ({ ...s, enviado: Math.max(s.enviado, xp) }));
+        setEnvio('ok');
+      } catch {
+        setEnvio('erro');
+        window.setTimeout(() => setTentativa((n) => n + 1), 8000);
+      }
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [xp, salvo.enviado, temRanking, bloqueada, tentativa]);
   const restantes = Math.max(0, dicas - salvo.usadas);
   const completa = feitas.size === grade.palavras.length;
 
@@ -233,7 +256,7 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
       setSalvo((s) => {
         const ajuda = { ...s.ajuda };
         for (const id of Object.values(o.ids) as number[]) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
-        return { vals: { ...s.vals, [chaveCel]: o.ans }, dicaCel: { ...s.dicaCel, [chaveCel]: true }, ajuda, usadas: s.usadas + 1 };
+        return { ...s, vals: { ...s.vals, [chaveCel]: o.ans }, dicaCel: { ...s.dicaCel, [chaveCel]: true }, ajuda, usadas: s.usadas + 1 };
       });
       avancar();
     });
@@ -254,7 +277,7 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
           for (const id of Object.values(info.get(k(r, c))!.ids) as number[]) if (id !== palavraAtual.id) ajuda[id] = Math.max(ajuda[id] ?? 0, 1) as 1 | 2;
         }
         ajuda[palavraAtual.id] = 2;
-        return { vals, dicaCel, ajuda, usadas: s.usadas + 1 };
+        return { ...s, vals, dicaCel, ajuda, usadas: s.usadas + 1 };
       });
     });
 
@@ -288,10 +311,12 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
       <header className="px-4 py-3 flex flex-wrap items-center gap-2 border-b border-slate-800 bg-emerald-500/5">
         <Puzzle className="w-5 h-5 text-emerald-300" />
         <h3 className="font-black text-white">Cruzadinha</h3>
-        <span className="text-xs text-slate-400 hidden sm:inline">Treino de vocabulário da disciplina. O XP daqui não entra no ranking.</span>
+        <span className="text-xs text-slate-400 hidden sm:inline">
+          {temRanking ? 'Vocabulário da disciplina. O XP das palavras soma no ranking da sala.' : 'Treino de vocabulário da disciplina. O XP daqui não entra no ranking.'}
+        </span>
         <div className="ml-auto flex flex-wrap items-center gap-1.5 text-xs font-black">
           <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200">{feitas.size}/{grade.palavras.length} palavras</span>
-          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{xp} XP</span>
+          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{xp} XP{temRanking && envio === 'ok' && xp > 0 && xp <= salvo.enviado ? ' ✓' : ''}</span>
           <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas restantes (definidas pelo professor)">
             💡 {restantes}/{dicas}
           </span>
@@ -380,7 +405,7 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
             </button>
           </div>
           <p className="text-[11px] text-slate-500 min-h-[1rem]" role="status">
-            {aviso || (dicas > 0 ? `Cada dica gasta 1 das suas ${dicas}. Letra revelada vale metade do XP da palavra; palavra revelada vale 0.` : 'O professor desativou as dicas nesta sala.')}
+            {aviso || (envio === 'erro' ? 'Não consegui enviar o XP ao ranking agora. Tentando de novo…' : dicas > 0 ? `Cada dica gasta 1 das suas ${dicas}. Letra revelada vale metade do XP da palavra; palavra revelada vale 0.` : 'O professor desativou as dicas nesta sala.')}
           </p>
         </div>
 
@@ -389,7 +414,7 @@ export function Cruzadinha({ token, nome, dicas, tags, bloqueada = false }: Prop
             <div className="sm:col-span-2 lg:col-span-1 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-3 text-center">
               <Trophy className="w-8 h-8 mx-auto text-amber-400" />
               <p className="font-black text-white">Cruzadinha concluída!</p>
-              <p className="text-sm text-amber-200">{xp} XP de treino</p>
+              <p className="text-sm text-amber-200">{xp} XP{temRanking ? ' no ranking' : ' de treino'}</p>
             </div>
           )}
           {(['A', 'D'] as Dir[]).map((d) => (

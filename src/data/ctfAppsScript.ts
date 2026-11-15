@@ -16,7 +16,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 var SHEET_HEADERS = {
   CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
-  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave'],
+  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
@@ -27,7 +27,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzSubmit: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -42,7 +42,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 12 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 13 });
 }
 
 function doPost(e) {
@@ -80,6 +80,7 @@ function route(req) {
     case 'setBanco': return setBanco(req);
     case 'setTerminal': return setTerminal(req);
     case 'setCruzadinha': return setCruzadinha(req);
+    case 'cruzSubmit': return cruzSubmit(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
     case 'debriefStudent': return debriefStudent(req);
@@ -628,6 +629,29 @@ function setCruzadinha(req) {
   updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas });
   room.cruzadinha_dicas = dicas;
   return { sala: roomInfo(room) };
+}
+
+// XP da Cruzadinha: o aparelho envia o total acumulado (so sobe). O servidor soma ao XP do aluno apenas a
+// diferenca em relacao ao que ja recebeu, entao reenviar o mesmo valor nao duplica pontos. O total fica
+// limitado a CRUZ_XP_MAX; xp_cruz guarda quanto veio da Cruzadinha (xp = missoes + cruzadinha).
+var CRUZ_XP_MAX = 1500;
+
+function cruzSubmit(req) {
+  var room = requireRoom(req.token);
+  if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
+  requireTimerOpen(parseTimer(room.timer), Date.now());
+  if (cruzadinhaDicas(room) === null) fail('A Cruzadinha não está liberada nesta sala.');
+  var key = norm(req.nome);
+  var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
+  if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
+  var novo = Math.max(0, Math.min(CRUZ_XP_MAX, Math.floor(Number(req.xp)) || 0));
+  var antigo = Number(me.xp_cruz) || 0;
+  if (novo > antigo) {
+    updateRow('CtfAlunos', me._row, { xp: Number(me.xp) + (novo - antigo), xp_cruz: novo });
+  }
+  var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
+  st.cruz = { xp: Math.max(novo, antigo) };
+  return st;
 }
 
 // Debriefing: gabarito da sala (pergunta, resposta, explicacao e quantos acertaram).
