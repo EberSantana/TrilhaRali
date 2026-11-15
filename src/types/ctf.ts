@@ -214,5 +214,5 @@ export interface CruzEstado {
   xp: number;
   correta?: boolean;
   id?: number;
-  nova?: { palavra: string; posicao: number; xp: number };
+  nova?: { palavra: string; posicao: number; xp: number; ajuda?: boolean };
 }

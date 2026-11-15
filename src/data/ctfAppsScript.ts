@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 23 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 24 });
 }
 
 function doPost(e) {
@@ -919,11 +919,14 @@ function cruzMedir(cs) {
 function cruzMontar(banco, max) {
   var vistas = {}, unicas = [];
   banco.forEach(function (p) { if (!vistas[p.palavra]) { vistas[p.palavra] = 1; unicas.push(p); } });
-  var base = cruzEmbaralhar(unicas).slice(0, max);
+  // Palavras muito longas alargam a grade (e viram casas minusculas no celular): so entram se faltarem outras
+  var curtas = cruzEmbaralhar(unicas.filter(function (p) { return p.palavra.length <= 13; }));
+  var longas = cruzEmbaralhar(unicas.filter(function (p) { return p.palavra.length > 13; }));
+  var base = curtas.concat(longas).slice(0, max);
   var melhor = null;
   for (var it = 0; it < 150; it++) {
     var cs = cruzTentar(base, it % 2 === 1), m = cruzMedir(cs);
-    var sc = cs.length * 1000 - Math.max(m.h, m.w) * 30 - m.w * 10 - m.h * m.w;
+    var sc = cs.length * 1000 - Math.max(m.h, m.w) * 30 - m.w * 25 - m.h * m.w;
     if (!melhor || sc > melhor.sc) melhor = { cs: cs, sc: sc, m: m };
   }
   var mm = melhor.m, inicios = [];
@@ -1079,7 +1082,7 @@ function cruzCheck(req) {
   }
   updateRow('CtfAlunos', ctx.me._row, updAluno);
   ctx.me.xp = updAluno.xp;
-  return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp } });
+  return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp, ajuda: ajudadas > 0 } });
 }
 
 // ---------- Cruzada Online: treino livre (sem sala, sem token, sem ranking) ----------
@@ -1137,7 +1140,7 @@ function cruzTreinoCheck(req) {
   var xp = Math.round(p.palavra.length * 10 * (ajudadas ? 0.5 : 1));
   t.resolvidas.push({ id: p.id, xp: xp });
   treinoPut(t);
-  return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp } });
+  return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp, ajuda: ajudadas > 0 } });
 }
 
 function cruzTreinoHint(req) {

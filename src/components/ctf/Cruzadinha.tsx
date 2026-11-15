@@ -45,6 +45,21 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   const avisoT = useRef<number | undefined>(undefined);
   const entrada = useRef<HTMLInputElement>(null);
   const gradeRef = useRef<HTMLDivElement>(null);
+  // A grade se ajusta à largura disponível (sem barra de rolagem): o lado da casa sai da largura da caixa
+  const [caixa, setCaixa] = useState<HTMLDivElement | null>(null);
+  const [largura, setLargura] = useState(0);
+  useEffect(() => {
+    if (!caixa) return;
+    const medir = () => setLargura(caixa.clientWidth);
+    medir();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(medir) : null;
+    ro?.observe(caixa);
+    window.addEventListener('resize', medir);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [caixa]);
   const tentadas = useRef<Record<number, string>>({});
 
   const dizer = useCallback((t: string) => {
@@ -150,7 +165,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
       setEst(e);
       if (e.nova) {
         playSound('success', true);
-        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) : `✔ ${e.nova.palavra}`);
+        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) + (e.nova.ajuda ? ' · metade dos pontos: havia letra revelada por dica nesta palavra' : '') : `✔ ${e.nova.palavra}: sem pontos, todas as letras já estavam reveladas por dica`);
       }
     },
     [dizer, treino],
@@ -350,7 +365,9 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   };
 
   const { h, w } = est.grade;
-  const tamCelula = Math.max(24, Math.min(44, Math.floor(640 / w)));
+  const GAP = 2;
+  const disponivel = Math.max(0, (largura || 320) - 16);
+  const lado = Math.max(9, Math.min(44, Math.floor((disponivel - (w - 1) * GAP) / w)));
   const lista = (dir: Dir) => palavras.filter((p) => p.dir === dir).sort((a, b) => a.n - b.n);
   const semFoco = (e: React.MouseEvent) => e.preventDefault();
   const btn = 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition disabled:opacity-45 disabled:cursor-not-allowed';
@@ -381,18 +398,18 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
             <div className="text-sm sm:text-base font-bold text-white">{atual.dica}</div>
           </div>
 
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 overflow-auto">
+          <div ref={setCaixa} className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-2 overflow-hidden">
             <div
               ref={gradeRef}
               role="grid"
               aria-label="Grade da cruzadinha"
-              className="cruz-grade mx-auto grid gap-[2px] w-max sm:w-auto"
-              style={{ gridTemplateColumns: `repeat(${w}, minmax(24px, 1fr))`, maxWidth: tamCelula * w + w * 2 }}
+              className="cruz-grade mx-auto grid"
+              style={{ gridTemplateColumns: `repeat(${w}, ${lado}px)`, gridAutoRows: `${lado}px`, gap: GAP, width: lado * w + GAP * (w - 1) }}
             >
               {Array.from({ length: h }, (_, r) =>
                 Array.from({ length: w }, (_, c) => {
                   const o = info.get(k(r, c));
-                  if (!o) return <div key={k(r, c)} aria-hidden="true" className="aspect-square" />;
+                  if (!o) return <div key={k(r, c)} aria-hidden="true" />;
                   const ch = k(r, c);
                   const v = letra(r, c);
                   const ativa = sel.r === r && sel.c === c;
@@ -417,10 +434,10 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
                       role="gridcell"
                       aria-label={`Linha ${r + 1}, coluna ${c + 1}${o.num ? `, início da palavra ${o.num}` : ''}${v ? `, letra ${v}` : ', vazia'}`}
                       onClick={() => selecionar(r, c, true)}
-                      className={`relative aspect-square rounded-[5px] border-[1.5px] font-black uppercase leading-none flex items-center justify-center transition-colors ${cor}`}
-                      style={{ fontSize: `clamp(10px, min(3.6vw, ${tamCelula * 0.5}px), 22px)` }}
+                      className={`relative rounded-[4px] border font-black uppercase leading-none flex items-center justify-center transition-colors ${cor}`}
+                      style={{ fontSize: Math.max(8, Math.round(lado * 0.56)) }}
                     >
-                      {o.num > 0 && <span className="absolute top-[1px] left-[3px] text-[9px] font-black text-slate-500 leading-none">{o.num}</span>}
+                      {o.num > 0 && <span className="absolute top-[1px] left-[2px] font-black text-slate-500 leading-none" style={{ fontSize: Math.max(6, Math.round(lado * 0.3)) }}>{o.num}</span>}
                       {v}
                     </button>
                   );
