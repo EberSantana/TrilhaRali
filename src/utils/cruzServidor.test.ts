@@ -168,7 +168,7 @@ test('dicas: o servidor entrega a letra, conta o uso, respeita o limite e descon
   assert.equal(s.usadas_palavra, 0);
   assert.deepEqual(s.reveladas, [[...celulas(w1)[0], w1.palavra[0]]]);
   assert.throws(() => p.call('cruzHint', { nome: 'Ana', tipo: 'letra', id: w1.id, indice: 0 }), /já foi revelada|dicas de letra acabaram/);
-  assert.equal(p.call('cruzCheck', { nome: 'Ana', id: w1.id, tentativa: w1.palavra }).cruz.nova!.xp, Math.round(w1.palavra.length * 5));
+  assert.equal(p.call('cruzCheck', { nome: 'Ana', id: w1.id, tentativa: w1.palavra }).cruz.nova!.xp, w1.palavra.length * 10 - 2);
   const rv = p.call('cruzHint', { nome: 'Ana', tipo: 'palavra', id: w2.id }).cruz;
   assert.equal(rv.usadas, 1, 'revelar palavra não gasta as dicas de letra');
   assert.equal(rv.usadas_palavra, 1);
@@ -272,12 +272,12 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
   assert.equal(r.cruz.xp, a.palavra.length * 10);
   assert.equal(r.cruz.nova, undefined);
 
-  // dica: o servidor entrega a letra e conta; palavra com ajuda vale metade
+  // dica: o servidor entrega a letra e conta; cada letra de dica tira 2 pontos
   let h = call('cruzTreinoHint', { gid, id: b.id, tipo: 'letra', indice: 0 });
   assert.equal(h.cruz.usadas, 1);
   assert.deepEqual(h.cruz.reveladas.map((x) => x[2]), [b.palavra[0]]);
   r = call('cruzTreinoCheck', { gid, id: b.id, tentativa: b.palavra });
-  assert.equal(r.cruz.nova?.xp, Math.round(b.palavra.length * 10 * 0.5));
+  assert.equal(r.cruz.nova?.xp, b.palavra.length * 10 - 2); // 1 letra de dica = −2 pts
   assert.throws(() => call('cruzTreinoHint', { gid, id: a.id, tipo: 'letra', indice: 0 }), /já está resolvida/);
   for (let i = 1; ; i++) {
     try { h = call('cruzTreinoHint', { gid, id: c.id, tipo: 'letra', indice: i % c.palavra.length }); break; } catch (e) { if (!/já foi revelada/.test(String(e))) throw e; }

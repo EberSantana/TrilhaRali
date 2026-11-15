@@ -144,7 +144,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   // "Revelar palavra" tem limite próprio (servidor v25+); em servidor antigo vale o mesmo total das letras
   const limitePal = est?.limite_palavra ?? est?.limite ?? 0;
   const restantesPal = Math.max(0, limitePal - (est?.usadas_palavra ?? (est?.limite_palavra === undefined ? est?.usadas ?? 0 : 0)));
-  // Quanto cada palavra vale agora: 10 por letra; letra revelada por dica corta pela metade; tudo revelado vale 0
+  // Quanto cada palavra vale agora: 10 por letra; cada letra revelada por dica tira 2 pontos; tudo revelado vale 0
   const valeAgora = useCallback(
     (p: CruzPalavra) => {
       const feita = est?.resolvidas.find((x) => x.id === p.id);
@@ -152,7 +152,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
       const base = p.tam * 10;
       const reveladas = celulas(p).filter(([r, c]) => fixas[k(r, c)]?.dica).length;
       if (reveladas >= p.tam) return { pts: 0, estado: 'zero' as const };
-      return reveladas > 0 ? { pts: Math.round(base / 2), estado: 'metade' as const } : { pts: base, estado: 'cheia' as const };
+      return reveladas > 0 ? { pts: Math.max(0, base - 2 * reveladas), estado: 'metade' as const } : { pts: base, estado: 'cheia' as const };
     },
     [est, fixas],
   );
@@ -181,7 +181,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
       setEst(e);
       if (e.nova) {
         playSound('success', true);
-        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) + (e.nova.ajuda ? ' · metade dos pontos: havia letra revelada por dica nesta palavra' : '') : `✔ ${e.nova.palavra}: sem pontos, todas as letras já estavam reveladas por dica`);
+        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) + (e.nova.ajuda ? ' · −2 pts por dica de letra usada nesta palavra' : '') : `✔ ${e.nova.palavra}: sem pontos, todas as letras já estavam reveladas por dica`);
       }
     },
     [dizer, treino],
@@ -417,7 +417,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2" aria-live="polite">
             <div className="text-[11px] font-black uppercase tracking-wider text-emerald-300">
               {atual.n} {atual.dir === 'A' ? 'Horizontal →' : 'Vertical ↓'} · {atual.tam} letras · vale {valeAgora(atual).pts} {unid}
-              {valeAgora(atual).estado === 'metade' && ' (metade: há letra revelada)'}
+              {valeAgora(atual).estado === 'metade' && ` (−${2 * celulas(atual).filter(([r, c]) => fixas[k(r, c)]?.dica).length} por dica de letra)`}
               {valeAgora(atual).estado === 'zero' && ' (tudo revelado)'}
             </div>
             <div className="text-sm sm:text-base font-bold text-white">{atual.dica}</div>
@@ -488,7 +488,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
               {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Conferir palavra
             </button>
             <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('letra')} disabled={bloqueada || ocupado || restantes <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
-              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra <span className="text-[10px] font-bold text-amber-300">(vale metade · {restantes} restam)</span>
+              <Lightbulb className="w-4 h-4 text-sky-300" /> Dica: letra <span className="text-[10px] font-bold text-amber-300">(−2 pts cada · {restantes} restam)</span>
             </button>
             <button type="button" onMouseDown={semFoco} onClick={() => pedirDica('palavra')} disabled={bloqueada || ocupado || restantesPal <= 0} className={`${btn} bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100`}>
               <Eye className="w-4 h-4 text-sky-300" /> Revelar palavra <span className="text-[10px] font-bold text-amber-300">(vale 0 · {restantesPal} restam)</span>
@@ -500,7 +500,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
           <p className="text-[11px] text-slate-500 min-h-[1rem]" role="status">
             {aviso ||
               (est.limite > 0
-                ? `A palavra é conferida ao completar. Dica de letra (restam ${restantes} de ${est.limite}): a palavra vale metade. Revelar palavra (restam ${restantesPal} de ${limitePal}): vale 0. Cada palavra vale 10 por letra.`
+                ? `A palavra é conferida ao completar. Dica de letra (restam ${restantes} de ${est.limite}): cada letra revelada tira 2 pontos da palavra. Revelar palavra (restam ${restantesPal} de ${limitePal}): vale 0. Cada palavra vale 10 por letra.`
                 : 'A palavra é conferida ao completar. O professor desativou as dicas nesta sala.')}
           </p>
         </div>
