@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
 import { BANCO_TESTE } from './cruzBancoTeste';
 
-// Executa o código real da Cruzadinha do Apps Script (v18) num simulador mínimo da planilha.
+// Executa o código real da Cruzadinha do Apps Script (v19) num simulador mínimo da planilha.
 const trecho = (de: string, ate: string) => CTF_APPS_SCRIPT.slice(CTF_APPS_SCRIPT.indexOf(de), CTF_APPS_SCRIPT.indexOf(ate));
 type Row = Record<string, unknown> & { _row: number };
 const plain = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -47,6 +47,7 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
   };
   vm.createContext(ctx);
   vm.runInContext(trecho('function pontos', 'function randomFrom'), ctx);
+  vm.runInContext(trecho('function isCruz', 'function createCruzRoom'), ctx);
   vm.runInContext(trecho('// ---------- Cruzadinha ----------', '// Debriefing: gabarito da sala'), ctx);
   const call = (fn: string, req: Record<string, unknown>) => plain((ctx[fn] as (r: unknown) => unknown)(req)) as { cruz: Saida };
   const grade = () => JSON.parse(String(sala.cruzadinha_grade)) as { id: number; h: number; w: number; palavras: Palavra[] };
@@ -205,4 +206,26 @@ test('o professor pode editar a aba CruzBanco: palavra com acento, palavra desat
   const nomes = p.grade().palavras.map((w) => w.palavra);
   assert.ok(nomes.length >= 6);
   assert.ok(nomes.every((n) => ativas.has(n)), nomes.join(','));
+});
+
+test('sala de Cruzadinha (v19): cria com a disciplina, o aluno joga direto e o ranking conta palavras', () => {
+  const p = planilha('ctf_dynamic', []);
+  const ctx = p.ctx;
+  Object.assign(ctx, {
+    genToken: () => 'CRUZ01',
+    randomFrom: () => 'chave',
+    timerApply: () => null,
+    TOKEN_CHARS: 'ABC',
+  });
+  vm.runInContext(trecho('function isCruz', 'function join('), ctx);
+  const r = plain((ctx.createRoom as (q: unknown) => Record<string, unknown>)({ tipo: 'ctf', ordem: 'cruzadinha', disciplina: 'Informática Básica', palavras: 10, dicas: 4, modo: 'ctf_dynamic', nome: 'Cruz' }));
+  assert.equal(r.ordem, 'cruzadinha');
+  const sala = p.sheets.CtfSalas.find((s) => s.token === 'CRUZ01')!;
+  assert.equal(sala.cruzadinha_disc, 'Informática Básica');
+  assert.equal(sala.cruzadinha_dicas, 4);
+  const g = JSON.parse(String(sala.cruzadinha_grade)) as { palavras: { id: number; palavra: string }[] };
+  assert.equal(Number(sala.total_fases), g.palavras.length);
+  const info = new Set(p.sheets.CruzBanco.filter((b) => b.disciplina === 'Informática Básica').map((b) => b.palavra));
+  assert.ok(g.palavras.every((w) => info.has(w.palavra)));
+  assert.throws(() => (ctx.createRoom as (q: unknown) => unknown)({ tipo: 'ctf', ordem: 'cruzadinha', disciplina: 'Química' }), /Escolha a disciplina/);
 });

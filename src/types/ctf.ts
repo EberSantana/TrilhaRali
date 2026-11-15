@@ -6,7 +6,8 @@ import type { Theme } from '../utils/theme';
 export type RoomTipo = 'ctf' | 'rali';
 
 /** livre = painel de desafios · sequencial = fase a fase */
-export type CtfOrdem = 'livre' | 'sequencial';
+/** livre = painel de desafios; sequencial = fase a fase; cruzadinha = sala só com a Cruzadinha (script v19+) */
+export type CtfOrdem = 'livre' | 'sequencial' | 'cruzadinha';
 
 export interface CtfRoomInfo {
   token: string;

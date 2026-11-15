@@ -66,8 +66,9 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
   const finished = Boolean(view) && (phase === 'fim' || view?.sala.status === 'encerrada');
   useCelebrate(finished && Boolean(view?.alunos.length));
 
-  const livre = !nfc && view?.sala.ordem === 'livre';
-  const unit = nfc ? 'missões' : livre ? 'desafios' : 'fases';
+  const salaCruz = !nfc && view?.sala.ordem === 'cruzadinha';
+  const livre = (!nfc && view?.sala.ordem === 'livre') || salaCruz;
+  const unit = nfc ? 'missões' : salaCruz ? 'palavras' : livre ? 'desafios' : 'fases';
   const rows = useMemo(
     () => (view?.alunos ?? []).map((a) => ({ nome: a.nome, xp: a.xp, fase: nfc || livre ? a.acertos : a.fase_atual, fogos: a.fogos })),
     [view, nfc, livre]
