@@ -1,5 +1,5 @@
 /** Cruzadinha: gerador de grade, normalização de letras e pontuação. Tudo roda no navegador. */
-import type { PalavraCruz } from '../data/cruzadinhaBanco';
+import { bancoDas, type DisciplinaCruz, type PalavraCruz } from '../data/cruzadinhaBanco';
 
 export type Dir = 'A' | 'D';
 export interface PalavraGrade {
@@ -139,6 +139,11 @@ export function montarGrade(banco: PalavraCruz[], semente: number, max = 12): Gr
     celulas: [...x.palavra].map((_, j) => (x.dir === 'A' ? [x.r, x.c + j] : [x.r + j, x.c]) as [number, number]),
   }));
   return { h, w, palavras };
+}
+
+/** Palavras da grade de uma sala (o professor grava esta lista no servidor, que confere o que o aluno envia). */
+export function gabaritoDaSala(token: string, disciplinas: DisciplinaCruz[], palavras: number): string[] {
+  return montarGrade(bancoDas(disciplinas), hashTexto(token), palavras).palavras.map((p) => p.palavra);
 }
 
 /** XP de uma palavra resolvida: 10 por letra; dica de letra corta pela metade; revelar a palavra zera. */

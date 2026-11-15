@@ -104,7 +104,7 @@ Os ambientes rodam inteiramente no navegador do aluno, sem acesso à rede ou ao 
 | **Console SQL** | Banco de Dados | Liberado pelo professor na sala | Executa SQL em um SQLite real (`sql.js`/WebAssembly) com as tabelas da escola e do laboratório |
 | **Terminal Linux** | Fundamentos de Sistemas Operacionais | Liberado pelo professor na sala | Usa um shell simulado com sistema de arquivos, permissões e processos |
 | **Laboratório de Informática** | Informática Básica | Automaticamente, se a sala tiver missões `info_*` | Investiga ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas e apresentação |
-| **Cruzadinha** | Todas (vocabulário da disciplina da sala) | Liberada pelo professor na sala, com limite de dicas e quantidade de palavras definidos por ele | Palavras cruzadas geradas no navegador (mesma grade para toda a sala), dicas de letra e de palavra que reduzem o XP, progresso salvo no aparelho; o XP das palavras soma no ranking da sala (o servidor soma só a diferença e limita a 1500 por aluno) |
+| **Cruzadinha** | Todas (vocabulário da disciplina da sala) | Liberada pelo professor na sala, com limite de dicas e quantidade de palavras definidos por ele | Palavras cruzadas geradas no navegador (mesma grade para toda a sala), dicas de letra e de palavra que reduzem o XP, progresso salvo no aparelho; o XP das palavras soma no ranking da sala (o servidor confere as palavras contra o gabarito gravado pelo professor e soma só a diferença) |
 | **Ateliê Web** | Construção de Sites 1 | Automaticamente, se a sala tiver missões `web_*` | Inspeciona um site de exemplo, lê `index.html` e `estilo.css` e testa HTML/CSS em um editor com pré-visualização ao vivo |
 
 **Destaques**
@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v14.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v15.**
 
 ### Configuração inicial
 
@@ -323,7 +323,8 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
-| **v14** | Professor define quantas palavras tem a grade da Cruzadinha (6 a 16; coluna `cruzadinha_palavras`) |
+| **v15** | O servidor confere a Cruzadinha: o professor grava o gabarito (palavras da grade) ao liberar; o aluno envia as palavras resolvidas e o nível de ajuda; o XP é recalculado no servidor (coluna `cruzadinha_gabarito`) |
+| v14 | Professor define quantas palavras tem a grade da Cruzadinha (6 a 16; coluna `cruzadinha_palavras`) |
 | v13 | Ação `cruzSubmit`: XP da Cruzadinha entra no ranking (coluna `xp_cruz` em `CtfAlunos`; soma só a diferença; teto de 1500) |
 | v12 | Cruzadinha liberada pelo professor, com limite de dicas por aluno (`setCruzadinha`, coluna `cruzadinha_dicas`) |
 | v11 | Abas `CtfLog`, `CtfResumo` e `CtfAnalise`; resumo gravado ao encerrar; histórico de salas (`salasList`); proteção contra injeção de fórmulas |
@@ -452,7 +453,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v14)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v15)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

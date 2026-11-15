@@ -23,6 +23,8 @@ export interface CtfRoomInfo {
   cruzadinha?: number | null;
   /** palavras da grade da Cruzadinha, de 6 a 16 (script v14+; ausente = 12) */
   cruzadinha_palavras?: number;
+  /** disciplinas das missões da sala, para escolher o vocabulário da Cruzadinha (script v15+) */
+  cruzadinha_disc?: string[];
   debriefing?: boolean; // professor liberou o gabarito (debriefing) para os alunos
   banco: boolean; // professor liberou o download do banco de dados para os alunos
   /** cronômetro da sala (null = sala sem tempo); ausente em backends antigos */

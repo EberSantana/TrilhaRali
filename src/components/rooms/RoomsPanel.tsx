@@ -15,6 +15,8 @@ import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { Btn, QrImage, StepTitle } from '../common/ui';
+import { disciplinasValidas } from '../../data/cruzadinhaBanco';
+import { gabaritoDaSala } from '../../utils/cruzadinha';
 
 const POLL_MS = 10_000;
 
@@ -379,7 +381,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const setCruzadinha = async (dicas: number | null, palavras = palavrasCruz) => {
     if (!activeRoom) return;
     try {
-      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras }, activeRoom.api);
+      // O servidor guarda as palavras da grade e confere o que cada aluno envia
+      const disc = disciplinasValidas(view?.sala.cruzadinha_disc);
+      const gabarito = dicas === null ? [] : gabaritoDaSala(activeRoom.token, disc.length ? disc : ['Banco de Dados'], palavras);
+      await ctfCall('setCruzadinha', { token: activeRoom.token, adminKey: activeRoom.adminKey, dicas, palavras, gabarito }, activeRoom.api);
       loadView();
     } catch (err) {
       setMonitorError(err instanceof Error ? err.message : String(err));
