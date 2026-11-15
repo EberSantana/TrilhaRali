@@ -23,6 +23,7 @@
   /* tons claros usados como texto no tema escuro */
   --color-emerald-200: #0b4f24; --color-emerald-300: #116932; --color-emerald-400: #1f7a33;
   --color-teal-200: #0b4a45;    --color-teal-300: #0f5f58;    --color-teal-400: #12766d;
+  --color-cyan-200: #0b4a5a;    --color-cyan-300: #0e5c70;    --color-cyan-400: #0e7490;
   --color-orange-200: #7c2d12;  --color-orange-300: #9a3412;  --color-orange-400: #c2410c;
   --color-amber-100: #6b3a05;   --color-amber-200: #7a4306;   --color-amber-300: #92400e; --color-amber-400: #b45309;
   --color-yellow-400: #a16207;
@@ -36,6 +37,7 @@
   --color-emerald-950: #e3f3e6; --color-emerald-900: #cfe9d5; --color-emerald-800: #a9d6b4;
   --color-amber-950: #fdf0d5;   --color-amber-800: #f3d08a;
   --color-orange-950: #fde8d8;
+  --color-cyan-950: #dff4f8;
   --color-rose-950: #fde4e8;    --color-rose-900: #f9c9d2;
   --color-red-950: #fde3e1;
   --color-sky-950: #e0f0fb;     --color-sky-800: #a9d3ee;
@@ -45,6 +47,7 @@
   --color-emerald-700: #5cc490; --color-amber-700: #f2bd55; --color-sky-700: #7cc3ee; --color-purple-700: #cfa5f5; --color-teal-700: #63cdc2;
   --color-emerald-600: #34b877; --color-emerald-500: #2faa6c;
   --color-orange-600: #fb8a3c;  --color-orange-500: #f97316;
+  --color-cyan-600: #3cc4e0;    --color-cyan-500: #22b3d3;
   --color-amber-600: #f0a92a;
   --color-rose-600: #f77a93;
   --color-red-600: #f8817a;
