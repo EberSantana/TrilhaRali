@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -42,7 +42,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 14 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 15 });
 }
 
 function doPost(e) {
@@ -218,6 +218,7 @@ function roomInfo(room) {
     terminal: room.terminal_liberado === true || String(room.terminal_liberado).toLowerCase() === 'true',
     cruzadinha: cruzadinhaDicas(room),
     cruzadinha_palavras: cruzadinhaPalavras(room),
+    cruzadinha_disc: cruzadinhaDicas(room) === null ? undefined : cruzDisciplinas(room),
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
@@ -596,7 +597,9 @@ function teacherRoom(req) {
       integrantes: parseList(a.integrantes)
     };
   });
-  return { sala: roomInfo(room), alunos: alunos };
+  var sala = roomInfo(room);
+  sala.cruzadinha_disc = cruzDisciplinas(room);
+  return { sala: sala, alunos: alunos };
 }
 
 function setBanco(req) {
@@ -634,26 +637,64 @@ function setCruzadinha(req) {
   var room = requireAdmin(req);
   var dicas = req.dicas === null || req.dicas === undefined || req.dicas === '' ? '' : Math.max(0, Math.min(30, Math.floor(Number(req.dicas)) || 0));
   var palavras = Math.max(6, Math.min(16, Math.floor(Number(req.palavras)) || 12));
-  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras });
+  var gab = (Array.isArray(req.gabarito) ? req.gabarito : []).map(function (p) { return String(p).toUpperCase(); }).filter(function (p) { return /^[A-Z]{2,16}$/.test(p); }).slice(0, 20).join(',');
+  updateRow('CtfSalas', room._row, { cruzadinha_dicas: dicas, cruzadinha_palavras: palavras, cruzadinha_gabarito: gab });
+  room.cruzadinha_gabarito = gab;
   room.cruzadinha_dicas = dicas;
   room.cruzadinha_palavras = palavras;
   return { sala: roomInfo(room) };
 }
 
-// XP da Cruzadinha: o aparelho envia o total acumulado (so sobe). O servidor soma ao XP do aluno apenas a
-// diferenca em relacao ao que ja recebeu, entao reenviar o mesmo valor nao duplica pontos. O total fica
-// limitado a CRUZ_XP_MAX; xp_cruz guarda quanto veio da Cruzadinha (xp = missoes + cruzadinha).
-var CRUZ_XP_MAX = 1500;
+// XP da Cruzadinha: o servidor confere as palavras. O professor grava o gabarito da sala (as palavras da grade)
+// ao liberar a Cruzadinha; o aparelho do aluno envia as palavras que resolveu e o nivel de ajuda de cada uma
+// (0 sem dica, 1 com dica de letra, 2 revelada). O XP e recalculado aqui: so conta palavra do gabarito, sem
+// repeticao, entao o total nunca passa do maximo da grade. xp_cruz so sobe, e o XP do aluno recebe a diferenca.
+function cruzDisciplinas(room) {
+  var set = {};
+  readRows('CtfMissoes').forEach(function (m) {
+    if (String(m.token) !== room.token) return;
+    var t = String(m.tag_id || '').toLowerCase();
+    var d = t.indexOf('info_') === 0 ? 'Informática Básica'
+      : t.indexOf('web_') === 0 ? 'Construção de Sites 1'
+      : t.indexOf('linux_') === 0 ? 'Fundamentos de Sistemas Operacionais'
+      : 'Banco de Dados';
+    set[d] = true;
+  });
+  var lista = Object.keys(set).sort();
+  return lista.length ? lista : ['Banco de Dados'];
+}
+
+function cruzGabarito(room) {
+  return String(room.cruzadinha_gabarito || '').split(',').filter(function (p) { return /^[A-Z]{2,16}$/.test(p); });
+}
+
+function cruzXpPalavra(tamanho, ajuda) {
+  if (ajuda === 2) return 0;
+  return Math.round(tamanho * 10 * (ajuda === 1 ? 0.5 : 1));
+}
 
 function cruzSubmit(req) {
   var room = requireRoom(req.token);
   if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
   requireTimerOpen(parseTimer(room.timer), Date.now());
-  if (cruzadinhaDicas(room) === null) fail('A Cruzadinha não está liberada nesta sala.');
+  var limite = cruzadinhaDicas(room);
+  if (limite === null) fail('A Cruzadinha não está liberada nesta sala.');
+  var gabarito = cruzGabarito(room);
+  if (!gabarito.length) fail('O professor precisa liberar a Cruzadinha de novo para gravar o gabarito.');
   var key = norm(req.nome);
   var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
-  var novo = Math.max(0, Math.min(CRUZ_XP_MAX, Math.floor(Number(req.xp)) || 0));
+  if ((Number(req.dicas) || 0) > limite) fail('Você passou do limite de dicas da sala.');
+
+  var vistas = {};
+  var novo = 0;
+  (Array.isArray(req.palavras) ? req.palavras : []).forEach(function (par) {
+    var palavra = String(par && par[0] || '').toUpperCase();
+    var ajuda = Number(par && par[1]) === 2 ? 2 : Number(par && par[1]) === 1 ? 1 : 0;
+    if (vistas[palavra] || gabarito.indexOf(palavra) < 0) return;
+    vistas[palavra] = true;
+    novo += cruzXpPalavra(palavra.length, ajuda);
+  });
   var antigo = Number(me.xp_cruz) || 0;
   if (novo > antigo) {
     updateRow('CtfAlunos', me._row, { xp: Number(me.xp) + (novo - antigo), xp_cruz: novo });

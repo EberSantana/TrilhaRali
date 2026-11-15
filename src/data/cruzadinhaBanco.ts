@@ -88,6 +88,15 @@ export const BANCO_CRUZADINHA: Record<DisciplinaCruz, PalavraCruz[]> = {
   ],
 };
 
+/** Mantém só nomes de disciplina que existem no banco (o servidor envia os nomes). */
+export function disciplinasValidas(nomes: string[] | undefined): DisciplinaCruz[] {
+  return (nomes ?? []).filter((n): n is DisciplinaCruz => n in BANCO_CRUZADINHA);
+}
+
+export function bancoDas(disc: DisciplinaCruz[]): PalavraCruz[] {
+  return disc.flatMap((d) => BANCO_CRUZADINHA[d]);
+}
+
 /** Disciplinas de uma sala, a partir das tags das missões (info_ / web_ / linux_; o resto é Banco de Dados). */
 export function disciplinasDasTags(tags: string[]): DisciplinaCruz[] {
   const set = new Set<DisciplinaCruz>();

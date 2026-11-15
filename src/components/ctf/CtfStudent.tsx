@@ -279,10 +279,11 @@ export const CtfStudent: React.FC = () => {
           nome={aluno.nome}
           dicas={sala.cruzadinha}
           palavras={sala.cruzadinha_palavras}
+          disciplinas={sala.cruzadinha_disc}
           tags={tagsSala}
           bloqueada={locked}
-          onXp={async (xpCruz) => {
-            const s = await ctfCall<CtfState>('cruzSubmit', { token: sala.token, nome: aluno.nome, xp: xpCruz });
+          onXp={async ({ palavras, dicas }) => {
+            const s = await ctfCall<CtfState>('cruzSubmit', { token: sala.token, nome: aluno.nome, palavras, dicas });
             setState(s);
           }}
         />

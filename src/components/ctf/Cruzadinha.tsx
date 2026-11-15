@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Eraser, Eye, Lightbulb, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { BANCO_CRUZADINHA, disciplinasDasTags, type PalavraCruz } from '../../data/cruzadinhaBanco';
+import { bancoDas, disciplinasDasTags, disciplinasValidas } from '../../data/cruzadinhaBanco';
 import { hashTexto, letraNormalizada, montarGrade, xpPalavra, type Dir, type PalavraGrade } from '../../utils/cruzadinha';
 import { playSound } from '../../utils/audio';
 
@@ -14,12 +14,14 @@ interface Props {
   dicas: number;
   /** quantidade de palavras da grade, definida pelo professor (padrão 12) */
   palavras?: number;
-  /** tags das missões da sala, para escolher o vocabulário */
+  /** disciplinas da sala informadas pelo servidor (têm prioridade sobre as tags) */
+  disciplinas?: string[];
+  /** tags das missões da sala, usadas se o servidor não informar as disciplinas */
   tags: string[];
   /** sala encerrada ou tempo esgotado */
   bloqueada?: boolean;
   /** envia o XP acumulado ao ranking da sala; se ausente, o XP é só de treino */
-  onXp?: (xp: number) => Promise<unknown>;
+  onXp?: (resultado: { palavras: [string, 0 | 1 | 2][]; dicas: number }) => Promise<unknown>;
 }
 
 interface Salvo {
@@ -46,13 +48,15 @@ function carregar(chave: string): Salvo {
 }
 
 /** Cruzadinha: ambiente de estudo do CTF. A grade é gerada no navegador a partir do vocabulário da disciplina da sala. */
-export function Cruzadinha({ token, nome, dicas, palavras = 12, tags, bloqueada = false, onXp }: Props) {
+export function Cruzadinha({ token, nome, dicas, palavras = 12, disciplinas, tags, bloqueada = false, onXp }: Props) {
   const chave = `cruzadinha:${token}:${nome.trim().toLowerCase()}`;
   const tagsKey = tags.join('|');
+  const disciplinasKey = (disciplinas ?? []).join('|');
   const grade = useMemo(() => {
-    const banco: PalavraCruz[] = disciplinasDasTags(tagsKey ? tagsKey.split('|') : []).flatMap((d) => BANCO_CRUZADINHA[d]);
-    return montarGrade(banco, hashTexto(token), palavras);
-  }, [token, tagsKey, palavras]);
+    const validas = disciplinasValidas(disciplinasKey ? disciplinasKey.split('|') : []);
+    const disc = validas.length ? validas : disciplinasDasTags(tagsKey ? tagsKey.split('|') : []);
+    return montarGrade(bancoDas(disc), hashTexto(token), palavras);
+  }, [token, tagsKey, disciplinasKey, palavras]);
 
   const [salvo, setSalvo] = useState<Salvo>(() => carregar(chave));
   const [sel, setSel] = useState<{ r: number; c: number; dir: Dir }>(() => {
@@ -100,7 +104,10 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, tags, bloqueada 
     if (!temRanking || bloqueada || xp <= salvo.enviado) return;
     const t = window.setTimeout(async () => {
       try {
-        await onXpRef.current?.(xp);
+        await onXpRef.current?.({
+          palavras: grade.palavras.filter((p) => feitas.has(p.id)).map((p) => [p.palavra, (salvo.ajuda[p.id] ?? 0) as 0 | 1 | 2]),
+          dicas: salvo.usadas,
+        });
         setSalvo((s) => ({ ...s, enviado: Math.max(s.enviado, xp) }));
         setEnvio('ok');
       } catch {
@@ -109,7 +116,7 @@ export function Cruzadinha({ token, nome, dicas, palavras = 12, tags, bloqueada 
       }
     }, 500);
     return () => window.clearTimeout(t);
-  }, [xp, salvo.enviado, temRanking, bloqueada, tentativa]);
+  }, [xp, salvo.enviado, temRanking, bloqueada, tentativa, grade, feitas, salvo.ajuda, salvo.usadas]);
   const restantes = Math.max(0, dicas - salvo.usadas);
   const completa = feitas.size === grade.palavras.length;
 
