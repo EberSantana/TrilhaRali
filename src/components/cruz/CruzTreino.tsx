@@ -1,17 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Loader2, Puzzle, RotateCcw, Shuffle } from 'lucide-react';
 import { Cruzadinha, type CruzApi } from '../ctf/Cruzadinha';
-import { AssuntosPicker, palavrasDisponiveis, useCruzAssuntos } from './AssuntosPicker';
+import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from './SelecaoCruz';
 import { ctfCall } from '../../utils/ctfApi';
-import { CRUZ_DISCIPLINAS, type CruzDisciplina } from '../../utils/cruzBanco';
 import type { CruzEstado } from '../../types/ctf';
 
 const KEY_TREINO = 'rali_cruz_treino_v1';
 
 interface Salvo {
   gid: number;
-  disciplina: CruzDisciplina;
-  assuntos?: string[];
+  /** o que foi marcado, em texto (ex.: Banco de Dados › Joins + Redes de Computadores) */
+  rotulo?: string;
 }
 
 function lerSalvo(): Salvo | null {
@@ -29,11 +28,9 @@ function lerSalvo(): Salvo | null {
  */
 export const CruzTreino: React.FC = () => {
   const [salvo, setSalvo] = useState<Salvo | null>(lerSalvo);
-  const [disciplina, setDisciplina] = useState<CruzDisciplina>(salvo?.disciplina ?? 'Banco de Dados');
-  const [assuntos, setAssuntos] = useState<string[]>([]);
+  const [selecao, setSelecao] = useState<Selecao>({});
   const { mapa, erro: erroAssuntos } = useCruzAssuntos();
-  const lista = mapa?.[disciplina];
-  const disponiveis = palavrasDisponiveis(lista, assuntos);
+  const total = totalSelecionado(mapa, selecao);
   const [palavras, setPalavras] = useState(12);
   const [dicas, setDicas] = useState(10);
   const [ocupado, setOcupado] = useState(false);
@@ -44,8 +41,8 @@ export const CruzTreino: React.FC = () => {
     setOcupado(true);
     setErro('');
     try {
-      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { disciplina, palavras, dicas, assuntos });
-      const novo = { gid: r.cruz.grade.id, disciplina, assuntos };
+      const r = await ctfCall<{ cruz: CruzEstado }>('cruzTreinoNovo', { selecao: selecaoParaEnvio(mapa, selecao), palavras, dicas });
+      const novo: Salvo = { gid: r.cruz.grade.id, rotulo: rotuloSelecao(mapa, selecao) };
       localStorage.setItem(KEY_TREINO, JSON.stringify(novo));
       setSalvo(novo);
     } catch (err) {
@@ -91,8 +88,7 @@ export const CruzTreino: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-slate-300">
-            Treino de <strong className="text-white">{salvo.disciplina}</strong>
-            {salvo.assuntos?.length ? <> · {salvo.assuntos.join(', ')}</> : null}. Os pontos são só seus.
+            Treino{salvo.rotulo ? <>: <strong className="text-white">{salvo.rotulo}</strong></> : null}. Os pontos são só seus.
           </p>
           <button
             type="button"
@@ -115,19 +111,14 @@ export const CruzTreino: React.FC = () => {
           <Puzzle className="w-7 h-7 text-cyan-400" />
         </div>
         <h2 className="text-2xl font-black text-white">Treino livre</h2>
-        <p className="text-sm text-slate-400">Escolha o assunto e monte sua cruzada. Sem token e sem ranking.</p>
+        <p className="text-sm text-slate-400">Marque as disciplinas e os assuntos e monte sua cruzada. Sem token e sem ranking.</p>
       </div>
 
-      <label className="block space-y-1.5">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Assunto</span>
-        <select value={disciplina} onChange={(e) => { setDisciplina(e.target.value as CruzDisciplina); setAssuntos([]); }} className={campo}>
-          {CRUZ_DISCIPLINAS.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-      </label>
-
-      {!erroAssuntos && <AssuntosPicker lista={lista} carregando={!mapa} valor={assuntos} onChange={setAssuntos} />}
+      {erroAssuntos ? (
+        <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">Não consegui carregar as disciplinas. Confira a conexão e tente de novo.</p>
+      ) : (
+        <SelecaoCruz mapa={mapa} valor={selecao} onChange={setSelecao} />
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block space-y-1.5">
@@ -144,13 +135,13 @@ export const CruzTreino: React.FC = () => {
 
       <button
         type="submit"
-        disabled={ocupado || (disponiveis !== null && disponiveis < 6)}
+        disabled={ocupado || total < 6}
         className="w-full py-3.5 rounded-xl font-black text-base bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white flex items-center justify-center gap-2 transition active:scale-[0.98]"
       >
         {ocupado ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shuffle className="w-5 h-5" />}
         GERAR CRUZADA
       </button>
-      <p className="text-[11px] text-center text-slate-500">Cada vez que você gera, sai uma grade diferente com palavras sorteadas dos assuntos marcados.</p>
+      <p className="text-[11px] text-center text-slate-500">Cada vez que você gera, sai uma grade diferente com palavras sorteadas do que você marcou.</p>
     </form>
   );
 };

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { FileUp, Loader2, Lock, Upload } from 'lucide-react';
-import { CRUZ_DISCIPLINAS } from '../../utils/cruzBanco';
 import { lerBanco } from '../../utils/cruzBanco';
 
 interface Props {
@@ -60,7 +59,7 @@ export function CruzBancoPanel({ call }: Props) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        {CRUZ_DISCIPLINAS.map((d) => (
+        {Object.keys(resumo?.por_disciplina ?? {}).sort((a, b) => a.localeCompare(b)).map((d) => (
           <div key={d} className="rounded-lg bg-white border border-emerald-200 px-2.5 py-1.5">
             <div className="text-slate-500 truncate" title={d}>{d}</div>
             <div className="text-lg font-black">{resumo ? resumo.por_disciplina[d] ?? 0 : '…'}</div>

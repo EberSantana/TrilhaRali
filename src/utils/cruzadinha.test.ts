@@ -31,7 +31,7 @@ test('lerBanco: aceita ; ou tabulação, apelidos de disciplina, acento e cabeç
       'sites\thref\tAtributo do link\n' +
       'linux;GREP;Procura texto; em arquivos\n' +
       '# comentário\n' +
-      'química;ATOMO;Partícula\n' +
+      ';ATOMO;sem disciplina\n' +
       'bd;AB;Curta demais\n' +
       'bd;TUPLA;\n' +
       'BD;primaria;repetida\n',
@@ -43,7 +43,7 @@ test('lerBanco: aceita ; ou tabulação, apelidos de disciplina, acento e cabeç
   ]);
   assert.equal(r.comAssunto, false);
   assert.equal(r.erros.length, 4);
-  assert.match(r.erros[0], /química/);
+  assert.match(r.erros[0], /falta a disciplina/);
 });
 
 test('lerBanco: com cabeçalho disciplina;assunto;palavra;dica lê o assunto de cada linha', () => {
