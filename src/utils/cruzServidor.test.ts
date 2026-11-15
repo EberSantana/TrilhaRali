@@ -19,12 +19,12 @@ interface Saida {
 
 function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
   const guardado = new Map<string, string>();
-  const cache = { get: (k: string) => guardado.get(k) ?? null, put: (k: string, v: string) => void guardado.set(k, v) };
+  const cache = { get: (k: string) => guardado.get(k) ?? null, put: (k: string, v: string) => void guardado.set(k, v), remove: (k: string) => void guardado.delete(k) };
   const sheets: Record<string, Row[]> = {
     CtfSalas: [{ _row: 2, token: 'T', status: 'aberta', modo, tipo: 'ctf', timer: '', cruzadinha_dicas: '', cruzadinha_palavras: '', cruzadinha_grade: '' }],
     CtfMissoes: tags.map((t, i) => ({ _row: i + 2, token: 'T', tag_id: t })),
     CtfAlunos: ['ana', 'bia', 'caio'].map((n, i) => ({ _row: i + 2, token: 'T', nome_key: n, xp: 0, xp_cruz: 0 })),
-    CtfCruzCapturas: [], CtfCruzDicas: [], Banco: [],
+    CtfCruzCapturas: [], CtfCruzDicas: [], Banco: [], CruzRanking: [],
     CruzBanco: Object.entries(BANCO_TESTE).flatMap(([d, l]) => l.map(([palavra, dica]) => ({ disciplina: d, palavra, dica, ativo: 'sim' } as Record<string, unknown>))).map((r, i) => ({ ...r, _row: i + 2 })),
   };
   const sala = sheets.CtfSalas[0];
@@ -35,6 +35,8 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
     getSheet: (n: string) => ({
       getLastRow: () => sheets[n].length + 1,
       deleteRows: (de: number, qtd: number) => sheets[n].splice(de - 2, qtd),
+      deleteRow: (linha: number) => void sheets[n].splice(linha - 2, 1),
+      appendRow: (v: unknown[]) => sheets[n].push({ _row: sheets[n].length + 2, quando: v[0], nome: v[1], pontos: v[2], palavras: v[3], dicas: v[4], assuntos: v[5], gid: v[6] }),
       getRange: () => ({
         setValues: (vals: unknown[][]) => vals.forEach((v) => sheets[n].push({ _row: sheets[n].length + 2, disciplina: v[0], palavra: v[1], dica: v[2], ativo: v[3], assunto: v[4] })),
       }),
@@ -466,4 +468,39 @@ test('v27: perguntas que dependem de alternativas ou têm várias respostas não
   );
   const palavras = (p.call('cruzAssuntos', {}) as unknown as { assuntos: Record<string, { assunto: string; n: number }[]> }).assuntos['Banco de Dados'];
   assert.deepEqual(palavras, [{ assunto: 'Chaves', n: 6 }, { assunto: 'Joins', n: 7 }], 'só a pergunta clara (35) entra');
+});
+
+test('v28: grande ranking — só entra quem terminou, o servidor grava os pontos e cada treino conta uma vez', () => {
+  const p = comBanco();
+  const sel = [{ disciplina: 'Banco de Dados', assuntos: [] }];
+  const call = (fn: string, req: Record<string, unknown>) => p.call(fn, req) as unknown as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const gid = call('cruzTreinoNovo', { selecao: sel, palavras: 6, dicas: 0 }).cruz.grade.id as number;
+  assert.throws(() => call('cruzTreinoRanking', { gid, nome: 'Ana' }), /Termine a cruzada/);
+  const gab = (p.ctx.treinoGet as (g: number) => { grade: { palavras: Palavra[] } })(gid).grade.palavras;
+  gab.forEach((w) => call('cruzTreinoCheck', { gid, id: w.id, tentativa: w.palavra }));
+  const total = gab.reduce((a, w) => a + w.palavra.length * 10, 0);
+  assert.throws(() => call('cruzTreinoRanking', { gid, nome: ' ' }), /nome/);
+  assert.throws(() => call('cruzTreinoRanking', { gid, nome: 'x'.repeat(40) }), /30 caracteres/);
+  const r = call('cruzTreinoRanking', { gid, nome: '  Ana   Souza ', pontos: 99999 }).ranking;
+  assert.equal(r.pontos, total, 'os pontos vêm do servidor, não do navegador');
+  assert.equal(r.nome, 'Ana Souza');
+  assert.equal(r.posicao, 1);
+  assert.throws(() => call('cruzTreinoRanking', { gid, nome: 'Ana' }), /já está no ranking/);
+  // segunda cruzada, com 1 dica de letra: pontos menores, fica em 2º
+  const g2 = call('cruzTreinoNovo', { selecao: sel, palavras: 6, dicas: 3 }).cruz.grade.id as number;
+  const gab2 = (p.ctx.treinoGet as (g: number) => { grade: { palavras: Palavra[] } })(g2).grade.palavras;
+  call('cruzTreinoHint', { gid: g2, id: gab2[0].id, tipo: 'letra', indice: 0 });
+  gab2.forEach((w) => call('cruzTreinoCheck', { gid: g2, id: w.id, tentativa: w.palavra }));
+  const r2 = call('cruzTreinoRanking', { gid: g2, nome: '=Bia' }).ranking;
+  // 1 letra de dica = −2 em cada palavra que passa pela casa revelada (cruzamento conta nas duas)
+  const [r0, c0] = celulas(gab2[0])[0];
+  const passam = gab2.filter((w) => celulas(w).some(([r, c]) => r === r0 && c === c0)).length;
+  const total2 = gab2.reduce((a, w) => a + w.palavra.length * 10, 0) - 2 * passam;
+  assert.equal(r2.pontos, total2);
+  assert.equal(r2.posicao, total2 > total ? 1 : 2, 'empate: quem terminou antes fica na frente');
+  const lista = call('cruzRanking', {}).ranking as { pos: number; nome: string; pontos: number }[];
+  assert.deepEqual(lista.map((x) => x.pos), [1, 2]);
+  assert.ok(lista[0].pontos >= lista[1].pontos);
+  assert.ok(lista.some((x) => x.nome === "'=Bia"), 'nome com fórmula é neutralizado');
+  assert.equal(call('cruzRanking', {}).total, 2);
 });

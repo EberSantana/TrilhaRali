@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Puzzle, Users } from 'lucide-react';
+import { Puzzle, Trophy, Users } from 'lucide-react';
 import { CtfStudent } from '../ctf/CtfStudent';
 import { CruzTreino } from './CruzTreino';
+import { CruzRanking } from './CruzRanking';
 
-type Aba = 'sala' | 'treino';
+type Aba = 'sala' | 'treino' | 'ranking';
 
 /**
  * Cruzada Online: ambiente próprio, separado do CTF. Duas formas de jogar:
@@ -27,11 +28,14 @@ export const CruzModule: React.FC = () => {
   );
   return (
     <div className="max-w-5xl mx-auto px-4 pt-6 pb-2">
-      <div role="tablist" aria-label="Como jogar a Cruzada Online" className="max-w-md mx-auto flex gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1">
+      <div role="tablist" aria-label="Como jogar a Cruzada Online" className="max-w-lg mx-auto flex gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1">
         {botao('sala', 'Sala da turma', <Users className="w-4 h-4" />)}
         {botao('treino', 'Treino livre', <Puzzle className="w-4 h-4" />)}
+        {botao('ranking', 'Ranking', <Trophy className="w-4 h-4" />)}
       </div>
-      {aba === 'sala' ? <CtfStudent modulo="cruz" /> : <div className="pt-6"><CruzTreino /></div>}
+      {aba === 'sala' && <CtfStudent modulo="cruz" />}
+      {aba === 'treino' && <div className="pt-6"><CruzTreino onRanking={() => setAba('ranking')} /></div>}
+      {aba === 'ranking' && <div className="pt-6"><CruzRanking /></div>}
     </div>
   );
 };

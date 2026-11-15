@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Eraser, Eye, Lightbulb, Loader2, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { CruzEstado, CruzPalavra } from '../../types/ctf';
@@ -11,6 +11,10 @@ export interface CruzApi {
   estado: () => Promise<CruzEstado>;
   conferir: (id: number, tentativa: string) => Promise<CruzEstado>;
   dica: (tipo: 'letra' | 'palavra', id: number, indice?: number) => Promise<CruzEstado>;
+  /** treino livre: grava o nome e os pontos no grande ranking (o servidor usa os pontos que ele mesmo contou) */
+  ranking?: (nome: string) => Promise<{ posicao: number; total: number; pontos: number; nome: string }>;
+  /** abre a tela do grande ranking */
+  verRanking?: () => void;
 }
 
 interface Props {
@@ -23,6 +27,76 @@ interface Props {
   api: CruzApi;
   /** treino livre: pontos só para você, sem ranking */
   treino?: boolean;
+}
+
+const KEY_NOME = 'rali_cruz_nome_v1';
+
+/** Caixa que abre ao terminar o treino: o aluno escreve o nome e entra no grande ranking com os pontos feitos. */
+function FormRanking({ pontos, salvar, ver }: { pontos: number; salvar: NonNullable<CruzApi['ranking']>; ver?: () => void }) {
+  const [nome, setNome] = useState(() => {
+    try {
+      return localStorage.getItem(KEY_NOME) || '';
+    } catch {
+      return '';
+    }
+  });
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState('');
+  const [feito, setFeito] = useState<{ posicao: number; total: number; nome: string } | null>(null);
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOcupado(true);
+    setErro('');
+    try {
+      const r = await salvar(nome);
+      try {
+        localStorage.setItem(KEY_NOME, r.nome);
+      } catch {
+        // ignore
+      }
+      setFeito(r);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  if (feito) {
+    return (
+      <div className="mt-3 space-y-2">
+        <p className="text-sm font-black text-emerald-300">
+          {feito.nome}, você está em {feito.posicao}º lugar de {feito.total}!
+        </p>
+        {ver && (
+          <button type="button" onClick={ver} className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 px-3 py-2 text-sm font-black text-slate-900">
+            VER GRANDE RANKING
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={enviar} className="mt-3 space-y-2 text-left">
+      <label className="block text-[11px] font-black uppercase tracking-wider text-amber-200">Seu nome para o ranking ({pontos} pts)</label>
+      <input
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        maxLength={30}
+        placeholder="Escreva seu nome"
+        className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-amber-400"
+      />
+      {erro && <p className="text-xs text-rose-300">{erro}</p>}
+      <button
+        type="submit"
+        disabled={ocupado || nome.trim().length < 2}
+        className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 disabled:text-slate-400 px-3 py-2 text-sm font-black text-slate-900 inline-flex items-center justify-center gap-2"
+      >
+        {ocupado ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />} ENTRAR NO RANKING
+      </button>
+    </form>
+  );
 }
 
 const k = (r: number, c: number) => `${r},${c}`;
@@ -511,6 +585,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
               <Trophy className="w-8 h-8 mx-auto text-amber-400" />
               <p className="font-black text-white">Cruzada concluída!</p>
               <p className="text-sm text-amber-200">{treino ? `${est.xp} pontos` : `${est.xp} XP no ranking`}</p>
+              {treino && api.ranking && <FormRanking pontos={est.xp} salvar={api.ranking} ver={api.verRanking} />}
             </div>
           )}
           {(['A', 'D'] as Dir[]).map((d) => (

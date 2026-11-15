@@ -26,7 +26,7 @@ function lerSalvo(): Salvo | null {
  * Treino livre: o aluno escolhe o assunto e o servidor monta a grade na hora. Não há sala, token nem ranking:
  * as palavras são conferidas e as dicas contadas no servidor, só que os pontos ficam para o próprio aluno.
  */
-export const CruzTreino: React.FC = () => {
+export const CruzTreino: React.FC<{ onRanking?: () => void }> = ({ onRanking }) => {
   const [salvo, setSalvo] = useState<Salvo | null>(lerSalvo);
   const [selecao, setSelecao] = useState<Selecao>({});
   const { mapa, erro: erroAssuntos } = useCruzAssuntos();
@@ -69,8 +69,10 @@ export const CruzTreino: React.FC = () => {
       estado: async () => (await ctfCall<{ cruz: CruzEstado }>('cruzTreinoEstado', { gid })).cruz,
       conferir: async (id, tentativa) => (await ctfCall<{ cruz: CruzEstado }>('cruzTreinoCheck', { gid, id, tentativa })).cruz,
       dica: async (tipo, id, indice) => (await ctfCall<{ cruz: CruzEstado }>('cruzTreinoHint', { gid, tipo, id, indice })).cruz,
+      ranking: async (nome) => (await ctfCall<{ ranking: { posicao: number; total: number; pontos: number; nome: string } }>('cruzTreinoRanking', { gid, nome })).ranking,
+      verRanking: onRanking,
     }),
-    [gid],
+    [gid, onRanking],
   );
 
   // Treino que expirou no servidor (6 h): volta para o formulário em vez de ficar travado
@@ -84,12 +86,14 @@ export const CruzTreino: React.FC = () => {
       }),
       conferir: api.conferir,
       dica: api.dica,
+      ranking: api.ranking,
+      verRanking: api.verRanking,
     };
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-slate-300">
-            Treino{salvo.rotulo ? <>: <strong className="text-white">{salvo.rotulo}</strong></> : null}. Os pontos são só seus.
+            Treino{salvo.rotulo ? <>: <strong className="text-white">{salvo.rotulo}</strong></> : null}. Ao terminar você entra no grande ranking.
           </p>
           <button
             type="button"
@@ -112,7 +116,7 @@ export const CruzTreino: React.FC = () => {
           <Puzzle className="w-7 h-7 text-cyan-400" />
         </div>
         <h2 className="text-2xl font-black text-white">Treino livre</h2>
-        <p className="text-sm text-slate-400">Marque as disciplinas e os assuntos e monte sua cruzada. Sem token e sem ranking.</p>
+        <p className="text-sm text-slate-400">Marque as disciplinas e os assuntos e monte sua cruzada. Sem token. Ao terminar, seu nome e seus pontos entram no grande ranking.</p>
       </div>
 
       {erroAssuntos ? (

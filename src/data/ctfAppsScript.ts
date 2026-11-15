@@ -22,15 +22,16 @@ var SHEET_HEADERS = {
   CtfCruzDicas: ['token', 'grade', 'nome_key', 'tipo', 'palavra_id', 'indice', 'timestamp'],
   CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo', 'assunto'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
+  CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
-var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -45,7 +46,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 27 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 28 });
 }
 
 function doPost(e) {
@@ -94,6 +95,9 @@ function route(req) {
     case 'cruzTreinoEstado': return cruzTreinoEstado(req);
     case 'cruzTreinoCheck': return cruzTreinoCheck(req);
     case 'cruzTreinoHint': return cruzTreinoHint(req);
+    case 'cruzTreinoRanking': return cruzTreinoRanking(req);
+    case 'cruzRanking': return cruzRanking(req);
+    case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
     case 'debriefStudent': return debriefStudent(req);
@@ -1114,7 +1118,7 @@ function cruzCheck(req) {
   return cruzRetorno(ctx, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: posicao, xp: xp, ajuda: ajudadas > 0 } });
 }
 
-// ---------- Cruzada Online: treino livre (sem sala, sem token, sem ranking) ----------
+// ---------- Cruzada Online: treino livre (sem sala e sem token; o ranking geral e opcional, ao terminar) ----------
 // O aluno escolhe o assunto e o servidor monta a grade. O gabarito fica so no cache do servidor (6 h),
 // nunca na planilha nem no navegador. Conferencia e dicas funcionam como na sala, mas nada vai para o ranking.
 function treinoGet(gid) {
@@ -1171,6 +1175,63 @@ function cruzTreinoCheck(req) {
   t.resolvidas.push({ id: p.id, xp: xp });
   treinoPut(t);
   return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp, ajuda: ajudadas > 0 } });
+}
+
+// ---------- Grande ranking da Cruzada (treino livre) ----------
+// Ao terminar a grade o aluno informa o nome e o SERVIDOR grava os pontos que ele de fato fez (guardados no cache do
+// treino); o navegador nunca envia a pontuacao. Cada treino entra no ranking uma unica vez.
+function cruzRankingNome(v) {
+  var n = String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim();
+  if (n.length < 2) fail('Escreva seu nome (pelo menos 2 letras).');
+  if (n.length > 30) fail('O nome pode ter até 30 caracteres.');
+  if (!/[A-Za-zÀ-ÿ]/.test(n)) fail('O nome precisa ter letras.');
+  return n;
+}
+
+function cruzRankingLista() {
+  var rows = readRows('CruzRanking').map(function (r) {
+    return { nome: String(r.nome), pontos: Number(r.pontos) || 0, palavras: Number(r.palavras) || 0, assuntos: String(r.assuntos || ''), quando: String(r.quando), gid: String(r.gid), _row: r._row };
+  });
+  rows.sort(function (a, b) { return b.pontos - a.pontos || (a.quando < b.quando ? -1 : 1); });
+  return rows;
+}
+
+function cruzTreinoRanking(req) {
+  var t = treinoGet(req.gid);
+  var nome = cruzRankingNome(req.nome);
+  var s = cruzSaida(treinoCtx(t));
+  if (!s.grade.palavras.length || s.resolvidas.length < s.grade.palavras.length) fail('Termine a cruzada para entrar no ranking.');
+  if (t.ranqueado) fail('Esta cruzada já está no ranking.');
+  var assuntos = (t.selecao || []).map(function (e) { return e[1] ? e[0] + ' › ' + e[1] : e[0]; }).join(' + ').substring(0, 120);
+  var quando = new Date().toISOString();
+  getSheet('CruzRanking').appendRow([quando, safeText(nome), s.xp, s.grade.palavras.length, s.usadas + s.usadas_palavra, safeText(assuntos), String(t.grade.id)]);
+  t.ranqueado = nome;
+  treinoPut(t);
+  CacheService.getScriptCache().remove('cruzRanking_v28');
+  var lista = cruzRankingLista();
+  var pos = 0;
+  lista.forEach(function (r, i) { if (r.gid === String(t.grade.id)) pos = i + 1; });
+  return { ranking: { posicao: pos, total: lista.length, pontos: s.xp, nome: nome } };
+}
+
+function cruzRanking(req) {
+  var cache = CacheService.getScriptCache();
+  var guardado = cache.get('cruzRanking_v28');
+  if (guardado) return JSON.parse(guardado);
+  var lista = cruzRankingLista();
+  var r = { ranking: lista.slice(0, 100).map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, palavras: x.palavras, assuntos: x.assuntos, quando: x.quando }; }), total: lista.length };
+  cache.put('cruzRanking_v28', JSON.stringify(r), 30);
+  return r;
+}
+
+// Moderacao: o professor remove um nome inadequado (tambem da para apagar a linha na aba CruzRanking)
+function cruzRankingApagar(req) {
+  requireAdmin(req);
+  var alvo = cruzRankingLista().filter(function (r) { return r.gid === String(req.gid); })[0];
+  if (!alvo) fail('Entrada não encontrada.');
+  getSheet('CruzRanking').deleteRow(alvo._row);
+  CacheService.getScriptCache().remove('cruzRanking_v28');
+  return { ok: true };
 }
 
 function cruzTreinoHint(req) {
