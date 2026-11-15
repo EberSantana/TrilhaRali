@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 25 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 26 });
 }
 
 function doPost(e) {
@@ -1073,7 +1073,7 @@ function cruzState(req) {
   return cruzRetorno(cruzContexto(req, false));
 }
 
-// Confere uma palavra completa. Palavra com casa revelada por dica vale metade; toda revelada vale 0.
+// Confere uma palavra completa. Cada letra revelada por dica tira 2 pontos da palavra; toda revelada vale 0.
 function cruzCheck(req) {
   var ctx = cruzContexto(req, true);
   var p = ctx.grade.palavras[Number(req.id)];
@@ -1084,7 +1084,7 @@ function cruzCheck(req) {
   cel.forEach(function (rc) { if (rev[rc[0] + ',' + rc[1]]) ajudadas++; });
   if (ajudadas === cel.length) return cruzRetorno(ctx, { correta: true, id: p.id });
   var posicao = ctx.caps.filter(function (c) { return Number(c.palavra_id) === p.id; }).length + 1;
-  var xp = Math.round(pontos(p.palavra.length * 10, posicao, ctx.room.modo) * (ajudadas ? 0.5 : 1));
+  var xp = Math.max(0, Math.round(pontos(p.palavra.length * 10, posicao, ctx.room.modo)) - 2 * ajudadas);
   var row = {
     token: ctx.room.token, grade: ctx.grade.id, nome_key: ctx.key, palavra: p.palavra, palavra_id: p.id,
     posicao: posicao, ajuda: ajudadas ? 1 : 0, xp: xp, timestamp: new Date().toISOString()
@@ -1158,7 +1158,7 @@ function cruzTreinoCheck(req) {
   var rev = cruzReveladas(ctx), cel = cruzCelulas(p), ajudadas = 0;
   cel.forEach(function (rc) { if (rev[rc[0] + ',' + rc[1]]) ajudadas++; });
   if (ajudadas === cel.length) return treinoRetorno(t, { correta: true, id: p.id });
-  var xp = Math.round(p.palavra.length * 10 * (ajudadas ? 0.5 : 1));
+  var xp = Math.max(0, p.palavra.length * 10 - 2 * ajudadas);
   t.resolvidas.push({ id: p.id, xp: xp });
   treinoPut(t);
   return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp, ajuda: ajudadas > 0 } });
