@@ -104,6 +104,7 @@ Os ambientes rodam inteiramente no navegador do aluno, sem acesso à rede ou ao 
 | **Console SQL** | Banco de Dados | Liberado pelo professor na sala | Executa SQL em um SQLite real (`sql.js`/WebAssembly) com as tabelas da escola e do laboratório |
 | **Terminal Linux** | Fundamentos de Sistemas Operacionais | Liberado pelo professor na sala | Usa um shell simulado com sistema de arquivos, permissões e processos |
 | **Laboratório de Informática** | Informática Básica | Automaticamente, se a sala tiver missões `info_*` | Investiga ficha do computador, pasta de arquivos, navegador, e-mail, nuvem, documento, planilha com fórmulas e apresentação |
+| **Cruzadinha** | Todas (vocabulário da disciplina da sala) | Liberada pelo professor na sala, com limite de dicas por aluno | Palavras cruzadas geradas no navegador (mesma grade para toda a sala), dicas de letra e de palavra que reduzem o XP, progresso salvo no aparelho; o XP é de treino e não entra no ranking |
 | **Ateliê Web** | Construção de Sites 1 | Automaticamente, se a sala tiver missões `web_*` | Inspeciona um site de exemplo, lê `index.html` e `estilo.css` e testa HTML/CSS em um editor com pré-visualização ao vivo |
 
 **Destaques**
@@ -303,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v11.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v12.**
 
 ### Configuração inicial
 
@@ -322,7 +323,8 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 
 | Versão | Principais mudanças |
 |---|---|
-| **v11** | Abas `CtfLog`, `CtfResumo` e `CtfAnalise`; resumo gravado ao encerrar; histórico de salas (`salasList`); proteção contra injeção de fórmulas |
+| **v12** | Cruzadinha liberada pelo professor, com limite de dicas por aluno (`setCruzadinha`, coluna `cruzadinha_dicas`) |
+| v11 | Abas `CtfLog`, `CtfResumo` e `CtfAnalise`; resumo gravado ao encerrar; histórico de salas (`salasList`); proteção contra injeção de fórmulas |
 | v10 | Passo 5 *Debriefing* nas salas de CTF e NFC |
 | v9 | Nome repetido só entra pelo aparelho original; mensagens com acento; publicação NFC aceita tags `linux_NN` |
 | v8 | Liberação do Terminal Linux pela sala |
@@ -435,7 +437,8 @@ TrilhaRali/
 │   │   │   ├── SqlConsole.tsx         Console SQL
 │   │   │   ├── LinuxTerminal.tsx      Terminal Linux
 │   │   │   ├── LabInformatica.tsx     Laboratório de Informática
-│   │   │   └── AtelieWeb.tsx          Ateliê Web
+│   │   │   ├── AtelieWeb.tsx          Ateliê Web
+│   │   │   └── Cruzadinha.tsx         Cruzadinha (palavras cruzadas)
 │   │   ├── bank/                  Banco de perguntas e importação
 │   │   └── common/                Relógio, cabeçalhos, avisos, pódio e temas
 │   ├── data/
@@ -447,7 +450,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v11)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v12)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

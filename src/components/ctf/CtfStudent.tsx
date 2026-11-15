@@ -24,6 +24,7 @@ import { RankChip, StudentBar, XpChip } from '../common/StudentBar';
 import { LinuxTerminal } from './LinuxTerminal';
 import { LabInformatica } from './LabInformatica';
 import { AtelieWeb } from './AtelieWeb';
+import { Cruzadinha } from './Cruzadinha';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -272,6 +273,9 @@ export const CtfStudent: React.FC = () => {
       {sala.terminal && <LinuxTerminal />}
       {temLab && <LabInformatica />}
       {temAtelie && <AtelieWeb />}
+      {typeof sala.cruzadinha === 'number' && (
+        <Cruzadinha token={sala.token} nome={aluno.nome} dicas={sala.cruzadinha} tags={tagsSala} bloqueada={locked} />
+      )}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
       {/* Progresso */}
