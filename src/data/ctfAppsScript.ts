@@ -30,7 +30,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -45,7 +45,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 20 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 21 });
 }
 
 function doPost(e) {
@@ -80,6 +80,7 @@ function route(req) {
     case 'raliSubmit': return raliSubmit(req);
     case 'teacherRoom': return teacherRoom(req);
     case 'setStatus': return setStatus(req);
+    case 'deleteRoom': return deleteRoom(req);
     case 'setBanco': return setBanco(req);
     case 'setTerminal': return setTerminal(req);
     case 'setCruzadinha': return setCruzadinha(req);
@@ -650,6 +651,23 @@ function teacherRoom(req) {
   });
   var sala = roomInfo(room);
   return { sala: sala, alunos: alunos };
+}
+
+// Apaga de vez uma sala ENCERRADA e tudo o que ela gerou (alunos, capturas, dicas, resumo e analise).
+// O CtfLog fica como registro. Precisa da chave de professor da sala.
+function deleteRoom(req) {
+  var room = requireAdmin(req);
+  if (room.status !== 'encerrada') fail('Encerre a sala antes de apagá-la de vez.');
+  var abas = ['CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise', 'CtfSalas'];
+  var total = 0;
+  abas.forEach(function (nome) {
+    var rows = readRows(nome);
+    for (var i = rows.length - 1; i >= 0; i--) {
+      if (String(rows[i].token) === room.token) { getSheet(nome).deleteRow(rows[i]._row); total++; }
+    }
+  });
+  logEvento(room, 'apagada', total + ' linhas removidas');
+  return { ok: true, apagadas: total };
 }
 
 function setBanco(req) {

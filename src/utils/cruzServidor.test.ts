@@ -292,3 +292,25 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
   p.sheets.CruzBanco.length = 0;
   assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Banco de Dados' }), /Ainda não há palavras/);
 });
+
+test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala aberta', () => {
+  const abas: Record<string, { _row: number; token: string }[]> = {};
+  ['CtfSalas', 'CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise'].forEach((n) => {
+    abas[n] = [{ _row: 2, token: 'A' }, { _row: 3, token: 'B' }, { _row: 4, token: 'A' }];
+  });
+  const sala = { _row: 2, token: 'A', status: 'encerrada', admin_key: 'k' };
+  const ctx: Record<string, unknown> = {
+    readRows: (n: string) => abas[n].map((r) => ({ ...r })),
+    getSheet: (n: string) => ({ deleteRow: (linha: number) => { abas[n] = abas[n].filter((r) => r._row !== linha).map((r) => ({ ...r, _row: r._row > linha ? r._row - 1 : r._row })); } }),
+    requireAdmin: () => sala, logEvento: () => {},
+    fail: (m: string) => { throw new Error(m); },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(trecho('function deleteRoom', 'function setBanco'), ctx);
+  sala.status = 'aberta';
+  assert.throws(() => (ctx.deleteRoom as (r: unknown) => unknown)({}), /Encerre a sala/);
+  sala.status = 'encerrada';
+  const r = plain((ctx.deleteRoom as (r: unknown) => { apagadas: number })({}));
+  assert.equal(r.apagadas, 16);
+  for (const n of Object.keys(abas)) assert.deepEqual(abas[n].map((x) => x.token), ['B'], n);
+});
