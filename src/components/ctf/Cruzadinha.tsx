@@ -384,7 +384,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api }: Prop
               ref={gradeRef}
               role="grid"
               aria-label="Grade da cruzadinha"
-              className="mx-auto grid gap-[2px] w-max sm:w-auto"
+              className="cruz-grade mx-auto grid gap-[2px] w-max sm:w-auto"
               style={{ gridTemplateColumns: `repeat(${w}, minmax(24px, 1fr))`, maxWidth: tamCelula * w + w * 2 }}
             >
               {Array.from({ length: h }, (_, r) =>
