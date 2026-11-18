@@ -47,20 +47,20 @@ const EntryCard: React.FC<EntryCardProps> = ({ title, tagline, description, chip
     <button
       type="button"
       onClick={onClick}
-      className={`group text-left rounded-2xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6 transition outline-none focus-visible:ring-2 ${a.ring} hover:bg-slate-900`}
+      className={`group flex h-full w-full flex-col items-stretch justify-start text-left rounded-2xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6 transition outline-none focus-visible:ring-2 ${a.ring} hover:bg-slate-900`}
     >
-      <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${a.icon}`}>{icon}</div>
+      <div className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center ${a.icon}`}>{icon}</div>
       <h2 className="mt-4 text-2xl font-black tracking-tight text-white">{title}</h2>
       <p className="mt-1 text-sm font-semibold text-slate-400">{tagline}</p>
-      <p className="mt-3 text-sm leading-relaxed text-slate-300">{description}</p>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <p className="mt-3 text-sm leading-relaxed text-slate-300 md:min-h-[6.5rem]">{description}</p>
+      <div className="mt-4 flex flex-wrap content-start gap-2">
         {chips.map((c) => (
           <span key={c} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${a.chip}`}>
             {c}
           </span>
         ))}
       </div>
-      <div className={`mt-4 inline-flex items-center gap-2 text-sm font-bold ${a.cta}`}>
+      <div className={`mt-auto pt-4 inline-flex items-center gap-2 text-sm font-bold ${a.cta}`}>
         Entrar
         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
       </div>
@@ -81,7 +81,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
       </p>
     </header>
 
-    <section className="mt-7 grid gap-5 md:grid-cols-3" aria-label="Escolha o módulo">
+    <section className="mt-7 grid grid-cols-1 items-stretch gap-4 sm:gap-5 md:grid-cols-3" aria-label="Escolha o módulo">
       <EntryCard
         title="Rali NFC"
         tagline="Em equipe, pelo laboratório"
