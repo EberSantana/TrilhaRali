@@ -27,7 +27,8 @@ export type MissionPackage =
   | 'info_dificil'
   | 'web_facil'
   | 'web_medio'
-  | 'web_dificil';
+  | 'web_dificil'
+  | 'bd_rpg';
 
 export type SqlCategory = 
   | 'DDL' 
