@@ -14,7 +14,8 @@ function createBackend() {
     return {
       appendRow: (r: unknown[]) => void data.push(r.slice()),
       getDataRange: () => ({ getValues: () => data.map((r) => r.slice()) }),
-      getRange: (row: number, col: number) => ({
+      getRange: (row: number, col: number, nr = 1, nc = 1) => ({
+        getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (data[row - 1 + i] || [])[col - 1 + j] ?? '')),
         setValue: (v: unknown) => {
           while (data.length < row) data.push([]);
           data[row - 1][col - 1] = v;
@@ -42,6 +43,7 @@ function createBackend() {
         },
       }),
     },
+    CacheService: (() => { const m = new Map<string, string>(); const c = { get: (k: string) => m.get(k) ?? null, put: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) }; return { getScriptCache: () => c }; })(),
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: (k: string) => props.get(k) ?? null,

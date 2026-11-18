@@ -46,7 +46,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 29 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 30 });
 }
 
 function doPost(e) {
@@ -57,6 +57,7 @@ function doPost(e) {
     return out({ error: 'Requisicao invalida.' });
   }
   var lock = null;
+  ROWS_MEMO = {};
   try {
     if (WRITE_ACTIONS[req.action]) {
       lock = LockService.getScriptLock();
@@ -142,30 +143,50 @@ function getSheet(name) {
   return sh;
 }
 
+// Cada aba e lida uma vez por requisicao: as leituras seguintes vem da memoria (copias das linhas).
+// Toda gravacao limpa a memoria da aba (memoLimpa), entao nunca se le dado velho.
+var ROWS_MEMO = {};
+
+function memoLimpa(name) {
+  if (name) delete ROWS_MEMO[name]; else ROWS_MEMO = {};
+}
+
 function readRows(name) {
-  var values = getSheet(name).getDataRange().getValues();
-  var head = values[0];
-  var rows = [];
-  for (var i = 1; i < values.length; i++) {
-    var o = { _row: i + 1 };
-    for (var j = 0; j < head.length; j++) o[head[j]] = values[i][j];
-    rows.push(o);
+  var rows = ROWS_MEMO[name];
+  if (!rows) {
+    var values = getSheet(name).getDataRange().getValues();
+    var head = values[0];
+    rows = [];
+    for (var i = 1; i < values.length; i++) {
+      var o = { _row: i + 1 };
+      for (var j = 0; j < head.length; j++) o[head[j]] = values[i][j];
+      rows.push(o);
+    }
+    ROWS_MEMO[name] = rows;
   }
-  return rows;
+  return rows.map(function (r) { var c = {}; for (var k in r) c[k] = r[k]; return c; });
 }
 
 function appendObj(name, obj) {
   var head = SHEET_HEADERS[name];
   getSheet(name).appendRow(head.map(function (k) { return obj[k] === undefined ? '' : obj[k]; }));
+  memoLimpa(name);
 }
 
 function updateRow(name, row, obj) {
   var head = SHEET_HEADERS[name];
   var sh = getSheet(name);
-  for (var k in obj) {
-    var idx = head.indexOf(k);
-    if (idx >= 0) sh.getRange(row, idx + 1).setValue(obj[k]);
+  var campos = Object.keys(obj).filter(function (k) { return head.indexOf(k) >= 0; });
+  if (campos.length >= 3) {
+    // varias colunas: uma leitura e uma gravacao da linha, em vez de uma chamada por campo
+    var faixa = sh.getRange(row, 1, 1, head.length);
+    var linha = faixa.getValues()[0];
+    campos.forEach(function (k) { linha[head.indexOf(k)] = obj[k]; });
+    faixa.setValues([linha]);
+  } else {
+    campos.forEach(function (k) { sh.getRange(row, head.indexOf(k) + 1).setValue(obj[k]); });
   }
+  memoLimpa(name);
 }
 
 // ---------- Regras ----------
@@ -403,6 +424,7 @@ function createRoom(req) {
       String(m.explicacao || '').substring(0, 800)];
   });
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.CtfMissoes.length).setValues(rows);
+  memoLimpa('CtfMissoes');
   return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo, ordem: ordem };
 }
 
@@ -674,6 +696,7 @@ function deleteRoom(req) {
     for (var i = rows.length - 1; i >= 0; i--) {
       if (String(rows[i].token) === room.token) { getSheet(nome).deleteRow(rows[i]._row); total++; }
     }
+    memoLimpa(nome);
   });
   logEvento(room, 'apagada', total + ' linhas removidas');
   return { ok: true, apagadas: total };
@@ -772,7 +795,29 @@ function cruzPerguntaServe(r, dica) {
   return !/\b(qual|quais|que)\s+(destes?|destas?|dos|das|d[oa]s? seguintes?)\b|\b(dentre|assinale|marque|alternativas?|opcoes|opcao|abaixo|acima|seguintes?|a seguir|todas as anteriores|nenhuma das)\b/.test(t);
 }
 
+// Palavras da Cruzada (CruzBanco + perguntas do Banco): guardadas 2 min no cache do servidor, ja filtradas.
+// Salvar/apagar/importar pelo painel limpa o cache na hora; edicao direta na planilha aparece em ate 2 min.
+function bancoCacheLimpa() {
+  var c = CacheService.getScriptCache();
+  c.remove('cruzBanco_v29');
+  c.remove('cruzAssuntos_v23');
+}
+
 function cruzBanco() {
+  var cache = CacheService.getScriptCache();
+  var guardado = cache.get('cruzBanco_v29');
+  if (guardado) {
+    try { return JSON.parse(guardado); } catch (e) { /* recalcula */ }
+  }
+  var lista = cruzBancoMontar();
+  try {
+    var txt = JSON.stringify(lista);
+    if (txt.length < 90000) cache.put('cruzBanco_v29', txt, 120); // limite do cache: 100 KB por item
+  } catch (e) { /* sem cache */ }
+  return lista;
+}
+
+function cruzBancoMontar() {
   var out = [], vistas = {};
   readRows('CruzBanco').forEach(function (r) {
     var a = cruzLetras(r.ativo);
@@ -1209,6 +1254,7 @@ function cruzTreinoRanking(req) {
   if (t.ranqueado) fail('Esta cruzada já está no ranking.');
   var assuntos = (t.selecao || []).map(function (e) { return e[1] ? e[0] + ' › ' + e[1] : e[0]; }).join(' + ').substring(0, 120);
   var quando = new Date().toISOString();
+  memoLimpa('CruzRanking');
   getSheet('CruzRanking').appendRow([quando, safeText(nome), s.xp, s.grade.palavras.length, s.usadas + s.usadas_palavra, safeText(assuntos), String(t.grade.id)]);
   t.ranqueado = nome;
   treinoPut(t);
@@ -1235,6 +1281,7 @@ function cruzRankingApagar(req) {
   var alvo = cruzRankingLista().filter(function (r) { return r.gid === String(req.gid); })[0];
   if (!alvo) fail('Entrada não encontrada.');
   getSheet('CruzRanking').deleteRow(alvo._row);
+  memoLimpa('CruzRanking');
   CacheService.getScriptCache().remove('cruzRanking_v28');
   return { ok: true };
 }
@@ -1285,6 +1332,9 @@ function cruzBancoImport(req) {
   var sh = getSheet('CruzBanco');
   if (req.substituir === true && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
   sh.getRange(sh.getLastRow() + 1, 1, vals.length, 5).setValues(vals);
+  memoLimpa('CruzBanco');
+  CacheService.getScriptCache().remove('cruzBanco_v29');
+  CacheService.getScriptCache().remove('cruzAssuntos_v23');
   var r = cruzBancoResumo(req);
   r.importadas = vals.length;
   return r;
@@ -1439,12 +1489,14 @@ function gravarResumo(room) {
     var antigos = readRows('CtfAnalise').filter(function (r) { return String(r.token) === room.token; });
     var sh = getSheet('CtfAnalise');
     for (var i = antigos.length - 1; i >= 0; i--) sh.deleteRow(antigos[i]._row);
+    memoLimpa('CtfAnalise');
     var d = debriefList(room);
     var linhas = d.itens.map(function (it) {
       return [room.token, safeText(room.nome), it.fase, it.tag_id, safeText(it.pacote), safeText(it.pergunta), it.acertos,
         d.total_alunos, d.total_alunos ? Math.round(100 * it.acertos / d.total_alunos) : 0];
     });
     if (linhas.length) sh.getRange(sh.getLastRow() + 1, 1, linhas.length, SHEET_HEADERS.CtfAnalise.length).setValues(linhas);
+    memoLimpa('CtfAnalise');
   } catch (err) {}
 }
 
@@ -1694,9 +1746,11 @@ function bancoSave(req) {
   for (var i = 0; i < rows.length; i++) { if (String(rows[i].id) === id && id) { found = rows[i]; break; } }
   if (found) {
     updateRow('Banco', found._row, bancoToValues(id, c));
+    bancoCacheLimpa();
   } else {
     id = newBancoId(rows.map(function (r) { return String(r.id); }));
     appendObj('Banco', bancoToValues(id, c));
+    bancoCacheLimpa();
   }
   var saved = bancoToValues(id, c);
   return { pergunta: bancoRowOut(saved) };
@@ -1709,6 +1763,8 @@ function bancoDelete(req) {
   for (var i = 0; i < rows.length; i++) {
     if (String(rows[i].id) === id) {
       getSheet('Banco').deleteRow(rows[i]._row);
+      memoLimpa('Banco');
+      bancoCacheLimpa();
       return { ok: true };
     }
   }
@@ -1737,6 +1793,8 @@ function bancoImport(req) {
   if (values.length) {
     var sh = getSheet('Banco');
     sh.getRange(sh.getLastRow() + 1, 1, values.length, SHEET_HEADERS.Banco.length).setValues(values);
+    memoLimpa('Banco');
+    bancoCacheLimpa();
   }
   return { importadas: values.length, erros: erros };
 }
@@ -1764,6 +1822,7 @@ function nfcPublish(req) {
   var sh = getSheet('NfcPublicadas');
   if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
   if (values.length) sh.getRange(2, 1, values.length, SHEET_HEADERS.NfcPublicadas.length).setValues(values);
+  memoLimpa('NfcPublicadas');
   PropertiesService.getScriptProperties().setProperty('NFC_SOMENTE_BANCO', req.somenteBanco === false ? 'false' : 'true');
   return { total: values.length };
 }

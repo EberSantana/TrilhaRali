@@ -48,8 +48,16 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
 
   useEffect(() => {
     load();
-    const id = setInterval(load, PROJECTOR_POLL_MS);
-    return () => clearInterval(id);
+    // aba escondida não consulta o servidor; ao voltar, atualiza na hora
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, PROJECTOR_POLL_MS);
+    const volta = () => document.visibilityState === 'visible' && load();
+    document.addEventListener('visibilitychange', volta);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', volta);
+    };
   }, [load]);
 
   useEffect(() => {
