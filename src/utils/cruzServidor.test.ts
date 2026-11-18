@@ -41,6 +41,7 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
         setValues: (vals: unknown[][]) => vals.forEach((v) => sheets[n].push({ _row: sheets[n].length + 2, disciplina: v[0], palavra: v[1], dica: v[2], ativo: v[3], assunto: v[4] })),
       }),
     }),
+    memoLimpa: () => {}, bancoCacheLimpa: () => {},
     safeText: (v: string) => (/^[=+\-@]/.test(v) ? "'" + v : v),
     requireAdmin: () => sala, requireRoom: () => sala, roomInfo: () => ({}), logEvento: () => {},
     requireTimerOpen: () => {}, parseTimer: () => null, isLivre: () => false,
@@ -56,7 +57,9 @@ function planilha(modo = 'fixed', tags = ['web_01', 'web_02']) {
   vm.runInContext(trecho('// ---------- Cruzadinha ----------', '// Debriefing: gabarito da sala'), ctx);
   const call = (fn: string, req: Record<string, unknown>) => plain((ctx[fn] as (r: unknown) => unknown)(req)) as { cruz: Saida };
   const grade = () => JSON.parse(String(sala.cruzadinha_grade)) as { id: number; h: number; w: number; palavras: Palavra[] };
-  return { sheets, sala, ctx, call, grade };
+  // edição feita direto na planilha só aparece quando o cache de 2 min vence; aqui simulamos esse vencimento
+  const passaTempo = () => guardado.clear();
+  return { sheets, sala, ctx, call, grade, passaTempo };
 }
 
 const liberar = (p: ReturnType<typeof planilha>, dicas = 3, palavras = 12, nova = false) => p.call('setCruzadinha', { dicas, palavras, nova });
@@ -210,9 +213,11 @@ test('o professor pode editar a aba CruzBanco: palavra com acento, palavra desat
   liberar(p);
   for (const r of p.sheets.CruzBanco) if (r.disciplina === 'Construção de Sites 1') r.ativo = 'não';
   p.sheets.CruzBanco.push({ _row: 999, disciplina: 'Construção de Sites 1', palavra: 'Ação', dica: 'Teste com acento', ativo: 'sim' });
+  p.passaTempo();
   assert.throws(() => liberar(p, 3, 12, true), /poucas palavras/);
   const sites = p.sheets.CruzBanco.filter((r) => r.disciplina === 'Construção de Sites 1');
   sites.slice(0, 8).forEach((r) => (r.ativo = 'sim'));
+  p.passaTempo();
   liberar(p, 3, 25, true);
   const ativas = new Set(sites.filter((r) => r.ativo === 'sim').map((r) => String(r.palavra).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()));
   const nomes = p.grade().palavras.map((w) => w.palavra);
@@ -301,6 +306,7 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
   assert.throws(() => call('cruzTreinoEstado', { gid: 1 }), /expirou/);
   assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Química' }), /poucas palavras ativas para Química/);
   p.sheets.CruzBanco.length = 0;
+  p.passaTempo();
   assert.throws(() => call('cruzTreinoNovo', { disciplina: 'Banco de Dados' }), /poucas palavras ativas para Banco de Dados/);
 });
 
@@ -313,7 +319,7 @@ test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala a
   const ctx: Record<string, unknown> = {
     readRows: (n: string) => abas[n].map((r) => ({ ...r })),
     getSheet: (n: string) => ({ deleteRow: (linha: number) => { abas[n] = abas[n].filter((r) => r._row !== linha).map((r) => ({ ...r, _row: r._row > linha ? r._row - 1 : r._row })); } }),
-    requireAdmin: () => sala, logEvento: () => {},
+    requireAdmin: () => sala, logEvento: () => {}, memoLimpa: () => {},
     fail: (m: string) => { throw new Error(m); },
   };
   vm.createContext(ctx);

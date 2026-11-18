@@ -9,6 +9,7 @@ type Json = Record<string, any>;
 
 function createBackend() {
   const sheets = new Map<string, any[][]>();
+  const leituras = { n: 0 };
   const makeSheet = (name: string) => {
     const data = sheets.get(name)!;
     const range = (row: number, col: number, nr = 1, nc = 1) => ({
@@ -23,10 +24,11 @@ function createBackend() {
         });
       },
       setNumberFormat: () => {},
+      getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (data[row - 1 + i] || [])[col - 1 + j] ?? '')),
     });
     return {
       appendRow: (r: unknown[]) => void data.push(r.slice()),
-      getDataRange: () => ({ getValues: () => data.map((r) => r.slice()) }),
+      getDataRange: () => ({ getValues: () => { leituras.n++; return data.map((r) => r.slice()); } }),
       getRange: range,
       getLastRow: () => data.length,
       getMaxRows: () => 1000,
@@ -42,6 +44,7 @@ function createBackend() {
         },
       }),
     },
+    CacheService: (() => { const m = new Map<string, string>(); const c = { get: (k: string) => m.get(k) ?? null, put: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) }; return { getScriptCache: () => c }; })(),
     PropertiesService: { getScriptProperties: () => ({ getProperty: () => null, setProperty: () => {} }) },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
     ContentService: {
@@ -67,7 +70,7 @@ function createBackend() {
     if (id && r.chave) chaves.set(id, r.chave);
     return r;
   };
-  return { call, ctx, sheets };
+  return { call, ctx, sheets, leituras };
 }
 
 const missions = [
@@ -379,4 +382,30 @@ test('registro no servidor: log de eventos, resumo e análise por pergunta ao en
   assert.equal(sheets.get('CtfAnalise')!.length - 1, missions.length);
   assert.equal(sheets.get('CtfAnalise')![1][6], 1); // acertos da 1ª pergunta
   assert.match(call({ action: 'salasList', chave: 'x' }).error, /banco/i);
+});
+
+test('v30: cada aba é lida uma vez por requisição, e gravar sempre devolve dado novo', () => {
+  const { call, ctx, leituras } = createBackend();
+  const room = call({ action: 'createRoom', nome: 'Turma A', modo: 'fixed', missions });
+  call({ action: 'join', token: room.token, nome: 'Ana Souza' });
+  const rows = (n: string) => (ctx.readRows as (n: string) => Record<string, unknown>[])(n);
+  // leituras repetidas na mesma requisição vêm da memória (zera a memória como o doPost faz)
+  ctx.ROWS_MEMO = {};
+  const antes = leituras.n;
+  rows('CtfAlunos'); rows('CtfAlunos'); rows('CtfAlunos');
+  assert.equal(leituras.n - antes, 1, 'três leituras, uma ida à planilha');
+  // quem recebe a linha pode alterar à vontade sem sujar a memória
+  rows('CtfAlunos')[0].xp = 9999;
+  assert.notEqual(rows('CtfAlunos')[0].xp, 9999);
+  // gravar limpa a memória: a leitura seguinte já vê o valor novo (updateRow com 1 campo e com vários)
+  const linha = rows('CtfAlunos')[0]._row as number;
+  (ctx.updateRow as (n: string, r: number, o: unknown) => void)('CtfAlunos', linha, { xp: 77 });
+  assert.equal(rows('CtfAlunos')[0].xp, 77);
+  (ctx.updateRow as (n: string, r: number, o: unknown) => void)('CtfAlunos', linha, { xp: 88, erros: 3, fogos: 2 });
+  const a = rows('CtfAlunos')[0];
+  assert.deepEqual([a.xp, a.erros, a.fogos, a.nome], [88, 3, 2, 'Ana Souza'], 'gravação em bloco não apaga as outras colunas');
+  // cada requisição começa com a memória vazia
+  const lidasAntes = leituras.n;
+  call({ action: 'state', token: room.token, nome: 'Ana Souza' });
+  assert.ok(leituras.n > lidasAntes);
 });
