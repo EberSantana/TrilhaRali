@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
-import { DESV_CASOS, DesvCasoLogica, DesvCasoSql } from './desvCasos';
+import { DESV_CASOS, DesvCasoCodigo, DesvCasoLogica, DesvCasoSql } from './desvCasos';
 import { createHash } from 'node:crypto';
 import { CTF_APPS_SCRIPT } from './ctfAppsScript';
 
@@ -77,4 +77,31 @@ test('cada caso de SQL aponta um único culpado no banco do caso, igual ao gabar
 test('o app não carrega o gabarito', () => {
   const texto = JSON.stringify(DESV_CASOS);
   assert.doesNotMatch(texto, /culpad[oa]\s*[:=]/i);
+});
+
+// Construção de Sites: o efeito de cada trecho, conferido à mão (id > classe > elemento; empate: vale a última regra;
+// content-box soma padding e borda). Cada linha: o que cada pista afirma, na ordem das pistas.
+const EFEITOS: Record<string, Record<string, boolean[]>> = {
+  //        pdf    mesma aba  sem alt
+  c5: { Ana: [true, false, false], Bruno: [false, true, true], Caio: [true, true, false], Duda: [true, true, true], Enzo: [true, false, true], 'Fábia': [false, true, true] },
+  //        sem validação  apaga  rótulo não foca
+  c6: { Gael: [false, false, false], 'Heloísa': [true, true, false], Igor: [true, true, true], 'Júlia': [true, true, false], Luan: [false, true, true], Maya: [true, false, true] },
+  //        branco no branco  texto branco pelo id
+  c7: { Nina: [false, false], Otto: [true, true], Pietra: [true, false], Quim: [false, false], Rosa: [false, true], Saulo: [false, true], 'Tainá': [false, false], Uriel: [false, false] },
+  //        mesma linha  total 300  conteúdo 260
+  c8: { Vera: [true, false, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [false, true, false], Zeca: [true, true, false], Alice: [true, true, false], 'Benício': [false, true, true], 'Cecília': [false, true, true] },
+};
+
+test('cada caso de Construção de Sites tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
+  const casos = DESV_CASOS.filter((x): x is DesvCasoCodigo => x.tipo === 'codigo');
+  assert.equal(casos.length, 4);
+  for (const c of casos) {
+    const ef = EFEITOS[c.id];
+    assert.deepEqual(Object.keys(ef).sort(), c.suspeitos.map((s) => s.nome).sort(), `${c.id}: suspeitos`);
+    for (const v of Object.values(ef)) assert.equal(v.length, c.pistas.length, `${c.id}: pistas`);
+    assert.ok(c.suspeitos.every((s) => s.codigo), `${c.id}: falta código`);
+    const culpados = c.suspeitos.filter((s) => ef[s.nome].every(Boolean));
+    assert.equal(culpados.length, 1, `${c.id}: ${culpados.length} culpados`);
+    assert.equal(culpados[0].id, gabarito(c.id));
+  }
 });

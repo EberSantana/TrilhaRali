@@ -9,10 +9,13 @@ export interface DesvSuspeito {
   id: number;
   nome: string;
   detalhe?: string;
+  /** casos de código: o trecho que essa pessoa escreveu */
+  codigo?: string;
 }
 
 interface DesvBase {
   id: string;
+  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites';
   titulo: string;
   nivel: 'Aquecimento' | 'Intermediário' | 'Detetive' | 'Mestre';
   pontos: number;
@@ -36,7 +39,16 @@ export interface DesvCasoSql extends DesvBase {
   tabelas: string;
 }
 
-export type DesvCaso = DesvCasoLogica | DesvCasoSql;
+/** Construção de Sites: cada suspeito escreveu um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
+export interface DesvCasoCodigo extends DesvBase {
+  tipo: 'codigo';
+  linguagem: 'HTML' | 'CSS';
+  /** código comum a todos os suspeitos (a página onde o trecho entrou) */
+  base?: string;
+  pistas: string[];
+}
+
+export type DesvCaso = DesvCasoLogica | DesvCasoSql | DesvCasoCodigo;
 
 const SEED_NOTEBOOK = `-- Caso: O Notebook do Laboratório 2
 CREATE TABLE suspeitos (
@@ -160,6 +172,7 @@ INSERT INTO avisos (texto) VALUES
 export const DESV_CASOS: DesvCaso[] = [
   {
     id: 'c1',
+    disciplina: 'Lógica',
     tipo: 'logica',
     titulo: 'O Troféu da Feira de Ciências',
     nivel: 'Aquecimento',
@@ -185,6 +198,7 @@ export const DESV_CASOS: DesvCaso[] = [
   },
   {
     id: 'c2',
+    disciplina: 'Lógica',
     tipo: 'logica',
     titulo: 'Sabotagem no Servidor da Escola',
     nivel: 'Intermediário',
@@ -213,6 +227,7 @@ export const DESV_CASOS: DesvCaso[] = [
   },
   {
     id: 'c3',
+    disciplina: 'Banco de Dados',
     tipo: 'sql',
     titulo: 'O Notebook do Laboratório 2',
     nivel: 'Detetive',
@@ -239,6 +254,7 @@ export const DESV_CASOS: DesvCaso[] = [
   },
   {
     id: 'c4',
+    disciplina: 'Banco de Dados',
     tipo: 'sql',
     titulo: 'A Fraude no Placar do Interclasse',
     nivel: 'Mestre',
@@ -261,6 +277,126 @@ export const DESV_CASOS: DesvCaso[] = [
     dicas: [
       'Leia os avisos e procure em alteracoes o comando no placar feito fora do horário permitido.',
       'Com o IP e o horário da alteração, procure em sessoes quem estava logado NAQUELE momento (inicio <= horário <= fim).',
+    ],
+  },
+{
+    id: 'c5',
+    disciplina: 'Construção de Sites',
+    tipo: 'codigo',
+    linguagem: 'HTML',
+    titulo: 'O Link do Cardápio',
+    nivel: 'Aquecimento',
+    pontos: 60,
+    historia:
+      'A página da cantina foi publicada com dois problemas: o link do cardápio tirou o visitante do site e um leitor de tela não conseguiu descrever a foto do prato. Seis estudantes mexeram nesse trecho, cada um em uma versão.',
+    pergunta: 'De quem é a versão que foi publicada?',
+    suspeitos: [
+      { id: 1, nome: 'Ana', codigo: '<a href="cardapio.pdf" target="_blank">Cardápio</a>\n<img src="prato.jpg" alt="Prato do dia">' },
+      { id: 2, nome: 'Bruno', codigo: '<a href="cardapio.html">Cardápio</a>\n<img src="prato.jpg">' },
+      { id: 3, nome: 'Caio', codigo: '<a href="cardapio.pdf">Cardápio</a>\n<img src="prato.jpg" alt="Prato do dia">' },
+      { id: 4, nome: 'Duda', codigo: '<a href="cardapio.pdf">Cardápio</a>\n<img src="prato.jpg">' },
+      { id: 5, nome: 'Enzo', codigo: '<a href="cardapio.pdf" target="_blank">Cardápio</a>\n<img src="prato.jpg">' },
+      { id: 6, nome: 'Fábia', codigo: '<a href="#cardapio">Cardápio</a>\n<img src="prato.jpg" title="Prato do dia">' },
+    ],
+    pistas: [
+      'O link publicado abria o arquivo cardapio.pdf.',
+      'O link abria na MESMA aba, e o visitante saía do site.',
+      'A foto não tinha texto alternativo para leitores de tela (o atributo title não serve para isso).',
+    ],
+    dicas: ['Qual atributo faz um link abrir em nova aba?', 'O texto alternativo de uma imagem fica no atributo alt.'],
+  },
+  {
+    id: 'c6',
+    disciplina: 'Construção de Sites',
+    tipo: 'codigo',
+    linguagem: 'HTML',
+    titulo: 'O Formulário do Interclasse',
+    nivel: 'Intermediário',
+    pontos: 80,
+    base: '<form action="/inscricao" method="post">\n  <!-- aqui entrou o trecho de cada suspeito -->\n</form>',
+    historia:
+      'As inscrições do Interclasse deram errado: chegaram e-mails sem @, ninguém conseguia enviar o formulário e os alunos reclamaram que o rótulo do campo "não funcionava". Seis estudantes enviaram versões do trecho do formulário.',
+    pergunta: 'Qual versão foi publicada?',
+    suspeitos: [
+      { id: 1, nome: 'Gael', codigo: '<label for="email">E-mail</label>\n<input id="email" type="email">\n<button type="submit">Enviar</button>' },
+      { id: 2, nome: 'Heloísa', codigo: '<label for="email">E-mail</label>\n<input id="email" type="text">\n<button type="reset">Enviar</button>' },
+      { id: 3, nome: 'Igor', codigo: '<label>E-mail</label>\n<input id="email" type="text">\n<button type="reset">Enviar</button>' },
+      { id: 4, nome: 'Júlia', codigo: '<label>E-mail <input type="text"></label>\n<button type="reset">Enviar</button>' },
+      { id: 5, nome: 'Luan', codigo: '<label>E-mail</label>\n<input type="email">\n<button type="reset">Enviar</button>' },
+      { id: 6, nome: 'Maya', codigo: '<label>E-mail</label>\n<input type="text">\n<button>Enviar</button>' },
+    ],
+    pistas: [
+      'O navegador aceitava e-mail sem @: não havia validação de e-mail.',
+      'Clicar no botão apagava tudo o que foi digitado, em vez de enviar.',
+      'Clicar no texto "E-mail" NÃO levava o cursor para o campo.',
+    ],
+    dicas: [
+      'Um botão dentro de um <form> sem type envia o formulário. Qual type apaga os campos?',
+      'O rótulo leva o cursor ao campo quando tem for igual ao id do campo, ou quando envolve o campo.',
+    ],
+  },
+  {
+    id: 'c7',
+    disciplina: 'Construção de Sites',
+    tipo: 'codigo',
+    linguagem: 'CSS',
+    titulo: 'O Botão Invisível',
+    nivel: 'Detetive',
+    pontos: 100,
+    base: '<button id="comprar" class="btn destaque">Comprar</button>',
+    historia:
+      'Na loja virtual da feira, o botão "Comprar" sumiu: o texto ficou branco num fundo branco. Oito estudantes mandaram uma folha de estilo para esse botão, e só uma foi publicada. Lembre: id vence classe, classe vence elemento e, no empate, vale a regra que vem depois.',
+    pergunta: 'De quem é o CSS que deixou o botão invisível?',
+    suspeitos: [
+      { id: 1, nome: 'Nina', codigo: '.btn { color: white; background: white; }\n#comprar { background: green; }' },
+      { id: 2, nome: 'Otto', codigo: '#comprar { color: white; }\n.destaque { color: black; background: white; }' },
+      { id: 3, nome: 'Pietra', codigo: '.btn.destaque { color: white; }\n.btn { background: white; }' },
+      { id: 4, nome: 'Quim', codigo: 'button { color: white; background: white; }\n.btn { color: navy; }' },
+      { id: 5, nome: 'Rosa', codigo: '.destaque { background: white; }\n#comprar { color: white; background: navy; }' },
+      { id: 6, nome: 'Saulo', codigo: 'button { background: white; }\n#comprar { color: white; }\n.btn { background: #222; }' },
+      { id: 7, nome: 'Tainá', codigo: '#comprar { color: black; }\n.btn.destaque { color: white; background: white; }' },
+      { id: 8, nome: 'Uriel', codigo: '.btn { color: white; background: white; }\n.btn { background: gray; }' },
+    ],
+    pistas: [
+      'No resultado final, o texto e o fundo do botão ficaram brancos.',
+      'A regra que deixou o TEXTO branco usava o seletor de id (#comprar).',
+    ],
+    dicas: [
+      'Para cada versão, descubra qual regra vence na cor do texto e qual vence no fundo.',
+      'Duas versões deixam o botão branco no branco. A pista 2 separa as duas.',
+    ],
+  },
+  {
+    id: 'c8',
+    disciplina: 'Construção de Sites',
+    tipo: 'codigo',
+    linguagem: 'CSS',
+    titulo: 'A Vitrine que Estourou',
+    nivel: 'Mestre',
+    pontos: 120,
+    base:
+      '<div class="vitrine">\n  <div class="card">Bolo</div>\n  <div class="card">Pastel</div>\n  <div class="card">Suco</div>\n</div>\n\n/* CSS comum a todas as versões */\n.vitrine { width: 800px; }\n.card { flex-shrink: 0; }',
+    historia:
+      'A vitrine da cantina tem 800px de largura, mas os três cartões passaram da borda e ficou uma barra de rolagem. Oito estudantes enviaram o CSS da vitrine. Atenção ao modelo de caixa: no padrão (content-box), padding e borda SOMAM à largura; com border-box, ficam DENTRO dela.',
+    pergunta: 'De quem é o CSS que fez a vitrine estourar?',
+    suspeitos: [
+      { id: 1, nome: 'Vera', codigo: '.vitrine { display: flex; }\n.card { width: 260px; padding: 20px; box-sizing: border-box; }' },
+      { id: 2, nome: 'Wagner', codigo: '.vitrine { display: flex; }\n.card { width: 260px; padding: 20px; }' },
+      { id: 3, nome: 'Xavier', codigo: '.vitrine { display: block; }\n.card { width: 260px; padding: 20px; }' },
+      { id: 4, nome: 'Yasmin', codigo: '.vitrine { display: flex; flex-direction: column; }\n.card { width: 280px; padding: 10px; }' },
+      { id: 5, nome: 'Zeca', codigo: '.vitrine { display: flex; }\n.card { width: 280px; border: 10px solid #ccc; }' },
+      { id: 6, nome: 'Alice', codigo: '.vitrine { display: flex; }\n.card { width: 300px; padding: 30px; box-sizing: border-box; }' },
+      { id: 7, nome: 'Benício', codigo: '.vitrine { display: grid; }\n.card { width: 260px; padding: 20px; }' },
+      { id: 8, nome: 'Cecília', codigo: '.vitrine { display: flex; flex-wrap: wrap; }\n.card { width: 260px; padding: 20px; }' },
+    ],
+    pistas: [
+      'Os três cartões ficaram na MESMA linha, lado a lado.',
+      'Cada cartão ocupava 300px de largura total na tela (3 × 300 = 900px, mais que os 800px da vitrine).',
+      'A área de conteúdo de cada cartão, sem padding e sem borda, tinha 260px.',
+    ],
+    dicas: [
+      'display: block e grid (sem colunas) empilham; flex-wrap: wrap joga o que não cabe para a linha de baixo.',
+      'Largura total no content-box = width + padding dos dois lados + borda dos dois lados.',
     ],
   },
 ];

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Database, Lightbulb, Loader2, NotebookPen, RefreshCw, Search, Trophy, XCircle } from 'lucide-react';
-import { DESV_CASOS, DesvCaso, DesvCasoLogica } from '../../data/desvCasos';
+import { ArrowLeft, CheckCircle2, Code2, Database, Lightbulb, Loader2, NotebookPen, RefreshCw, Search, Trophy, XCircle } from 'lucide-react';
+import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data/desvCasos';
 import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 
@@ -41,6 +41,8 @@ const msgErro = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);
   return /a[cç][aã]o desconhecida/i.test(m) ? 'O Desvendando precisa do Apps Script v31 publicado.' : m;
 };
+
+const DISCIPLINAS = Array.from(new Set(DESV_CASOS.map((c) => c.disciplina)));
 
 const NIVEL_COR: Record<DesvCaso['nivel'], string> = {
   Aquecimento: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
@@ -111,8 +113,12 @@ export const DesvModule: React.FC = () => {
         {tab('ranking', 'Ranking', <Trophy className="w-4 h-4" />)}
       </div>
       {aba === 'casos' ? (
-        <section className="mt-6 grid gap-4 sm:grid-cols-2" aria-label="Casos">
-          {DESV_CASOS.map((c) => {
+        <div className="mt-6 space-y-6">
+          {DISCIPLINAS.map((d) => (
+            <section key={d} aria-label={d}>
+              <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">{d}</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {DESV_CASOS.filter((c) => c.disciplina === d).map((c) => {
             const feito = resolvidos[c.id];
             return (
               <button
@@ -124,12 +130,12 @@ export const DesvModule: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${NIVEL_COR[c.nivel]}`}>{c.nivel}</span>
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-700 text-slate-300 inline-flex items-center gap-1">
-                    {c.tipo === 'sql' ? <Database className="w-3 h-3" /> : <NotebookPen className="w-3 h-3" />}
-                    {c.tipo === 'sql' ? 'Investigação em SQL' : 'Lógica com pistas'}
+                    {c.tipo === 'sql' ? <Database className="w-3 h-3" /> : c.tipo === 'codigo' ? <Code2 className="w-3 h-3" /> : <NotebookPen className="w-3 h-3" />}
+                    {c.tipo === 'sql' ? 'Investigação em SQL' : c.tipo === 'codigo' ? `Análise de ${c.linguagem}` : 'Lógica com pistas'}
                   </span>
                   <span className="ml-auto text-xs font-bold text-amber-300">{c.pontos} pts</span>
                 </div>
-                <h2 className="mt-3 text-xl font-black text-white">{c.titulo}</h2>
+                <h3 className="mt-3 text-xl font-black text-white">{c.titulo}</h3>
                 <p className="mt-1 text-sm text-slate-400 leading-relaxed">{c.historia}</p>
                 <p className="mt-3 text-xs font-semibold text-slate-400">{c.suspeitos.length} suspeitos</p>
                 {feito !== undefined && (
@@ -140,7 +146,10 @@ export const DesvModule: React.FC = () => {
               </button>
             );
           })}
-        </section>
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <DesvRanking />
       )}
@@ -271,7 +280,8 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, 
             <p className="mt-3 text-base font-bold text-violet-200">{caso.pergunta}</p>
           </section>
 
-          {caso.tipo === 'logica' ? (
+          {caso.tipo === 'codigo' && <CodigoSuspeitos caso={caso} />}
+          {caso.tipo !== 'sql' ? (
             <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Pistas">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">Pistas</h2>
               <p className="mt-1 text-xs text-slate-500">Toque numa pista para riscar quando já tiver usado.</p>
@@ -321,7 +331,7 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, 
               <textarea
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
-                rows={caso.tipo === 'logica' ? 3 : 6}
+                rows={caso.tipo === 'logica' ? 3 : 5}
                 placeholder="Anote o que já descobriu..."
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500"
               />
@@ -456,3 +466,26 @@ const GradeLogica: React.FC<{ caso: DesvCasoLogica }> = ({ caso }) => {
     </div>
   );
 };
+
+/** Construção de Sites: o código comum e o trecho de cada suspeito, para ler e comparar. */
+const CodigoSuspeitos: React.FC<{ caso: DesvCasoCodigo }> = ({ caso }) => (
+  <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Código dos suspeitos">
+    <h2 className="text-sm font-black uppercase tracking-wide text-slate-400 inline-flex items-center gap-2">
+      <Code2 className="w-4 h-4" /> Código dos suspeitos ({caso.linguagem})
+    </h2>
+    {caso.base && (
+      <div className="mt-3">
+        <p className="text-xs font-semibold text-slate-400">Página onde o trecho entrou</p>
+        <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-sky-200"><code>{caso.base}</code></pre>
+      </div>
+    )}
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {caso.suspeitos.map((s) => (
+        <div key={s.id} className="rounded-lg border border-slate-800 bg-slate-950/70 p-3 min-w-0">
+          <p className="text-xs font-black text-violet-300">{s.nome}</p>
+          <pre className="mt-1 overflow-x-auto text-xs leading-relaxed text-slate-200"><code>{s.codigo}</code></pre>
+        </div>
+      ))}
+    </div>
+  </section>
+);
