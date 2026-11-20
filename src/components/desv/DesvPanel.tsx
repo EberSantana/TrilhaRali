@@ -137,6 +137,18 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     void prof({ op: 'casos', casos: ordem });
   };
 
+  const apagarDeVez = async (sala: { token: string; adminKey: string; nome: string }) => {
+    if (!window.confirm(`Apagar “${sala.nome}” de vez?\n\nA sala, as duplas e os pontos dela somem da planilha. Não dá para desfazer.`)) return;
+    try {
+      await ctfCall('desvApagar', { token: sala.token, adminKey: sala.adminKey });
+    } catch (e) {
+      const m = msgErro(e);
+      if (/desconhecida/i.test(m)) return setErro('O servidor ainda não sabe apagar salas do Desvendando. Publique a versão nova do Apps Script.');
+      if (!/n[aã]o encontrad/i.test(m)) return setErro(m);
+    }
+    tirarDaLista(sala.token);
+  };
+
   const tirarDaLista = (token: string) => {
     const lista = salas.filter((s) => s.token !== token);
     gravarSalas(lista);
@@ -198,7 +210,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <p className="truncate text-sm font-bold text-white">{s.nome}</p>
                     <p className="font-mono text-xs text-slate-400">{s.token}</p>
                   </button>
-                  <button type="button" onClick={() => tirarDaLista(s.token)} aria-label={`Tirar ${s.nome} da lista`} title="Tirar da lista (a sala continua no servidor)" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-rose-300">
+                  <button type="button" onClick={() => void apagarDeVez(s)} aria-label={`Apagar ${s.nome} de vez`} title="Apagar de vez (sala, duplas e pontos saem da planilha)" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-rose-300">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

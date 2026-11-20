@@ -483,9 +483,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
   // Apaga de vez: remove a sala e os resultados da planilha (só salas encerradas) e tira do histórico daqui.
   const apagarSala = async (r: CtfStoredRoom) => {
-    if (!window.confirm(`Apagar “${r.nome}” de vez?\n\nA sala e todos os resultados dela somem da planilha. Não dá para desfazer.`)) return;
+    if (!window.confirm(`Apagar “${r.nome}” de vez?\n\nA sala é encerrada e ela e todos os resultados somem da planilha. Não dá para desfazer.`)) return;
     try {
-      await ctfCall('deleteRoom', { token: r.token, adminKey: r.adminKey }, r.api || apiUrl);
+      await ctfCall('deleteRoom', { token: r.token, adminKey: r.adminKey, encerrar: true }, r.api || apiUrl);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/desconhecida/i.test(msg)) {
@@ -904,7 +904,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                           </Btn>
                         </>
                       )}
-                      <Btn size="sm" variant="ghost" onClick={() => forgetRoom(activeRoom.token)} icon={<Trash2 className="w-4 h-4" />} title="Remover da lista deste navegador">Remover</Btn>
+                      <Btn size="sm" variant="ghost" onClick={() => void apagarSala(activeRoom)} icon={<Trash2 className="w-4 h-4" />} title="Encerra e apaga a sala e os resultados da planilha, de vez">Apagar de vez</Btn>
                     </div>
                     {cruzSala && bancoCruzAberto && <CruzBancoPanel call={cruzBancoCall} />}
                   </div>
@@ -1056,7 +1056,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-slate-500">Cada sala fica registrada no servidor: as abas CtfLog (eventos), CtfResumo (uma linha por sala) e CtfAnalise (acertos por pergunta) servem para análise. “Remover” só tira da lista deste navegador.</p>
+              <p className="text-xs text-slate-500">Cada sala fica registrada no servidor: as abas CtfLog (eventos), CtfResumo (uma linha por sala) e CtfAnalise (acertos por pergunta) servem para análise. “Apagar de vez” encerra a sala e tira tudo dela da planilha.</p>
             </section>
           )}
         </div>
