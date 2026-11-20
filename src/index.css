@@ -99,3 +99,30 @@
   .rank-gain { animation: none; }
 }
 
+
+/* Flag capturada (CTF): o cartão entra, o mastro sobe e o pano desfralda e ondula; sem animação para quem prefere menos movimento */
+@keyframes flag-entra {
+  0% { opacity: 0; transform: translateY(-14px) scale(0.9); }
+  12% { opacity: 1; transform: none; }
+  88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes flag-sobe {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes flag-desfralda {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes flag-ondula {
+  0%, 100% { transform: skewY(0deg); }
+  50% { transform: skewY(5deg); }
+}
+.flag-card { animation: flag-entra 2.8s ease-out both; }
+.flag-mastro { transform-box: fill-box; transform-origin: bottom; animation: flag-sobe 0.45s ease-out both; }
+.flag-pano { transform-box: fill-box; transform-origin: left center; animation: flag-desfralda 0.5s 0.4s ease-out both, flag-ondula 0.7s 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .flag-card { animation: none; }
+  .flag-mastro, .flag-pano { animation: none; }
+}

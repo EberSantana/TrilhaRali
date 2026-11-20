@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, Send, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CtfState, RaliMissionRef, RaliTagInfo } from '../../types/ctf';
 import { ctfCall } from '../../utils/ctfApi';
@@ -7,6 +7,7 @@ import { playSound } from '../../utils/audio';
 import { StatusBanner } from '../common/StatusBanner';
 import { Btn } from '../common/ui';
 import { Fogo, Selo } from '../common/Icones';
+import { Bandeira, CapturaFlag, Captura } from '../common/Bandeira';
 
 interface Props {
   state: CtfState;
@@ -33,6 +34,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [captura, setCaptura] = useState<Captura | null>(null);
 
   const missoes = state.missoes ?? [];
   const groups = useMemo(() => groupChallenges(missoes), [missoes]);
@@ -65,10 +67,11 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
         playSound('success', true);
         const fogo = s.premio?.isFogo;
         try {
-          confetti({ particleCount: fogo ? 160 : 90, spread: fogo ? 100 : 70, origin: { y: 0.6 }, colors: fogo ? ['#f97316', '#ef4444', '#f59e0b', '#fde047'] : ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'] });
+          confetti({ particleCount: fogo ? 160 : 50, spread: fogo ? 100 : 70, origin: { y: 0.6 }, colors: fogo ? ['#f97316', '#ef4444', '#f59e0b', '#fde047'] : ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'] });
         } catch {
           // ignore
         }
+        setCaptura({ id: Date.now(), xp: s.premio?.xp ?? 0, fogo });
         setFeedback({ ok: true, text: fogo ? `Primeiro a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
         setOpen(null);
         setAnswer('');
@@ -177,6 +180,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
   // ---------- Painel de desafios ----------
   return (
     <div className="space-y-5">
+      {captura && <CapturaFlag captura={captura} onDone={() => setCaptura(null)} />}
       {feedbackBox}
       {errorBox}
       {missoes.length === 0 && <p className="text-sm text-slate-400">Esta sala ainda não tem desafios.</p>}
@@ -204,7 +208,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-mono text-xs font-black text-slate-500">#{missoes.indexOf(m) + 1}</span>
                         {m.concluida ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> Resolvido</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-400"><Bandeira estado="capturada" className="h-4 w-4" /> Capturada</span>
                         ) : (
                           <span className="text-xs font-black text-amber-300">+{xp} XP</span>
                         )}
