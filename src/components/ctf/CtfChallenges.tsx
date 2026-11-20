@@ -7,7 +7,7 @@ import { playSound } from '../../utils/audio';
 import { StatusBanner } from '../common/StatusBanner';
 import { Btn } from '../common/ui';
 import { Fogo, Selo } from '../common/Icones';
-import { Bandeira, CapturaFlag, Captura } from '../common/Bandeira';
+import { Bandeira, CapturaFlag, Captura, metalDoDesafio } from '../common/Bandeira';
 
 interface Props {
   state: CtfState;
@@ -39,6 +39,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
   const missoes = state.missoes ?? [];
   const groups = useMemo(() => groupChallenges(missoes), [missoes]);
   const dinamico = state.sala.modo === 'ctf_dynamic';
+  const xps = useMemo(() => missoes.map((m) => m.xp_base), [missoes]);
 
   const openChallenge = async (tag: string) => {
     setBusy(true);
@@ -71,7 +72,8 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
         } catch {
           // ignore
         }
-        setCaptura({ id: Date.now(), xp: s.premio?.xp ?? 0, fogo });
+        const ref = missoes.find((m) => m.tag_id === open.missao.tag_id);
+        setCaptura({ id: Date.now(), xp: s.premio?.xp ?? 0, fogo, metal: ref ? metalDoDesafio(ref.xp_base, xps) : undefined });
         setFeedback({ ok: true, text: fogo ? `Primeiro a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
         setOpen(null);
         setAnswer('');
@@ -208,9 +210,9 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-mono text-xs font-black text-slate-500">#{missoes.indexOf(m) + 1}</span>
                         {m.concluida ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-400"><Bandeira estado="capturada" className="h-4 w-4" /> Capturada</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-400"><Bandeira estado="capturada" metal={metalDoDesafio(m.xp_base, xps)} className="h-4 w-4" /> Capturada</span>
                         ) : (
-                          <span className="text-xs font-black text-amber-300">+{xp} XP</span>
+                          <span className="inline-flex items-center gap-1 text-xs font-black text-amber-300"><Bandeira estado="aberta" metal={metalDoDesafio(m.xp_base, xps)} className="h-4 w-4" /> +{xp} XP</span>
                         )}
                       </div>
                       <div className="mt-1 text-sm font-bold text-slate-100 truncate">{m.categoria || 'Desafio'}</div>
