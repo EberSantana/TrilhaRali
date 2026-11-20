@@ -7,6 +7,8 @@ import { ModuleTabs } from '../common/ModuleShell';
 import { useTurmaDaSala } from '../../utils/turmasApi';
 import { CabineDupla } from '../turmas/CabineDupla';
 import { FaixaCabine } from '../turmas/Papeis';
+import { marcarUso, sessaoParada } from '../../utils/sessaoUso';
+import { ConfirmaQuem } from '../common/ConfirmaQuem';
 
 const K_GID = 'rali_desv_gid_v1';
 const K_SESSAO = 'rali_desv_sessao_v1';
@@ -82,6 +84,7 @@ const NIVEL_COR: Record<DesvCaso['nivel'], string> = {
 export const DesvModule: React.FC = () => {
   const [gid, setGid] = useState(gidDoAparelho);
   const [sessao, setSessao] = useState<Sessao | null>(lerSessao);
+  const [conferir, setConferir] = useState(() => !!lerSessao() && sessaoParada('desv'));
   const [estado, setEstado] = useState<Estado | null>(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState<'casos' | 'ranking'>('casos');
@@ -117,7 +120,12 @@ export const DesvModule: React.FC = () => {
 
   // Sair libera o computador: a próxima dupla começa do zero. Quem saiu volta escolhendo os mesmos nomes
   // (o servidor reconhece a formação e devolve os pontos).
+  useEffect(() => {
+    if (estado && !conferir) marcarUso('desv');
+  }, [estado, conferir]);
+
   const sair = () => {
+    setConferir(false);
     gravarLS(K_SESSAO, '');
     gravarLS(K_GID, '');
     gravarLS(K_DICAS, '');
@@ -149,6 +157,19 @@ export const DesvModule: React.FC = () => {
         <span className="text-sm">Voltando para a sala {sessao.token}…</span>
         <button type="button" onClick={sair} className="text-xs font-bold text-slate-400 underline">Sair da sala</button>
       </div>
+    );
+  }
+
+  if (conferir) {
+    return (
+      <ConfirmaQuem
+        pergunta={<>Vocês são a dupla {estado.dupla.nome}?</>}
+        detalhe={[estado.dupla.integrantes, `Sala ${estado.sala.nome}`].filter(Boolean).join(' · ')}
+        outro="Somos outra dupla"
+        botao="bg-violet-600 hover:bg-violet-500"
+        onContinuar={() => setConferir(false)}
+        onOutro={sair}
+      />
     );
   }
 
