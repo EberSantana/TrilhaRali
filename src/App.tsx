@@ -18,6 +18,7 @@ import type { AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
 import { CruzModule } from './components/cruz/CruzModule';
 import { DesvModule } from './components/desv/DesvModule';
+import { DesvPanel } from './components/desv/DesvPanel';
 import { ModuleShell } from './components/common/ModuleShell';
 import { TRILHAS } from './components/common/trilhas';
 import { RaliStudent } from './components/rali/RaliStudent';
@@ -57,6 +58,7 @@ function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/professor/rali')) return 'prof-rali';
   if (hash.startsWith('#/professor/ctf')) return 'prof-ctf';
   if (hash.startsWith('#/professor/cruz')) return 'prof-cruz';
+  if (hash.startsWith('#/professor/desvendando')) return 'prof-desv';
   if (hash.startsWith('#/professor/local')) return 'local';
   if (hash.startsWith('#/professor')) return 'professor';
   if (hash.startsWith('#/ctf')) return 'ctf';
@@ -187,7 +189,7 @@ export default function App() {
   // Troca de módulo mantém o endereço compartilhável (#/ctf)
   const MODULE_HASH: Record<AppModule, string> = {
     home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', desv: '#/desvendando', professor: '#/professor',
-    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', local: '#/professor/local',
+    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', 'prof-desv': '#/professor/desvendando', local: '#/professor/local',
   };
   const handleChangeModule = (next: AppModule) => {
     setAppModule(next);
@@ -429,7 +431,11 @@ export default function App() {
         <main className="flex-1 pb-16">
           <RoomsPanel tipo="cruz" onBack={() => handleChangeModule('professor')} />
         </main>
-      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' || appModule === 'prof-cruz' ? (
+      ) : appModule === 'prof-desv' && isTeacher ? (
+        <main className="flex-1 pb-16">
+          <DesvPanel onBack={() => handleChangeModule('professor')} />
+        </main>
+      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' || appModule === 'prof-cruz' || appModule === 'prof-desv' ? (
         <main className="flex-1 pb-16">
           <TeacherHub
             isTeacher={isTeacher}
@@ -443,6 +449,7 @@ export default function App() {
             onOpenRaliRooms={() => handleChangeModule('prof-rali')}
             onOpenCtfRooms={() => handleChangeModule('prof-ctf')}
             onOpenCruzRooms={() => handleChangeModule('prof-cruz')}
+            onOpenDesvRooms={() => handleChangeModule('prof-desv')}
             onOpenAccount={() => handleOpenTeacherAuth('PIN e sessão')}
           />
         </main>
