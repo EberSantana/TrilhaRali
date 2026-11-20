@@ -1,3 +1,5 @@
+import { useTurmaDaSala } from '../../utils/turmasApi';
+import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle } from 'lucide-react';
@@ -28,6 +30,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
   const [token, setToken] = useState(() => link.current.token || '');
   const [nome, setNome] = useState('');
   const [integrantes, setIntegrantes] = useState('');
+  const turmaSala = useTurmaDaSala(token);
   const [state, setState] = useState<RaliState | null>(null);
   const [open, setOpen] = useState<RaliTagInfo | null>(null);
   const [code, setCode] = useState('');
@@ -205,12 +208,19 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da equipe</span>
             <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={40} autoComplete="off" placeholder="Ex.: Os Joins" className={input} />
           </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">(opcional, separe por vírgula)</span></span>
-            <textarea value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} rows={2} maxLength={200} placeholder="Ana, Bruno, Carla" className={input} />
-          </label>
+          {turmaSala ? (
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes da equipe <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: marque cada um)</span></span>
+              <EscolhaIntegrantes alunos={turmaSala.alunos} value={integrantes} onChange={setIntegrantes} max={8} />
+            </div>
+          ) : (
+            <label className="block space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">(opcional, separe por vírgula)</span></span>
+              <textarea value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} rows={2} maxLength={200} placeholder="Ana, Bruno, Carla" className={input} />
+            </label>
+          )}
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
-          <Btn type="submit" size="lg" variant="primary" className="w-full" disabled={busy || token.trim().length < 4 || nome.trim().length < 2} icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Radio className="w-5 h-5" />}>
+          <Btn type="submit" size="lg" variant="primary" className="w-full" disabled={busy || token.trim().length < 4 || nome.trim().length < 2 || (!!turmaSala && !integrantes.trim())} icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Radio className="w-5 h-5" />}>
             Entrar na sala
           </Btn>
           <p className="text-[11px] text-center text-slate-500">Voltar depois com o mesmo nome de equipe continua de onde vocês pararam.</p>

@@ -1,0 +1,136 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { CTF_APPS_SCRIPT } from './ctfAppsScript.ts';
+import { gabaritoAberto } from '../utils/gabaritoTeste';
+
+type Json = Record<string, any>;
+
+function createBackend() {
+  const sheets = new Map<string, any[][]>();
+  const leituras = { n: 0 };
+  const makeSheet = (name: string) => {
+    const data = sheets.get(name)!;
+    const range = (row: number, col: number, nr = 1, nc = 1) => ({
+      setValue: (v: unknown) => {
+        while (data.length < row) data.push([]);
+        data[row - 1][col - 1] = v;
+      },
+      setValues: (vals: unknown[][]) => {
+        vals.forEach((r, i) => {
+          while (data.length < row + i) data.push([]);
+          r.forEach((v, j) => (data[row + i - 1][col + j - 1] = v));
+        });
+      },
+      setNumberFormat: () => {},
+      getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (data[row - 1 + i] || [])[col - 1 + j] ?? '')),
+    });
+    return {
+      appendRow: (r: unknown[]) => void data.push(r.slice()),
+      getDataRange: () => ({ getValues: () => { leituras.n++; return data.map((r) => r.slice()); } }),
+      getRange: range,
+      getLastRow: () => data.length,
+      getMaxRows: () => 1000,
+    };
+  };
+  const ctx: Json = {
+    SpreadsheetApp: {
+      getActiveSpreadsheet: () => ({
+        getSheetByName: (n: string) => (sheets.has(n) ? makeSheet(n) : null),
+        insertSheet: (n: string) => {
+          sheets.set(n, []);
+          return makeSheet(n);
+        },
+      }),
+    },
+    CacheService: (() => { const m = new Map<string, string>(); const c = { get: (k: string) => m.get(k) ?? null, put: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) }; return { getScriptCache: () => c }; })(),
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null, setProperty: () => {} }) },
+    LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
+    ContentService: {
+      MimeType: { JSON: 'json' },
+      createTextOutput: (s: string) => ({ content: s, setMimeType() { return this; } }),
+    },
+    Utilities: { getUuid: () => 'u-' + Math.random().toString(36).slice(2) + Date.now() },
+    Date,
+    Math,
+    JSON,
+    Number,
+    String,
+    Error,
+  };
+  vm.createContext(ctx);
+  vm.runInContext(CTF_APPS_SCRIPT, ctx);
+  ctx.requireBancoKey = (req: Json) => { if (req.chave !== 'chave-banco') throw Object.assign(new Error('Chave do banco inválida.'), { userMessage: true }); };
+  // simula o aparelho do aluno: guarda a chave devolvida no join e a reenvia nas entradas seguintes
+  const chaves = new Map<string, string>();
+  const call = (body: Json): Json => {
+    const id = body.action === 'join' ? `${String(body.token).toUpperCase()}|${String(body.nome).trim().toLowerCase()}` : '';
+    if (id && body.chave === undefined && chaves.has(id)) body = { ...body, chave: chaves.get(id) };
+    const r = JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).content);
+    if (id && r.chave) chaves.set(id, r.chave);
+    return r;
+  };
+  return { call, ctx, sheets, leituras };
+}
+
+
+const K = { chave: 'chave-banco' };
+const missions = [{ tag_id: 't1', categoria: 'DQL', pacote: 'P', pergunta: 'Q1?', resposta: '8', alternativas: [], xp: 10 }];
+
+function comTurma() {
+  const b = createBackend();
+  const t = b.call({ action: 'turmaSalvar', ...K, nome: '2º B', alunos: [{ m: '2024001', n: 'Ana Souza' }, { m: '2024002', n: 'Bruno Lima' }, { m: '2024003', n: 'Carla Dias' }, { m: '', n: 'ana souza' }] });
+  return { ...b, turma: t };
+}
+
+test('cadastro da turma: só com a chave do banco, sem nomes repetidos', () => {
+  const b = comTurma();
+  assert.equal(b.turma.alunos.length, 3);
+  assert.match(b.call({ action: 'turmasList', chave: 'x' }).error, /Chave do banco/);
+  assert.equal(b.call({ action: 'turmasList', ...K }).turmas[0].nome, '2º B');
+});
+
+test('sala ligada à turma: o aluno escolhe o nome da lista (sem matrícula) e nome de fora é recusado', () => {
+  const b = comTurma();
+  const sala = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id });
+  const lista = b.call({ action: 'salaTurma', token: sala.token });
+  assert.deepEqual(lista.turma.alunos, ['Ana Souza', 'Bruno Lima', 'Carla Dias']);
+  assert.ok(!JSON.stringify(lista).includes('2024001'));
+  assert.match(b.call({ action: 'join', token: sala.token, nome: 'Fulano' }).error, /lista da turma/);
+  const ok = b.call({ action: 'join', token: sala.token, nome: 'ana   SOUZA' });
+  assert.ok(!ok.error, ok.error);
+  // sala sem turma continua aceitando qualquer nome
+  const livre = b.call({ action: 'createRoom', nome: 'Livre', missions, modo: 'fixed' });
+  assert.equal(b.call({ action: 'salaTurma', token: livre.token }).turma, null);
+  assert.ok(!b.call({ action: 'join', token: livre.token, nome: 'Qualquer Nome' }).error);
+});
+
+test('notas da turma somam CTF, Rali NFC (cada integrante) e Desvendando (cada integrante da dupla)', () => {
+  const b = comTurma();
+  const ctf = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id });
+  b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza' });
+  const r1 = b.call({ action: 'submit', token: ctf.token, nome: 'Ana Souza', resposta: '8' });
+  assert.ok(!r1.error, r1.error);
+  const rali = b.call({ action: 'createRoom', tipo: 'rali', nome: 'Rali', missions, modo: 'fixed', turma: b.turma.id });
+  const eq = b.call({ action: 'join', token: rali.token, nome: 'Os Joins', integrantes: ['bruno lima', 'Carla Dias'] });
+  assert.ok(!eq.error, eq.error);
+  assert.match(b.call({ action: 'join', token: rali.token, nome: 'Outra', integrantes: ['Zé'] }).error, /lista da turma/);
+  const r2 = b.call({ action: 'raliSubmit', token: rali.token, nome: 'Os Joins', tag_id: 't1', resposta: '8' });
+  assert.ok(!r2.error, r2.error);
+  // Desvendando: gabarito na aba DesvGabarito
+  const desv = gabaritoAberto().desv!;
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ...Object.entries(desv).map(([c, g]) => [c, g.suspeito, g.pontos, g.explicacao])]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'], turma: b.turma.id });
+  assert.match(b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_x1', nome: 'Dupla', integrantes: ['Zé'] }).error, /lista da turma/);
+  assert.ok(!b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_x1', nome: 'Dupla', integrantes: ['Ana Souza', 'Carla Dias'] }).error);
+  assert.equal(b.call({ action: 'desvAcusar', token: ds.token, gid: 'aparelho_dupla_x1', caso: 'c1', suspeito: desv.c1.suspeito }).pontos, desv.c1.pontos);
+
+  const n = b.call({ action: 'turmaNotas', ...K, id: b.turma.id });
+  const por = Object.fromEntries(n.alunos.map((a: Json) => [a.n, a]));
+  assert.equal(n.salas, 3);
+  assert.deepEqual([por['Ana Souza'].ctf, por['Ana Souza'].desv, por['Ana Souza'].total], [10, desv.c1.pontos, 10 + desv.c1.pontos]);
+  assert.equal(por['Bruno Lima'].rali, por['Carla Dias'].rali);
+  assert.ok(por['Bruno Lima'].rali > 0);
+  assert.equal(por['Carla Dias'].total, por['Carla Dias'].rali + desv.c1.pontos);
+  assert.equal(por['Ana Souza'].m, '2024001');
+});
