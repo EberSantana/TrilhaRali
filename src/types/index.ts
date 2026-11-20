@@ -73,7 +73,7 @@ export interface Team {
   ultimo_acerto?: number;
   alunos: string[]; // Lista com nomes dos alunos da equipe
   scanner_aluno?: string; // Nome do aluno que está operando o celular
-  fogos_count?: number; // 🔥 Quantidade de missões capturadas em 1º lugar (modo CTF Dinâmico)
+  fogos_count?: number; // Quantidade de missões capturadas em 1º lugar (modo CTF Dinâmico)
 }
 
 export interface SubmissionLog {
@@ -89,7 +89,7 @@ export interface SubmissionLog {
   mensagem: string;
   autor_aluno?: string;
   posicao_captura?: number; // Ordem de chegada da equipe nesta missão (1 = primeira)
-  is_fogo?: boolean; // 🔥 true quando a equipe foi a 1ª a capturar a tag (modo CTF Dinâmico)
+  is_fogo?: boolean; // true quando a equipe foi a 1ª a capturar a tag (modo CTF Dinâmico)
 }
 
 /**

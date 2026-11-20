@@ -1,6 +1,7 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
 import type { RankChange } from '../../utils/ctfRank';
+import { Fogo } from './Icones';
 
 /* Peças visuais compartilhadas pelo Top 5, pelo telão e pelo resultado final.
  * Cores de medalha e de avatar são fixas (não mudam com o tema claro/escuro). */
@@ -135,7 +136,7 @@ export const LeaderRow: React.FC<RowProps> = ({ pos, nome, xp, fogos, sub, pct, 
         <XpBar pct={pct} big={big} tone={tone} />
       </div>
       <div className={`${big ? 'mt-2 text-lg' : 'mt-1 text-[11px]'} text-slate-400 truncate`}>
-        {fogos > 0 && <span className="mr-2 font-semibold text-orange-300">🔥 {fogos}</span>}
+        {fogos > 0 && <span className="mr-2 font-semibold text-orange-300"><Fogo /> {fogos}</span>}
         {sub}
       </div>
     </div>
@@ -176,7 +177,7 @@ export const PodiumColumn: React.FC<ColProps> = ({ idx, nome, xp, fogos, sub, mi
         <span className={`ml-1 font-bold tracking-wider ${big ? 'text-lg' : 'text-[10px]'}`}>XP</span>
       </div>
       <div className={`${big ? 'text-lg' : 'text-[11px]'} text-slate-400`}>
-        {fogos > 0 && <span className="mr-1 font-semibold text-orange-300">🔥 {fogos}</span>}
+        {fogos > 0 && <span className="mr-1 font-semibold text-orange-300"><Fogo /> {fogos}</span>}
         {sub}
       </div>
       <div className={`flex items-center justify-center gap-1.5 ${big ? 'mt-1 min-h-[2.25rem]' : 'mt-1 min-h-[1.5rem]'}`}>

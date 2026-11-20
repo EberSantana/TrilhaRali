@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X, Check } from 'lucide-react';
 import { BankQuestion, BankQuestionDraft } from '../../types/bank';
 import { auditBank, AuditIssue, emptyDraft, tidyDraft, validateDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
 import { BackPill } from '../common/ModuleShell';
@@ -286,7 +286,7 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
                 {q.tipo === 'multipla' && (
                   <ul className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
                     {q.opcoes.map((o) => (
-                      <li key={o} className={`rounded-md px-2 py-1 ${o === q.resposta ? 'bg-emerald-500/15 text-emerald-200 font-semibold' : 'bg-slate-800/70 text-slate-300'}`}>{o}{o === q.resposta ? ' ✓' : ''}</li>
+                      <li key={o} className={`rounded-md px-2 py-1 ${o === q.resposta ? 'bg-emerald-500/15 text-emerald-200 font-semibold' : 'bg-slate-800/70 text-slate-300'}`}>{o}{o === q.resposta && <Check className="ml-1 inline h-3.5 w-3.5" aria-label="resposta certa" />}</li>
                     ))}
                   </ul>
                 )}

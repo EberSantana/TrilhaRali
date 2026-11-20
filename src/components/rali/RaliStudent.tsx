@@ -5,7 +5,7 @@ import { FaixaCabine } from '../turmas/Papeis';
 import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RaliState, RaliTagInfo } from '../../types/ctf';
 import { clearRaliSession, getChave, saveChave, ctfCall, startPolling, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
@@ -19,6 +19,7 @@ import { Btn } from '../common/ui';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { LinuxTerminal } from '../ctf/LinuxTerminal';
 import { parseTagFromLocation } from '../../utils/tagLink';
+import { Fogo } from '../common/Icones';
 
 
 interface Props {
@@ -155,7 +156,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
         } catch {
           // ignore
         }
-        setFeedback({ ok: true, text: fogo ? `🔥 Primeira equipe a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
+        setFeedback({ ok: true, text: fogo ? `Primeira equipe a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
         setOpen(null);
         setAnswer('');
       } else {
@@ -265,7 +266,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
       >
         <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
         <XpChip xp={equipe.xp} />
-        {equipe.fogos > 0 && <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{equipe.fogos}</span>}
+        {equipe.fogos > 0 && <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black inline-flex items-center gap-1"><Fogo /> x{equipe.fogos}</span>}
         <RankChip pos={equipe.posicao} total={state.total_equipes} />
         <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
           <LogOut className="w-4 h-4" />
@@ -306,7 +307,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
                 {open.ja_resolvida && <StatusBanner tone="warn">Sua equipe já resolveu esta missão.</StatusBanner>}
                 {sala.modo === 'ctf_dynamic' && !open.ja_resolvida && (
                   <div className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${open.missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'}`}>
-                    {open.missao.capturas_anteriores === 0 ? `🔥 FLAG INTACTA! Nenhuma equipe resolveu: vale ${open.missao.xp_atual} XP!` : `⚠️ ${open.missao.capturas_anteriores} ${open.missao.capturas_anteriores === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${open.missao.xp_atual} XP agora.`}
+                    <span className="flex items-center gap-2">{open.missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{open.missao.capturas_anteriores === 0 ? `FLAG INTACTA! Nenhuma equipe resolveu: vale ${open.missao.xp_atual} XP!` : `${open.missao.capturas_anteriores} ${open.missao.capturas_anteriores === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${open.missao.xp_atual} XP agora.`}</span></span>
                   </div>
                 )}
                 <div className="bg-slate-950 rounded-xl p-4 border border-slate-800">
@@ -360,7 +361,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
                         {m.concluida ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : <Circle className="w-5 h-5 text-slate-500 shrink-0" />}
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-bold text-white truncate">{m.categoria || m.tag_id}</span>
-                          <span className="block text-[11px] font-mono text-slate-400">{m.tag_id} • {m.xp_base} XP{m.capturas > 0 ? ` • ${m.capturas} ✓` : ''}</span>
+                          <span className="block text-[11px] font-mono text-slate-400">{m.tag_id} • {m.xp_base} XP{m.capturas > 0 ? ` • ${m.capturas} ${m.capturas === 1 ? 'resolveu' : 'resolveram'}` : ''}</span>
                         </span>
                       </button>
                     </li>

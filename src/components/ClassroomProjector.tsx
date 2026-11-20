@@ -1,23 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Lock, 
-  Unlock, 
-  Maximize2, 
-  Minimize2, 
-  Trophy, 
-  Medal, 
-  Sparkles, 
-  Flame, 
-  CheckCircle2, 
-  XCircle,
-  Plus,
-  Minus,
-  Users,
-  GraduationCap
-} from 'lucide-react';
+import { Play, Pause, RotateCcw, Lock, Unlock, Maximize2, Minimize2, Trophy, Medal, Sparkles, Flame, CheckCircle2, XCircle, Plus, Minus, Users, GraduationCap, Smartphone } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from '../types';
 import { playSound } from '../utils/audio';
@@ -34,6 +16,7 @@ import { pushRaliTimer } from '../utils/raliSession';
 import { DurationInline } from './common/DurationPicker';
 import { Btn, Toolbar, ToolbarDivider } from './common/ui';
 import { FinalPodium, useCelebrate } from './common/FinalPodium';
+import { Fogo } from './common/Icones';
 
 interface ClassroomProjectorProps {
   teams: Team[];
@@ -64,7 +47,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
   const scoringMode = normalizeScoringMode(sessionState.scoringMode);
   const lastFogoLogId = useRef<string | null>(logs.find((l) => l.is_fogo)?.id ?? null);
 
-  // 🔥 Celebra no telão quando uma equipe é a primeira a capturar uma tag
+  // Celebra no telão quando uma equipe é a primeira a capturar uma tag
   useEffect(() => {
     const latestFogo = logs.find((l) => l.is_fogo);
     if (!latestFogo || latestFogo.id === lastFogoLogId.current) return;
@@ -268,7 +251,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                 scoringMode === 'ctf_dynamic' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              <span aria-hidden>🔥</span> CTF Dinâmico
+              <Fogo /> CTF Dinâmico
             </button>
           </div>
         </div>
@@ -354,7 +337,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                           {team.missoes_concluidas.length} desafios superados
                           {(team.fogos_count || 0) > 0 && (
                             <span className="ml-2 font-bold text-orange-300" title="Missões capturadas em 1º lugar">
-                              🔥 x{team.fogos_count}
+                              <Fogo /> x{team.fogos_count}
                             </span>
                           )}
                         </span>
@@ -374,7 +357,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                                   : 'bg-slate-800 text-slate-300'
                               }`}
                             >
-                              {aluno} {aluno === team.scanner_aluno && '📱 (Scanner)'}
+                              {aluno} {aluno === team.scanner_aluno && <span className="inline-flex items-center gap-0.5"><Smartphone className="h-3 w-3" aria-hidden /> Scanner</span>}
                             </span>
                           ))
                         ) : (
@@ -439,7 +422,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
                   <div className="flex items-center justify-between font-bold">
                     <span className="truncate">{log.equipe_nome}</span>
                     <span className="font-mono text-[11px] shrink-0 ml-2">
-                      {log.correto ? `${log.is_fogo ? '🔥 ' : ''}+${log.xp_ganho} XP` : 'Tentativa'}
+                      {log.correto ? <>{log.is_fogo && <Fogo className="mr-0.5" />}+{log.xp_ganho} XP</> : 'Tentativa'}
                     </span>
                   </div>
 

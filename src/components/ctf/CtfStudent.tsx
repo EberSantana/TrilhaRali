@@ -6,7 +6,7 @@ import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { CruzEstado, CtfState } from '../../types/ctf';
 import type { CruzApi } from './Cruzadinha';
@@ -35,6 +35,7 @@ import { Cruzadinha } from './Cruzadinha';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
+import { Fogo } from '../common/Icones';
 
 
 const ACENTO = {
@@ -172,7 +173,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
         setFeedback({
           ok: true,
           text: fogo
-            ? `🔥 Primeiro a resolver! +${xp} XP. Fase ${s.aluno.concluido ? 'final concluída' : s.aluno.fase + ' desbloqueada'}!`
+            ? `Primeiro a resolver! +${xp} XP. Fase ${s.aluno.concluido ? 'final concluída' : s.aluno.fase + ' desbloqueada'}!`
             : `Correto! +${xp} XP.${s.aluno.concluido ? ' Você concluiu todas as fases!' : ` Fase ${s.aluno.fase} desbloqueada.`}`,
         });
         setAnswer('');
@@ -347,7 +348,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
       <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
       <XpChip xp={aluno.xp} />
       {aluno.fogos > 0 && (
-        <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black">🔥 x{aluno.fogos}</span>
+        <span className="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 font-black inline-flex items-center gap-1"><Fogo /> x{aluno.fogos}</span>
       )}
       <RankChip pos={aluno.posicao} total={state.total_alunos} />
       <button onClick={handleLeave} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800" title="Sair da sala" aria-label="Sair da sala">
@@ -505,9 +506,9 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
                     missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'
                   }`}
                 >
-                  {missao.capturas_anteriores === 0
-                    ? `🔥 FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
-                    : `⚠️ ${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}
+                  <span className="flex items-center gap-2">{missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{missao.capturas_anteriores === 0
+                    ? `FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
+                    : `${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}</span></span>
                 </div>
               )}
 

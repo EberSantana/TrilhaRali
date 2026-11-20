@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlaskConical, FileText, Globe, HardDrive, Cloud, Mail, Presentation, Sheet as SheetIcon, FolderOpen, ArrowDown, ArrowUp } from 'lucide-react';
+import { FlaskConical, FileText, Globe, HardDrive, Cloud, Mail, Presentation, Sheet as SheetIcon, FolderOpen, ArrowDown, ArrowUp, Paperclip, Image as ImageIcon } from 'lucide-react';
 import {
   LAB_ARQUIVOS,
   type LabArquivo,
@@ -123,7 +123,7 @@ function Email({ a }: { a: LabEmail }) {
       <L k="De" v={a.de} /><L k="Para" v={a.para.join(', ')} /><L k="Cc" v={a.cc.join(', ')} /><L k="Cco" v={a.cco.join(', ')} />
       <L k="Assunto" v={a.assunto} /><L k="Data" v={a.data} />
       <div className="flex flex-wrap gap-2 pt-1">
-        {a.anexos.map((x) => <span key={x.nome} className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs text-slate-200">📎 {x.nome} · {x.mb} MB</span>)}
+        {a.anexos.map((x) => <span key={x.nome} className="px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs text-slate-200 inline-flex items-center gap-1"><Paperclip className="h-3 w-3" aria-hidden /> {x.nome} · {x.mb} MB</span>)}
       </div>
       <div className="pt-3 mt-2 border-t border-slate-800 space-y-2">{a.corpo.map((p) => <p key={p} className="text-sm text-slate-300">{p}</p>)}</div>
       <p className="text-[11px] text-slate-500 pt-1">Visão de quem enviou: o campo Cco só aparece para o remetente.</p>
@@ -223,7 +223,7 @@ function BlocoDoc({ b }: { b: LabDocBloco }) {
     case 'imagem':
       return (
         <figure className="text-center">
-          <div className="mx-auto w-40 h-20 bg-slate-200 border border-slate-400 flex items-center justify-center text-xs text-slate-500">🖼️ {b.texto}</div>
+          <div className="mx-auto w-40 h-20 bg-slate-200 border border-slate-400 flex items-center justify-center text-xs text-slate-500 gap-1"><ImageIcon className="h-4 w-4" aria-hidden /> {b.texto}</div>
           <figcaption className="text-xs text-slate-600 mt-1">{b.legenda}</figcaption>
         </figure>
       );

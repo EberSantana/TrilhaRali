@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BookOpenCheck, Copy, Flag, Loader2, MonitorPlay, Power, Puzzle, Radio, RefreshCw, Search, Settings2, Trophy, Users } from 'lucide-react';
+import { AlertTriangle, BookOpenCheck, Copy, Flag, Loader2, MonitorPlay, Power, Puzzle, Radio, RefreshCw, Search, Settings2, Trophy, Users, Check, X } from 'lucide-react';
 import { BackPill } from '../common/ModuleShell';
 import { AvisoServidor } from '../common/AvisoServidor';
 import { Btn, QrImage } from '../common/ui';
@@ -12,6 +12,7 @@ import { getBancoKey } from '../../utils/bankApi';
 import { MOTIVO_AJUDA, placar, precisamAjuda } from '../../utils/aoVivo';
 import type { CtfTeacherView, RoomTipo } from '../../types/ctf';
 import type { TimerOp } from '../../utils/timer';
+import { Fogo } from '../common/Icones';
 
 type Tipo = RoomTipo | 'desv';
 interface SalaAberta {
@@ -279,7 +280,7 @@ const SalaJogo: React.FC<{ sala: SalaAberta; onEncerrada: () => void; onAbrirPai
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate font-semibold text-slate-100">{aluno.nome}</span>
                       <span className="shrink-0 font-mono text-xs text-slate-400">
-                        {aluno.acertos} ✓ · <span className="text-rose-300">{aluno.erros} ✗</span>
+                        {aluno.acertos} <Check className="inline h-3 w-3" aria-label="acertos" /> · <span className="text-rose-300">{aluno.erros} <X className="inline h-3 w-3" aria-label="erros" /></span>
                       </span>
                     </div>
                     {nfc && aluno.integrantes && aluno.integrantes.length > 0 && <p className="truncate text-[11px] text-slate-500">{aluno.integrantes.join(', ')}</p>}
@@ -310,7 +311,7 @@ const SalaJogo: React.FC<{ sala: SalaAberta; onEncerrada: () => void; onAbrirPai
                 <li key={a.nome} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm odd:bg-slate-950/50">
                   <span className="w-6 text-right font-mono text-xs text-slate-500">{i + 1}º</span>
                   <span className="min-w-0 flex-1 truncate font-semibold text-slate-100">{a.nome}</span>
-                  {a.fogos > 0 && <span className="text-xs text-orange-300">🔥{a.fogos}</span>}
+                  {a.fogos > 0 && <span className="text-xs text-orange-300"><Fogo />{a.fogos}</span>}
                   <span className="font-mono text-xs text-slate-400">{a.acertos}/{total}</span>
                   <span className="w-14 text-right font-mono font-bold text-emerald-300">{a.xp}</span>
                 </li>

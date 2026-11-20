@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  Users, 
-  FolderPlus, 
-  Archive, 
-  Check, 
-  X, 
-  Plus, 
-  Trash2, 
-  Download, 
-  Smartphone, 
-  Calendar,
-  GraduationCap,
-  Pencil,
-  AlertTriangle
-} from 'lucide-react';
+import { Users, FolderPlus, Archive, Check, X, Plus, Trash2, Download, Smartphone, Calendar, GraduationCap, Pencil, AlertTriangle, Trophy, FileText } from 'lucide-react';
 import { RallyRoom, Team } from '../types';
 import { IfsLogo } from './IfsLogo';
 
@@ -741,11 +727,11 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                       </p>
 
                       <div className="flex items-center gap-3 pt-1 text-xs text-slate-300">
-                        <span>👥 {totalStudents} alunos</span>
+                        <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {totalStudents} alunos</span>
                         <span>•</span>
-                        <span>🏆 {totalXp} XP acumulado</span>
+                        <span className="inline-flex items-center gap-1"><Trophy className="h-3.5 w-3.5" aria-hidden /> {totalXp} XP acumulado</span>
                         <span>•</span>
-                        <span>📝 {room.logs.length} submissões</span>
+                        <span className="inline-flex items-center gap-1"><FileText className="h-3.5 w-3.5" aria-hidden /> {room.logs.length} submissões</span>
                       </div>
                     </div>
 
