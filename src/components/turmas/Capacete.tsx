@@ -13,13 +13,13 @@ export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string
     nome: 'Copiloto',
     funcao: 'Lê as pistas, anota no caderno e orienta a próxima jogada.',
     casco: '#22c55e', casco2: '#15803d', viseira: ['#f59e0b', '#fde68a'], faixa: '#f8fafc', numero: '2',
-    texto: 'text-green-300', borda: 'border-green-500/50', fundo: 'bg-green-500/10',
+    texto: 'text-emerald-300', borda: 'border-emerald-500/50', fundo: 'bg-emerald-500/10',
   },
   engenheiro: {
     nome: 'Engenheiro de pista',
     funcao: 'Confere a resposta antes de enviar.',
     casco: '#3b82f6', casco2: '#1e3a8a', viseira: ['#0f172a', '#334155'], faixa: '#f8fafc', numero: '3',
-    texto: 'text-blue-300', borda: 'border-blue-500/50', fundo: 'bg-blue-500/10',
+    texto: 'text-sky-300', borda: 'border-sky-500/50', fundo: 'bg-sky-500/10',
   },
 };
 
