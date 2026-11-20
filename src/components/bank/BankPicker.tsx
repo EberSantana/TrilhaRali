@@ -95,7 +95,7 @@ export const BankPicker: React.FC<BankPickerProps> = ({ questions, selected, onC
                   key={`${g.disciplina}|${g.assunto}`}
                   title={`${g.disciplina} · ${g.assunto}`}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer transition ${
-                    full ? (accent === 'orange' ? 'border-orange-500 bg-orange-500/15 text-orange-100' : 'border-emerald-500 bg-emerald-500/15 text-emerald-100')
+                    full ? (accent === 'orange' ? 'border-orange-500 bg-orange-500/15 text-orange-200' : 'border-emerald-500 bg-emerald-500/15 text-emerald-200')
                       : sel > 0 ? 'border-slate-500 bg-slate-800 text-slate-100' : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
                   }`}
                 >

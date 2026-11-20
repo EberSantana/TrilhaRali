@@ -32,6 +32,8 @@
   --color-sky-200: #0c4a6e;     --color-sky-300: #075985;     --color-sky-400: #0369a1;
   --color-indigo-300: #3730a3;  --color-indigo-400: #4338ca;
   --color-purple-300: #6b21a8;  --color-purple-400: #7e22ce;
+  --color-violet-200: #4c1d95;  --color-violet-300: #5b21b6;
+  --color-fuchsia-200: #701a75; --color-fuchsia-300: #86198f;
 
   /* fundos escuros de avisos viram tintas claras */
   --color-emerald-950: #e3f3e6; --color-emerald-900: #cfe9d5; --color-emerald-800: #a9d6b4;
