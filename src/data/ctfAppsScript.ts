@@ -23,17 +23,19 @@ var SHEET_HEADERS = {
   CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo', 'assunto'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
-  DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas'],
+  DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas', 'token'],
+  DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em'],
+  DesvDuplas: ['token', 'gid', 'nome', 'integrantes', 'entrou_em'],
   DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
-var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -102,7 +104,10 @@ function route(req) {
     case 'cruzRanking': return cruzRanking(req);
     case 'desvAcusar': return desvAcusar(req);
     case 'desvRanking': return desvRanking(req);
-    case 'desvMeus': return desvMeus(req);
+    case 'createDesvRoom': return createDesvRoom(req);
+    case 'desvEntrar': return desvEntrar(req);
+    case 'desvEstado': return desvEstado(req);
+    case 'desvProf': return desvProf(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
@@ -1227,9 +1232,9 @@ function cruzTreinoCheck(req) {
   return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp, ajuda: ajudadas > 0 } });
 }
 
-// ---------- Desvendando com Conhecimento (casos de mistério) ----------
-// O navegador envia a acusacao e o servidor confere, conta os erros e grava os pontos. O gabarito fica SO na aba
-// DesvGabarito da planilha (caso, suspeito, pontos, explicacao), nunca no codigo publico.
+// ---------- Desvendando com Conhecimento (casos de mistério, em duplas, liberados pelo professor) ----------
+// O professor cria a sala, escolhe e libera os casos; as duplas entram com o token. O navegador envia a acusacao e
+// o servidor confere, conta os erros e grava os pontos. O gabarito fica SO na aba DesvGabarito da planilha.
 function desvGabarito() {
   var cache = CacheService.getScriptCache();
   var g = cache.get('desvGab_v31');
@@ -1249,21 +1254,115 @@ function desvGid(v) {
   return g;
 }
 
-function desvResolvidos(gid) {
-  return readRows('DesvRanking').filter(function (r) { return String(r.gid) === gid; });
+function desvCasosLista(v) {
+  var lista = Array.isArray(v) ? v : [];
+  var gab = desvGabarito();
+  var vistos = {};
+  return lista.map(String).filter(function (c) {
+    if (!gab[c] || vistos[c]) return false;
+    vistos[c] = 1;
+    return true;
+  });
+}
+
+function desvSala(token) {
+  var t = String(token || '').toUpperCase().trim();
+  var r = readRows('DesvSalas').filter(function (x) { return String(x.token) === t; })[0];
+  if (!r) fail('Sala não encontrada. Confira o token com o professor.');
+  var casos = [];
+  try { casos = JSON.parse(String(r.casos || '[]')); } catch (e) { casos = []; }
+  r.casosLista = casos;
+  return r;
+}
+
+function desvSalaAdmin(req) {
+  var r = desvSala(req.token);
+  if (String(r.admin_key) !== String(req.adminKey || '')) fail('Chave de professor inválida para esta sala.');
+  return r;
+}
+
+function createDesvRoom(req) {
+  var gab = desvGabarito();
+  if (!Object.keys(gab).length) fail('O gabarito do Desvendando ainda não foi carregado na planilha (aba DesvGabarito).');
+  var casos = desvCasosLista(req.casos);
+  var existentes = readRows('DesvSalas').map(function (r) { return String(r.token); })
+    .concat(readRows('CtfSalas').map(function (r) { return String(r.token); }));
+  var token;
+  do { token = genToken(); } while (existentes.indexOf(token) >= 0);
+  var adminKey = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 24);
+  appendObj('DesvSalas', {
+    token: token, nome: safeText(String(req.nome || 'Desvendando').substring(0, 80)), admin_key: adminKey,
+    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString()
+  });
+  return { token: token, adminKey: adminKey, casos: casos };
+}
+
+function desvDupla(token, gid) {
+  return readRows('DesvDuplas').filter(function (d) { return String(d.token) === token && String(d.gid) === gid; })[0];
+}
+
+function desvEntrar(req) {
+  var sala = desvSala(req.token);
+  if (String(sala.status) !== 'aberta') fail('Esta sala já foi encerrada pelo professor.');
+  var gid = desvGid(req.gid);
+  var nome = cruzRankingNome(req.nome);
+  var integrantes = String(req.integrantes || '').replace(/\s+/g, ' ').trim().substring(0, 120);
+  var token = String(sala.token);
+  var ja = desvDupla(token, gid);
+  if (ja) updateRow('DesvDuplas', ja._row, { nome: safeText(nome), integrantes: safeText(integrantes) });
+  else appendObj('DesvDuplas', { token: token, gid: gid, nome: safeText(nome), integrantes: safeText(integrantes), entrou_em: new Date().toISOString() });
+  return desvEstado({ token: token, gid: gid });
+}
+
+function desvRankingSala(token) {
+  var por = {};
+  readRows('DesvRanking').forEach(function (r) {
+    if (String(r.token) !== token) return;
+    var g = String(r.gid);
+    var e = por[g] || (por[g] = { nome: String(r.nome), pontos: 0, casos: 0, quando: String(r.quando) });
+    e.pontos += Number(r.pontos) || 0;
+    e.casos++;
+    if (String(r.quando) > e.quando) e.quando = String(r.quando);
+  });
+  var nomes = {};
+  readRows('DesvDuplas').forEach(function (d) { if (String(d.token) === token) nomes[String(d.gid)] = String(d.nome); });
+  var lista = Object.keys(por).map(function (g) { var e = por[g]; e.nome = nomes[g] || e.nome; return e; });
+  lista.sort(function (a, b) { return b.pontos - a.pontos || (a.quando < b.quando ? -1 : 1); });
+  return lista.map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, casos: x.casos }; });
+}
+
+function desvEstado(req) {
+  var sala = desvSala(req.token);
+  var token = String(sala.token);
+  var gid = desvGid(req.gid);
+  var dupla = desvDupla(token, gid);
+  if (!dupla) fail('Entre na sala com o nome da dupla.');
+  var resolvidos = {};
+  readRows('DesvRanking').forEach(function (r) { if (String(r.token) === token && String(r.gid) === gid) resolvidos[String(r.caso)] = Number(r.pontos) || 0; });
+  return {
+    sala: { token: token, nome: String(sala.nome), status: String(sala.status), casos: sala.casosLista },
+    dupla: { nome: String(dupla.nome), integrantes: String(dupla.integrantes || '') },
+    resolvidos: resolvidos,
+    ranking: desvRankingSala(token).slice(0, 50)
+  };
 }
 
 function desvAcusar(req) {
+  var sala = desvSala(req.token);
+  var token = String(sala.token);
+  if (String(sala.status) !== 'aberta') fail('Esta sala já foi encerrada pelo professor.');
   var gid = desvGid(req.gid);
+  var dupla = desvDupla(token, gid);
+  if (!dupla) fail('Entre na sala com o nome da dupla.');
   var gab = desvGabarito();
   if (!Object.keys(gab).length) fail('O gabarito do Desvendando ainda não foi carregado na planilha (aba DesvGabarito).');
   var caso = gab[String(req.caso)];
   if (!caso) fail('Caso desconhecido.');
-  var nome = cruzRankingNome(req.nome);
-  var ja = desvResolvidos(gid).filter(function (r) { return String(r.caso) === String(req.caso); })[0];
-  if (ja) return { correto: true, jaResolvido: true, pontos: Number(ja.pontos) || 0, explicacao: desvExplica(caso) };
+  if (sala.casosLista.indexOf(String(req.caso)) < 0) fail('Este caso ainda não foi liberado pelo professor.');
+  var ja = readRows('DesvRanking').filter(function (r) { return String(r.token) === token && String(r.gid) === gid && String(r.caso) === String(req.caso); })[0];
+  if (ja) return { correto: true, jaResolvido: true, pontos: Number(ja.pontos) || 0, explicacao: caso.explicacao };
   var cache = CacheService.getScriptCache();
-  var chave = 'desv_' + gid + '_' + req.caso;
+  var chave = 'desv_' + token + '_' + gid + '_' + req.caso;
   var erros = Number(cache.get(chave) || 0);
   if ((Number(req.suspeito) || 0) !== caso.suspeito) {
     erros++;
@@ -1271,14 +1370,9 @@ function desvAcusar(req) {
     return { correto: false, erros: erros, valeAgora: desvPontos(caso, erros, req.dicas) };
   }
   var pontos = desvPontos(caso, erros, req.dicas);
-  appendObj('DesvRanking', { quando: new Date().toISOString(), nome: safeText(nome), gid: gid, caso: String(req.caso), pontos: pontos, erros: erros, dicas: Math.max(0, Math.min(5, Number(req.dicas) || 0)) });
+  appendObj('DesvRanking', { quando: new Date().toISOString(), nome: String(dupla.nome), gid: gid, caso: String(req.caso), pontos: pontos, erros: erros, dicas: Math.max(0, Math.min(5, Number(req.dicas) || 0)), token: token });
   cache.remove(chave);
-  cache.remove('desvRanking_v31');
-  return { correto: true, pontos: pontos, erros: erros, explicacao: desvExplica(caso) };
-}
-
-function desvExplica(caso) {
-  return caso.explicacao;
+  return { correto: true, pontos: pontos, erros: erros, explicacao: caso.explicacao };
 }
 
 function desvPontos(caso, erros, dicas) {
@@ -1286,30 +1380,38 @@ function desvPontos(caso, erros, dicas) {
   return Math.max(20, caso.pontos - 15 * erros - 10 * d);
 }
 
-function desvMeus(req) {
-  var gid = desvGid(req.gid);
-  var feitos = {};
-  desvResolvidos(gid).forEach(function (r) { feitos[String(r.caso)] = Number(r.pontos) || 0; });
-  return { resolvidos: feitos };
+// Ranking da sala (aberto: serve para o telão)
+function desvRanking(req) {
+  var sala = desvSala(req.token);
+  return { sala: { nome: String(sala.nome), status: String(sala.status) }, ranking: desvRankingSala(String(sala.token)) };
 }
 
-function desvRanking(req) {
-  var cache = CacheService.getScriptCache();
-  var guardado = cache.get('desvRanking_v31');
-  if (guardado) return JSON.parse(guardado);
-  var por = {};
+// Painel do professor: liberar casos, encerrar/reabrir e acompanhar duplas e acertos
+function desvProf(req) {
+  var sala = desvSalaAdmin(req);
+  var token = String(sala.token);
+  if (req.op === 'casos') {
+    var casos = desvCasosLista(req.casos);
+    updateRow('DesvSalas', sala._row, { casos: JSON.stringify(casos) });
+    sala.casosLista = casos;
+  } else if (req.op === 'status') {
+    var st = req.status === 'encerrada' ? 'encerrada' : 'aberta';
+    updateRow('DesvSalas', sala._row, { status: st });
+    sala.status = st;
+  }
+  var duplas = readRows('DesvDuplas').filter(function (d) { return String(d.token) === token; });
+  var porCaso = {};
   readRows('DesvRanking').forEach(function (r) {
-    var g = String(r.gid);
-    var e = por[g] || (por[g] = { nome: String(r.nome), pontos: 0, casos: 0, quando: String(r.quando) });
-    e.pontos += Number(r.pontos) || 0;
-    e.casos++;
-    if (String(r.quando) > e.quando) { e.quando = String(r.quando); e.nome = String(r.nome); }
+    if (String(r.token) !== token) return;
+    var c = String(r.caso);
+    porCaso[c] = (porCaso[c] || 0) + 1;
   });
-  var lista = Object.keys(por).map(function (g) { return por[g]; });
-  lista.sort(function (a, b) { return b.pontos - a.pontos || (a.quando < b.quando ? -1 : 1); });
-  var r = { ranking: lista.slice(0, 100).map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, casos: x.casos }; }), total: lista.length };
-  cache.put('desvRanking_v31', JSON.stringify(r), 30);
-  return r;
+  return {
+    sala: { token: token, nome: String(sala.nome), status: String(sala.status), casos: sala.casosLista },
+    duplas: duplas.map(function (d) { return { nome: String(d.nome), integrantes: String(d.integrantes || '') }; }),
+    resolvidosPorCaso: porCaso,
+    ranking: desvRankingSala(token)
+  };
 }
 
 // ---------- Grande ranking da Cruzada (treino livre) ----------

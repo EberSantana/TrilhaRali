@@ -15,6 +15,7 @@ import {
   Sheet,
   ShieldCheck,
   Users,
+  Search,
 } from 'lucide-react';
 
 import { ThemePicker } from './common/ThemePicker';
@@ -31,6 +32,7 @@ interface TeacherHubProps {
   onOpenRaliRooms: () => void;
   onOpenCtfRooms: () => void;
   onOpenCruzRooms: () => void;
+  onOpenDesvRooms: () => void;
   onOpenAccount: () => void;
 }
 
@@ -92,11 +94,13 @@ interface StepRow {
 }
 
 /** Cartão de módulo: Rali NFC e CTF Online seguem exatamente os mesmos 4 passos. */
-const ModuleCard: React.FC<{ name: string; tagline: string; tone: 'emerald' | 'orange' | 'cyan'; icon: React.ReactNode; rows: StepRow[] }> = ({ name, tagline, tone, icon, rows }) => {
+const ModuleCard: React.FC<{ name: string; tagline: string; tone: 'emerald' | 'orange' | 'cyan' | 'violet'; icon: React.ReactNode; rows: StepRow[] }> = ({ name, tagline, tone, icon, rows }) => {
   const t = tone === 'emerald'
     ? { head: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300', num: 'bg-emerald-600', hover: 'hover:border-emerald-500/50' }
     : tone === 'cyan'
     ? { head: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300', num: 'bg-cyan-600', hover: 'hover:border-cyan-500/50' }
+    : tone === 'violet'
+    ? { head: 'bg-violet-500/10 border-violet-500/30 text-violet-300', num: 'bg-violet-600', hover: 'hover:border-violet-500/50' }
     : { head: 'bg-orange-500/10 border-orange-500/30 text-orange-300', num: 'bg-orange-600', hover: 'hover:border-orange-500/50' };
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5" aria-label={name}>
@@ -221,6 +225,18 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
             { step: 2, label: 'Turma', title: 'Salas e tokens', description: 'Crie a sala e envie o link ou o token. Sem sala, o aluno usa o Treino livre.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
             { step: 3, label: 'Ao vivo', title: 'Telão e cronômetro', description: 'Quem fecha a palavra primeiro ganha mais XP e o 🔥.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
             { step: 4, label: 'Resultados', title: 'Ranking e debriefing', description: 'Palavras acertadas por aluno e gabarito da turma.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenCruzRooms },
+          ]}
+        />
+        <ModuleCard
+          name="Desvendando"
+          tagline="Mistérios em dupla, liberados por você"
+          tone="violet"
+          icon={<Search className="w-5 h-5" />}
+          rows={[
+            { step: 1, label: 'Casos', title: 'Escolher os casos', description: '12 casos de Lógica, Banco de Dados, Construção de Sites e Informática Básica.', icon: <BookOpenCheck className="w-4 h-4" />, onClick: p.onOpenDesvRooms },
+            { step: 2, label: 'Turma', title: 'Sala por turma', description: 'Crie a sala e mostre o token ou o QR. As duplas entram com o nome e os integrantes.', icon: <Users className="w-4 h-4" />, onClick: p.onOpenDesvRooms },
+            { step: 3, label: 'Ao vivo', title: 'Liberar casos', description: 'Libere ou esconda casos durante a aula; as duplas só veem o que você liberou.', icon: <MonitorPlay className="w-4 h-4" />, onClick: p.onOpenDesvRooms },
+            { step: 4, label: 'Resultados', title: 'Ranking da sala', description: 'Pontos por dupla e quantas duplas resolveram cada caso.', icon: <BarChart3 className="w-4 h-4" />, onClick: p.onOpenDesvRooms },
           ]}
         />
       </div>

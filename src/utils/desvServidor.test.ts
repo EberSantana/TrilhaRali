@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { createHash } from 'node:crypto';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
 import { gabaritoAberto } from './gabaritoTeste';
 
@@ -14,15 +13,18 @@ function servidor() {
   const cache = { get: (k: string) => guardado.get(k) ?? null, put: (k: string, v: string) => void guardado.set(k, v), remove: (k: string) => void guardado.delete(k) };
   const desv = gabaritoAberto().desv!;
   const sheets: Record<string, Row[]> = {
-    DesvRanking: [],
+    DesvRanking: [], DesvSalas: [], DesvDuplas: [], CtfSalas: [],
     DesvGabarito: Object.entries(desv).map(([caso, g], i) => ({ _row: i + 2, caso, suspeito: g.suspeito, pontos: g.pontos, explicacao: g.explicacao })),
   };
+  let n = 0;
   const ctx: Record<string, unknown> = {
-    readRows: (n: string) => sheets[n].map((r) => ({ ...r })),
-    appendObj: (n: string, o: Record<string, unknown>) => sheets[n].push({ ...o, _row: sheets[n].length + 2 }),
+    readRows: (nome: string) => sheets[nome].map((r) => ({ ...r })),
+    appendObj: (nome: string, o: Record<string, unknown>) => sheets[nome].push({ ...o, _row: sheets[nome].length + 2 }),
+    updateRow: (nome: string, row: number, o: Record<string, unknown>) => Object.assign(sheets[nome].find((r) => r._row === row)!, o),
     safeText: (v: string) => v,
-    sha256hex: (t: string) => createHash('sha256').update(String(t)).digest('hex'),
-    Utilities: { base64Decode: (b: string) => Buffer.from(b, 'base64'), newBlob: (buf: Buffer) => ({ getDataAsString: () => buf.toString('utf8') }) },
+    genToken: () => `T${String(++n).padStart(5, 'A')}`,
+    randomFrom: () => 'chave-prof',
+    TOKEN_CHARS: 'ABC',
     fail: (m: string) => { throw new Error(m); },
     CacheService: { getScriptCache: () => cache },
   };
@@ -33,41 +35,60 @@ function servidor() {
   return { sheets, call };
 }
 
-const GID = 'aparelho_teste_01';
+const DUPLA_A = 'aparelho_dupla_a1';
+const DUPLA_B = 'aparelho_dupla_b2';
 
-test('acusação errada desconta 15 e a certa grava os pontos uma vez só', () => {
+function salaCom(casos: string[]) {
   const s = servidor();
-  const e1 = s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c3', suspeito: 2, dicas: 0 });
-  assert.deepEqual([e1.correto, e1.erros, e1.valeAgora], [false, 1, 85]);
-  const ok = s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c3', suspeito: 5, dicas: 1 });
-  assert.equal(ok.correto, true);
-  assert.equal(ok.pontos, 75); // 100 - 15 (1 erro) - 10 (1 dica)
-  assert.match(ok.explicacao, /Eduardo/);
-  const de_novo = s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c3', suspeito: 5, dicas: 0 });
-  assert.equal(de_novo.jaResolvido, true);
+  const { token, adminKey } = s.call('createDesvRoom', { nome: '2º B', casos });
+  return { ...s, token, adminKey };
+}
+
+test('o professor cria a sala só com os casos escolhidos; caso inexistente é ignorado', () => {
+  const s = salaCom(['c3', 'c99', 'c3', 'c1']);
+  assert.deepEqual(s.call('desvProf', { token: s.token, adminKey: s.adminKey }).sala.casos, ['c3', 'c1']);
+  assert.throws(() => s.call('desvProf', { token: s.token, adminKey: 'errada' }), /Chave de professor/);
+});
+
+test('a dupla entra com o token e só acusa casos liberados; erro desconta 15 e o acerto grava uma vez', () => {
+  const s = salaCom(['c3']);
+  const e = s.call('desvEntrar', { token: s.token.toLowerCase(), gid: DUPLA_A, nome: 'Lia e Rui', integrantes: 'Lia, Rui' });
+  assert.deepEqual(e.sala.casos, ['c3']);
+  assert.throws(() => s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c1', suspeito: 1 }), /não foi liberado/);
+  const erro = s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c3', suspeito: 2, dicas: 0 });
+  assert.deepEqual([erro.correto, erro.valeAgora], [false, 85]);
+  const ok = s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c3', suspeito: 5, dicas: 1 });
+  assert.deepEqual([ok.correto, ok.pontos], [true, 75]);
+  assert.equal(s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c3', suspeito: 5 }).jaResolvido, true);
   assert.equal(s.sheets.DesvRanking.length, 1);
+  assert.deepEqual(s.call('desvEstado', { token: s.token, gid: DUPLA_A }).resolvidos, { c3: 75 });
 });
 
-test('pontuação mínima de 20 e ranking soma os casos por aparelho', () => {
-  const s = servidor();
-  for (let i = 0; i < 9; i++) s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c1', suspeito: 2 });
-  assert.equal(s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c1', suspeito: 1 }).pontos, 20);
-  s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c4', suspeito: 8 });
-  s.call('desvAcusar', { gid: 'outro_aparelho_02', nome: 'Rui', caso: 'c2', suspeito: 4 });
-  const r = s.call('desvRanking', {});
-  assert.deepEqual(r.ranking.map((x: { nome: string; pontos: number; casos: number }) => [x.nome, x.pontos, x.casos]), [['Lia', 140, 2], ['Rui', 80, 1]]);
-  assert.deepEqual(s.call('desvMeus', { gid: GID }).resolvidos, { c1: 20, c4: 120 });
+test('liberar caso no meio da aula, ranking só da sala e sala encerrada bloqueia acusações', () => {
+  const s = salaCom(['c1']);
+  s.call('desvEntrar', { token: s.token, gid: DUPLA_A, nome: 'Dupla A' });
+  s.call('desvEntrar', { token: s.token, gid: DUPLA_B, nome: 'Dupla B' });
+  s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c1', suspeito: 1 });
+  s.call('desvProf', { token: s.token, adminKey: s.adminKey, op: 'casos', casos: ['c1', 'c4'] });
+  s.call('desvAcusar', { token: s.token, gid: DUPLA_B, caso: 'c4', suspeito: 8 });
+  // outra turma, outra sala: não entra neste ranking
+  const outra = s.call('createDesvRoom', { nome: '3º A', casos: ['c1'] });
+  s.call('desvEntrar', { token: outra.token, gid: 'aparelho_outra_t1', nome: 'Outra turma' });
+  s.call('desvAcusar', { token: outra.token, gid: 'aparelho_outra_t1', caso: 'c1', suspeito: 1 });
+  const r = s.call('desvRanking', { token: s.token }).ranking;
+  assert.deepEqual(r.map((x: { nome: string; pontos: number }) => [x.nome, x.pontos]), [['Dupla B', 120], ['Dupla A', 60]]);
+  const p = s.call('desvProf', { token: s.token, adminKey: s.adminKey, op: 'status', status: 'encerrada' });
+  assert.equal(p.duplas.length, 2);
+  assert.deepEqual(p.resolvidosPorCaso, { c1: 1, c4: 1 });
+  assert.throws(() => s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c4', suspeito: 8 }), /encerrada/);
+  assert.throws(() => s.call('desvEntrar', { token: s.token, gid: 'aparelho_nova_c3', nome: 'Nova' }), /encerrada/);
 });
 
-test('valida caso, nome e aparelho', () => {
-  const s = servidor();
-  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c99', suspeito: 1 }), /Caso desconhecido/);
-  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'L', caso: 'c1', suspeito: 1 }), /nome/);
-  assert.throws(() => s.call('desvAcusar', { gid: 'x', nome: 'Lia', caso: 'c1', suspeito: 1 }), /aparelho/);
-});
-
-test('sem a aba DesvGabarito preenchida o servidor avisa em vez de aceitar qualquer acusação', () => {
-  const s = servidor();
-  s.sheets.DesvGabarito.length = 0;
-  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c1', suspeito: 1 }), /DesvGabarito/);
+test('sem entrar na sala não acusa, e sem gabarito na planilha não cria sala', () => {
+  const s = salaCom(['c1']);
+  assert.throws(() => s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c1', suspeito: 1 }), /Entre na sala/);
+  assert.throws(() => s.call('desvEntrar', { token: 'ZZZZZZ', gid: DUPLA_A, nome: 'X Y' }), /Sala não encontrada/);
+  const v = servidor();
+  v.sheets.DesvGabarito.length = 0;
+  assert.throws(() => v.call('createDesvRoom', { casos: ['c1'] }), /DesvGabarito/);
 });

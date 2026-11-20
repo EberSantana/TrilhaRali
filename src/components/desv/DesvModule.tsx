@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Code2, Database, Lightbulb, Loader2, NotebookPen, RefreshCw, Search, Trophy, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Code2, Database, KeyRound, Lightbulb, Loader2, LogOut, NotebookPen, RefreshCw, Search, Trophy, Users, XCircle } from 'lucide-react';
 import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data/desvCasos';
 import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 import { ModuleTabs } from '../common/ModuleShell';
 
 const K_GID = 'rali_desv_gid_v1';
-const K_NOME = 'rali_desv_nome_v1';
+const K_SESSAO = 'rali_desv_sessao_v1';
 const K_DICAS = 'rali_desv_dicas_v1';
 
 function lerLS(k: string): string {
@@ -43,6 +43,29 @@ const msgErro = (e: unknown) => {
   return /a[cç][aã]o desconhecida/i.test(m) ? 'O Desvendando precisa do Apps Script v31 publicado.' : m;
 };
 
+interface Sessao {
+  token: string;
+  nome: string;
+  integrantes: string;
+}
+function lerSessao(): Sessao | null {
+  try {
+    const v = JSON.parse(lerLS(K_SESSAO) || 'null');
+    return v && v.token ? v : null;
+  } catch {
+    return null;
+  }
+}
+interface Estado {
+  sala: { token: string; nome: string; status: string; casos: string[] };
+  dupla: { nome: string; integrantes: string };
+  resolvidos: Record<string, number>;
+  ranking: { pos: number; nome: string; pontos: number; casos: number }[];
+}
+/** Token vindo do link do professor: #/desvendando/ABC234 */
+const tokenDoLink = () => (typeof window === 'undefined' ? '' : (window.location.hash.match(/#\/desvendando\/([A-Za-z0-9]{4,8})/)?.[1] || '').toUpperCase());
+
+
 const DISCIPLINAS = Array.from(new Set(DESV_CASOS.map((c) => c.disciplina)));
 
 const NIVEL_COR: Record<DesvCaso['nivel'], string> = {
@@ -52,167 +75,280 @@ const NIVEL_COR: Record<DesvCaso['nivel'], string> = {
   Mestre: 'bg-rose-500/10 text-rose-300 border-rose-500/30',
 };
 
-/** Desvendando com Conhecimento: casos de mistério resolvidos por lógica ou por SQL, com ranking. */
+/** Desvendando com Conhecimento: o professor cria a sala e libera os casos; as duplas entram com o token. */
 export const DesvModule: React.FC = () => {
   const [gid] = useState(gidDoAparelho);
+  const [sessao, setSessao] = useState<Sessao | null>(lerSessao);
+  const [estado, setEstado] = useState<Estado | null>(null);
+  const [erro, setErro] = useState('');
   const [aba, setAba] = useState<'casos' | 'ranking'>('casos');
   const [aberto, setAberto] = useState<DesvCaso | null>(null);
-  const [resolvidos, setResolvidos] = useState<Record<string, number>>({});
 
   const atualizar = useCallback(async () => {
+    if (!sessao) return;
     try {
-      const r = await ctfCall<{ resolvidos: Record<string, number> }>('desvMeus', { gid });
-      setResolvidos(r.resolvidos || {});
-    } catch {
-      // sem servidor: a lista aparece sem os resolvidos
+      setEstado(await ctfCall<Estado>('desvEstado', { token: sessao.token, gid }));
+      setErro('');
+    } catch (e) {
+      const m = msgErro(e);
+      if (/Entre na sala|não encontrada/i.test(m)) {
+        // a sala sumiu ou o aparelho não está nela: volta para a entrada
+        gravarLS(K_SESSAO, '');
+        setSessao(null);
+      }
+      setErro(m);
     }
-  }, [gid]);
+  }, [sessao, gid]);
+
   useEffect(() => {
     void atualizar();
+    // casos liberados no meio da aula aparecem sozinhos (só com a aba visível)
+    const t = window.setInterval(() => document.visibilityState === 'visible' && void atualizar(), 20000);
+    const vis = () => document.visibilityState === 'visible' && void atualizar();
+    document.addEventListener('visibilitychange', vis);
+    return () => {
+      window.clearInterval(t);
+      document.removeEventListener('visibilitychange', vis);
+    };
   }, [atualizar]);
 
-  if (aberto) {
+  const sair = () => {
+    gravarLS(K_SESSAO, '');
+    setSessao(null);
+    setEstado(null);
+    setAberto(null);
+  };
+
+  if (!sessao) {
     return (
-      <div>
-        <DesvCasoView
-          caso={aberto}
-          gid={gid}
-          resolvidoCom={resolvidos[aberto.id]}
-          onVoltar={() => setAberto(null)}
-          onResolvido={(pts) => setResolvidos((r) => ({ ...r, [aberto.id]: pts }))}
-        />
+      <EntradaDupla
+        gid={gid}
+        erroInicial={erro}
+        onEntrou={(ses, est) => {
+          gravarLS(K_SESSAO, JSON.stringify(ses));
+          setSessao(ses);
+          setEstado(est);
+          setErro('');
+        }}
+      />
+    );
+  }
+
+  if (!estado) {
+    return (
+      <div className="py-16 text-center text-slate-400 flex flex-col items-center gap-3">
+        {erro ? <p className="text-sm text-amber-300">{erro}</p> : <Loader2 className="w-8 h-8 animate-spin text-violet-400" />}
+        <span className="text-sm">Voltando para a sala {sessao.token}…</span>
+        <button type="button" onClick={sair} className="text-xs font-bold text-slate-400 underline">Sair da sala</button>
       </div>
     );
   }
 
+  const liberados = DESV_CASOS.filter((c) => estado.sala.casos.includes(c.id));
+  const total = Object.values(estado.resolvidos).reduce((a, b) => a + b, 0);
+  const encerrada = estado.sala.status !== 'aberta';
+
+  if (aberto) {
+    return (
+      <DesvCasoView
+        caso={aberto}
+        gid={gid}
+        token={sessao.token}
+        resolvidoCom={estado.resolvidos[aberto.id]}
+        onVoltar={() => {
+          setAberto(null);
+          void atualizar();
+        }}
+        onResolvido={(pts) => setEstado((e) => (e ? { ...e, resolvidos: { ...e.resolvidos, [aberto.id]: pts } } : e))}
+      />
+    );
+  }
+
+  const disciplinas = DISCIPLINAS.filter((d) => liberados.some((c) => c.disciplina === d));
   return (
     <div>
-      <p className="mx-auto mb-4 max-w-2xl text-center text-sm text-slate-400">
-        Cada caso tem um culpado e só uma resposta que dá para provar. Use as pistas ou investigue no banco de dados, e acuse com
-        certeza: cada acusação errada custa pontos.
-      </p>
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-black text-white">{estado.dupla.nome}</p>
+          <p className="truncate text-xs text-slate-400">
+            Sala {estado.sala.nome} · token {estado.sala.token}
+            {estado.dupla.integrantes ? ` · ${estado.dupla.integrantes}` : ''}
+          </p>
+        </div>
+        <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-black text-amber-300">{total} pts</span>
+        <button type="button" onClick={sair} className="rounded-lg border border-slate-800 p-2 text-slate-400 hover:bg-slate-800 hover:text-white" title="Sair da sala" aria-label="Sair da sala">
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
+      {encerrada && <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">O professor encerrou esta sala. Os casos ficam só para consulta.</p>}
       <ModuleTabs<'casos' | 'ranking'>
         accent="violet"
         label="Desvendando"
         value={aba}
-        onChange={setAba}
+        onChange={(v) => {
+          setAba(v);
+          void atualizar();
+        }}
         tabs={[
           { id: 'casos', label: 'Casos', icon: <Search className="w-4 h-4" /> },
-          { id: 'ranking', label: 'Ranking', icon: <Trophy className="w-4 h-4" /> },
+          { id: 'ranking', label: 'Ranking da sala', icon: <Trophy className="w-4 h-4" /> },
         ]}
       />
       {aba === 'casos' ? (
-        <div className="mt-6 space-y-6">
-          {DISCIPLINAS.map((d) => (
-            <section key={d} aria-label={d}>
-              <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">{d}</h2>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                {DESV_CASOS.filter((c) => c.disciplina === d).map((c) => {
-            const feito = resolvidos[c.id];
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setAberto(c)}
-                className="group text-left rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition hover:border-violet-500/60 hover:bg-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${NIVEL_COR[c.nivel]}`}>{c.nivel}</span>
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-700 text-slate-300 inline-flex items-center gap-1">
-                    {c.tipo === 'sql' ? <Database className="w-3 h-3" /> : c.tipo === 'codigo' ? <Code2 className="w-3 h-3" /> : <NotebookPen className="w-3 h-3" />}
-                    {c.tipo === 'sql' ? 'Investigação em SQL' : c.tipo === 'codigo' ? `Análise de ${c.linguagem}` : 'Lógica com pistas'}
-                  </span>
-                  <span className="ml-auto text-xs font-bold text-amber-300">{c.pontos} pts</span>
+        liberados.length === 0 ? (
+          <div className="mt-8 rounded-2xl border border-dashed border-slate-700 p-8 text-center">
+            <Loader2 className="mx-auto w-6 h-6 animate-spin text-violet-400" />
+            <p className="mt-3 text-sm font-bold text-white">Aguardando o professor liberar os casos</p>
+            <p className="mt-1 text-xs text-slate-400">A lista aparece sozinha assim que ele liberar.</p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-6">
+            {disciplinas.map((d) => (
+              <section key={d} aria-label={d}>
+                <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">{d}</h2>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  {liberados.filter((c) => c.disciplina === d).map((c) => (
+                    <CartaoCaso key={c.id} caso={c} feito={estado.resolvidos[c.id]} onAbrir={() => setAberto(c)} />
+                  ))}
                 </div>
-                <h3 className="mt-3 text-xl font-black text-white">{c.titulo}</h3>
-                <p className="mt-1 text-sm text-slate-400 leading-relaxed">{c.historia}</p>
-                <p className="mt-3 text-xs font-semibold text-slate-400">{c.suspeitos.length} suspeitos</p>
-                {feito !== undefined && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300">
-                    <CheckCircle2 className="w-4 h-4" /> Resolvido · {feito} pts
-                  </p>
-                )}
-              </button>
-            );
-          })}
-              </div>
-            </section>
-          ))}
-        </div>
+              </section>
+            ))}
+          </div>
+        )
       ) : (
-        <DesvRanking />
+        <RankingSala linhas={estado.ranking} minha={estado.dupla.nome} onAtualizar={atualizar} />
       )}
       <p className="mt-6 text-center text-xs text-slate-500">Inspirado nos enigmas do perfil @clube.enigma (Clube do Enigma).</p>
     </div>
   );
 };
 
-const DesvRanking: React.FC = () => {
-  const [linhas, setLinhas] = useState<{ pos: number; nome: string; pontos: number; casos: number }[] | null>(null);
-  const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const meu = lerLS(K_NOME);
-  const carregar = useCallback(async () => {
-    setCarregando(true);
+const CartaoCaso: React.FC<{ caso: DesvCaso; feito?: number; onAbrir: () => void }> = ({ caso: c, feito, onAbrir }) => (
+  <button
+    type="button"
+    onClick={onAbrir}
+    className="group text-left rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition hover:border-violet-500/60 hover:bg-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+  >
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${NIVEL_COR[c.nivel]}`}>{c.nivel}</span>
+      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border border-slate-700 text-slate-300 inline-flex items-center gap-1">
+        {c.tipo === 'sql' ? <Database className="w-3 h-3" /> : c.tipo === 'codigo' ? <Code2 className="w-3 h-3" /> : <NotebookPen className="w-3 h-3" />}
+        {c.tipo === 'sql' ? 'Investigação em SQL' : c.tipo === 'codigo' ? `Análise de ${c.linguagem}` : 'Lógica com pistas'}
+      </span>
+      <span className="ml-auto text-xs font-bold text-amber-300">{c.pontos} pts</span>
+    </div>
+    <h3 className="mt-3 text-xl font-black text-white">{c.titulo}</h3>
+    <p className="mt-1 text-sm text-slate-400 leading-relaxed">{c.historia}</p>
+    <p className="mt-3 text-xs font-semibold text-slate-400">{c.suspeitos.length} suspeitos</p>
+    {feito !== undefined && (
+      <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300">
+        <CheckCircle2 className="w-4 h-4" /> Resolvido · {feito} pts
+      </p>
+    )}
+  </button>
+);
+
+/** Entrada da dupla: token do professor, nome da dupla e integrantes. */
+const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: Sessao, e: Estado) => void }> = ({ gid, erroInicial, onEntrou }) => {
+  const [token, setToken] = useState(tokenDoLink);
+  const [nome, setNome] = useState('');
+  const [integrantes, setIntegrantes] = useState('');
+  const [erro, setErro] = useState(erroInicial);
+  const [busy, setBusy] = useState(false);
+  const entrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
     setErro('');
     try {
-      const r = await ctfCall<{ ranking: { pos: number; nome: string; pontos: number; casos: number }[] }>('desvRanking');
-      setLinhas(r.ranking);
-    } catch (e) {
-      setErro(msgErro(e));
+      const ses = { token: token.trim().toUpperCase(), nome: nome.trim(), integrantes: integrantes.trim() };
+      const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid });
+      onEntrou({ ...ses, token: est.sala.token }, est);
+    } catch (er) {
+      setErro(msgErro(er));
     } finally {
-      setCarregando(false);
+      setBusy(false);
     }
-  }, []);
-  useEffect(() => {
-    void carregar();
-  }, [carregar]);
+  };
+  const input = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-violet-500 outline-none';
   return (
-    <section className="mt-6 max-w-xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Ranking dos detetives">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-black text-white inline-flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-300" /> Ranking dos detetives
-        </h2>
-        <button type="button" onClick={() => void carregar()} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white">
-          <RefreshCw className={`w-3.5 h-3.5 ${carregando ? 'animate-spin' : ''}`} /> Atualizar
+    <div className="max-w-md mx-auto py-2">
+      <form onSubmit={entrar} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
+        <div className="text-center space-y-1">
+          <div className="mx-auto w-14 h-14 rounded-2xl border bg-violet-500/10 border-violet-500/30 flex items-center justify-center">
+            <Users className="w-7 h-7 text-violet-300" />
+          </div>
+          <h2 className="text-2xl font-black text-white">Entrar com a dupla</h2>
+          <p className="text-sm text-slate-400">Os casos são liberados pelo professor da sua turma.</p>
+        </div>
+        <label className="block space-y-1.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <KeyRound className="w-3.5 h-3.5 text-violet-300" /> Token da sala
+          </span>
+          <input value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} maxLength={8} autoCapitalize="characters" autoComplete="off" placeholder="ABC234" className={`${input} text-xl font-mono font-black tracking-[0.3em] text-center text-violet-200`} />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da dupla</span>
+          <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={30} autoComplete="off" placeholder="Ex.: Detetives do SQL" className={input} />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes</span>
+          <input value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} maxLength={120} autoComplete="off" placeholder="Ana Souza e Bruno Lima" className={input} />
+        </label>
+        {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
+        <button
+          type="submit"
+          disabled={busy || token.trim().length < 4 || nome.trim().length < 2}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-base font-black text-white transition hover:bg-violet-500 disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+          Entrar na sala
         </button>
-      </div>
-      {erro && <p className="mt-3 text-sm text-amber-300">{erro}</p>}
-      {!linhas && !erro && <Loader2 className="mt-4 w-5 h-5 animate-spin text-slate-400" />}
-      {linhas && linhas.length === 0 && <p className="mt-3 text-sm text-slate-400">Ninguém desvendou um caso ainda. Seja o primeiro!</p>}
-      {linhas && linhas.length > 0 && (
-        <ol className="mt-4 space-y-1.5">
-          {linhas.map((l) => (
-            <li
-              key={l.pos}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${l.nome === meu ? 'bg-violet-500/15 border border-violet-500/40' : 'bg-slate-950/60'}`}
-            >
-              <span className="w-6 text-right font-black text-slate-400">{l.pos}</span>
-              <span className="flex-1 font-semibold text-white truncate">{l.nome}</span>
-              <span className="text-xs text-slate-400">{l.casos} {l.casos === 1 ? 'caso' : 'casos'}</span>
-              <span className="w-16 text-right font-black text-amber-300">{l.pontos}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
+      </form>
+    </div>
   );
 };
+
+const RankingSala: React.FC<{ linhas: Estado['ranking']; minha: string; onAtualizar: () => void }> = ({ linhas, minha, onAtualizar }) => (
+  <section className="mt-6 max-w-xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Ranking da sala">
+    <div className="flex items-center justify-between">
+      <h2 className="text-lg font-black text-white inline-flex items-center gap-2">
+        <Trophy className="w-5 h-5 text-amber-300" /> Ranking da sala
+      </h2>
+      <button type="button" onClick={onAtualizar} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white">
+        <RefreshCw className="w-3.5 h-3.5" /> Atualizar
+      </button>
+    </div>
+    {linhas.length === 0 ? (
+      <p className="mt-3 text-sm text-slate-400">Nenhuma dupla desvendou um caso ainda. Sejam os primeiros!</p>
+    ) : (
+      <ol className="mt-4 space-y-1.5">
+        {linhas.map((l) => (
+          <li key={l.pos} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${l.nome === minha ? 'bg-violet-500/15 border border-violet-500/40' : 'bg-slate-950/60'}`}>
+            <span className="w-6 text-right font-black text-slate-400">{l.pos}</span>
+            <span className="flex-1 font-semibold text-white truncate">{l.nome}</span>
+            <span className="text-xs text-slate-400">{l.casos} {l.casos === 1 ? 'caso' : 'casos'}</span>
+            <span className="w-16 text-right font-black text-amber-300">{l.pontos}</span>
+          </li>
+        ))}
+      </ol>
+    )}
+  </section>
+);
 
 interface CasoProps {
   caso: DesvCaso;
   gid: string;
+  token: string;
   resolvidoCom?: number;
   onVoltar: () => void;
   onResolvido: (pontos: number) => void;
 }
 
-const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, onResolvido }) => {
+const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, token, resolvidoCom, onVoltar, onResolvido }) => {
   const [dicas, setDicas] = useState(() => dicasUsadas()[caso.id] || 0);
   const [riscadas, setRiscadas] = useState<Set<number>>(new Set());
   const [notas, setNotas] = useState('');
   const [escolha, setEscolha] = useState<number | null>(null);
-  const [nome, setNome] = useState(() => lerLS(K_NOME));
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
   const [resultado, setResultado] = useState<{ correto: boolean; pontos?: number; erros?: number; valeAgora?: number; explicacao?: string } | null>(null);
@@ -230,10 +366,9 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, 
     setEnviando(true);
     setErro('');
     try {
-      gravarLS(K_NOME, nome.trim());
       const r = await ctfCall<{ correto: boolean; pontos?: number; erros?: number; valeAgora?: number; explicacao?: string }>('desvAcusar', {
         gid,
-        nome: nome.trim(),
+        token,
         caso: caso.id,
         suspeito: escolha,
         dicas,
@@ -381,15 +516,6 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, 
                     </label>
                   ))}
                 </fieldset>
-                <label className="mt-3 block">
-                  <span className="text-xs font-semibold text-slate-400">Seu nome no ranking</span>
-                  <input
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    maxLength={30}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
-                  />
-                </label>
                 {resultado && !resultado.correto && (
                   <p className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-rose-300">
                     <XCircle className="w-4 h-4" /> Não foi {nomeDe(escolha ?? 0) || 'essa pessoa'}. Releia as pistas.
@@ -399,7 +525,7 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, resolvidoCom, onVoltar, 
                 <button
                   type="button"
                   onClick={() => void acusar()}
-                  disabled={escolha === null || nome.trim().length < 2 || enviando}
+                  disabled={escolha === null || enviando}
                   className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white transition hover:bg-violet-500 disabled:opacity-50"
                 >
                   {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}

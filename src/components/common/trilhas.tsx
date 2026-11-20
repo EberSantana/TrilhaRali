@@ -44,12 +44,12 @@ export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv', { accent: Accent;
     accent: 'violet',
     icon: <Search className="w-5 h-5" />,
     title: 'Desvendando',
-    tagline: 'Mistérios resolvidos com conhecimento',
+    tagline: 'Mistérios em dupla, liberados pelo professor',
     comoJogar: [
-      { titulo: 'Escolha um caso', texto: 'Os casos estão separados por disciplina e por nível, do Aquecimento ao Mestre.' },
-      { titulo: 'Investigue', texto: 'Leia a história e as pistas. Use a grade de dedução, o banco de dados do caso ou as evidências de cada suspeito.' },
-      { titulo: 'Acuse com certeza', texto: 'Só uma resposta pode ser provada. Cada acusação errada tira 15 pontos e cada dica tira 10.' },
-      { titulo: 'Veja a explicação', texto: 'Ao acertar, aparece como provar o culpado, e os pontos entram no ranking dos detetives.' },
+      { titulo: 'Entre com a dupla', texto: 'Digite o token da sala que o professor mostrou, o nome da dupla e os integrantes.' },
+      { titulo: 'Espere os casos', texto: 'Só aparecem os casos que o professor liberou para a sua turma. Novos casos surgem sozinhos na lista.' },
+      { titulo: 'Investigue juntos', texto: 'Leiam a história e as pistas e usem a grade, o banco de dados do caso ou as evidências. Só uma resposta pode ser provada.' },
+      { titulo: 'Acusem com certeza', texto: 'Cada acusação errada tira 15 pontos e cada dica tira 10. Ao acertar, vem a explicação e os pontos vão para o ranking da sala.' },
     ],
   },
 };

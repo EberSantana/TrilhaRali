@@ -108,8 +108,8 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
         />
         <EntryRow
           title="Desvendando"
-          tagline="Mistérios, com conhecimento"
-          description="Junte as pistas ou investigue no banco com SQL e acuse o culpado: só uma resposta pode ser provada."
+          tagline="Em dupla, liberado pelo professor"
+          description="Entre com o token da sala, investigue com a sua dupla e acuse o culpado: só uma resposta pode ser provada."
           icon={<Search className="h-6 w-6" />}
           accent="violet"
           onClick={onOpenDesv}
