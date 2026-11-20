@@ -4,7 +4,6 @@ import { INITIAL_TEAMS } from '../data/missions';
 const STORAGE_KEY_ROOMS = 'rali_sql_rooms_v2';
 const STORAGE_KEY_ACTIVE_ROOM_ID = 'rali_sql_active_room_id_v2';
 const STORAGE_KEY_APPS_SCRIPT_URL = 'rali_sql_apps_script_url_v1';
-const STORAGE_KEY_TEACHER_PIN = 'rali_sql_teacher_pin_v1';
 const STORAGE_KEY_TEACHER_AUTH = 'rali_sql_teacher_auth_v1';
 
 export const DEFAULT_SESSION_STATE: ClassSessionState = {
@@ -294,24 +293,19 @@ export function updateTeamInRoom(roomId: string, teamId: string, partial: Partia
 
 // --- AUTENTICAÇÃO DO PROFESSOR (MODO PROFESSOR / PROTEÇÃO PIN) ---
 
-export const DEFAULT_TEACHER_PIN = 'ifs2026';
 
-export function getTeacherPin(): string {
-  if (typeof window === 'undefined') return DEFAULT_TEACHER_PIN;
-  return localStorage.getItem(STORAGE_KEY_TEACHER_PIN) || DEFAULT_TEACHER_PIN;
-}
-
-export function saveTeacherPin(pin: string): void {
-  if (typeof window === 'undefined') return;
-  const clean = pin.trim() || DEFAULT_TEACHER_PIN;
-  localStorage.setItem(STORAGE_KEY_TEACHER_PIN, clean);
-}
-
+/** Modo professor = marcado como professor E com a chave do banco neste aparelho (o antigo PIN não vale mais). */
 export function isTeacherAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
+  let chave = '';
+  try {
+    chave = localStorage.getItem('rali_banco_chave_v1') || '';
+  } catch {
+    chave = '';
+  }
   return (
-    sessionStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true' ||
-    localStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true'
+    !!chave &&
+    (sessionStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true' || localStorage.getItem(STORAGE_KEY_TEACHER_AUTH) === 'true')
   );
 }
 
@@ -329,7 +323,3 @@ export function setTeacherAuthenticated(authenticated: boolean, remember: boolea
   notifySync();
 }
 
-export function verifyTeacherPin(inputPin: string): boolean {
-  const currentPin = getTeacherPin();
-  return inputPin.trim() === currentPin.trim();
-}

@@ -150,7 +150,7 @@ Quatro missões por unidade em cada nível: hardware e software; Internet, e-mai
 
 ## Ciclo de uma sala
 
-O painel do professor (protegido por PIN) segue o mesmo roteiro nos dois modos.
+O painel do professor (aberto com a chave do banco) segue o mesmo roteiro nos dois modos.
 
 ```text
  1. Perguntas    Seletor em árvore: Disciplina › Assunto › Pergunta (marca em qualquer nível, busca, sorteio)
@@ -333,6 +333,7 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 | **v31** | Novo módulo **Desvendando com Conhecimento** (inspirado no @clube.enigma): 12 casos de mistério: 2 de lógica com pistas, 2 de investigação em SQL (Banco de Dados), 4 de análise de HTML/CSS (Construção de Sites) e 4 de Informática Básica (hardware, e-mail, editor de texto e planilha); o servidor confere a acusação (gabarito em hash), desconta 15 por erro e 10 por dica e mantém o ranking dos detetives (aba DesvRanking) |
 | **v31 · gabarito protegido** | As respostas, explicações e consultas das missões prontas saíram do código do site: ficam em `src/data/gabarito.enc.json` (AES-256-GCM), que só abre com a **chave do banco** do professor. Sem a chave, o aparelho do aluno não tem as respostas. O gabarito do Desvendando fica só na aba **DesvGabarito** da planilha, e o `nfcSet` não envia respostas sem a chave. Para editar: `node scripts/gabarito.mjs abrir`, mude `gabarito.json` e `node scripts/gabarito.mjs fechar` (chave em `GABARITO_CHAVE` ou `.gabarito-chave`, nunca no Git). Se a chave do banco mudar, reabra com a antiga e feche com a nova |
 | **v31 · Desvendando em salas** | O Desvendando passa a ser liberado pelo professor: sala por turma (abas DesvSalas e DesvDuplas), casos escolhidos e liberados ao vivo, duplas entram com token, nome e integrantes, ranking só da sala e sala encerrada bloqueia acusações. Painel em Professor → Desvendando |
+| **v31 · acesso único** | A Área do professor passa a abrir com a chave do banco (conferida abrindo o gabarito ou pelo servidor), no lugar do PIN `ifs2026`, que estava no código público. Sair do modo professor apaga a chave do aparelho |
 | **RPG** | Missão "A Saga do Reino dos Dados" (pacote B4, 24 capítulos em história de RPG) cobrindo conceitos/SGBD, tipos de banco, modelagem, SQL e transações; use a sala CTF fase a fase |
 | **RPG II** | Missão "A Cidadela das Tabelas" (pacote B5, 21 capítulos) resolvida no Console SQLite sobre o banco da escola: DQL, JOINs, agrupamento, DDL/DML em cópias `rpg_NN`, transação e chefão final |
 | **v23** | Cruzada com todas as disciplinas do Banco: seletor expansível (disciplina inteira ou só alguns assuntos, várias ao mesmo tempo); `selecao: [{disciplina, assuntos}]` no treino e na sala; `cruzAssuntos` lista todas as disciplinas; o banco de palavras aceita qualquer disciplina |
@@ -414,7 +415,7 @@ O mesmo padrão foi usado em Banco de Dados, Informática Básica e Construção
 - **Correção no servidor (CTF):** gabarito, avanço de fase e trava de tempo são decididos pelo Apps Script.
 - **Chave do banco:** verificada no servidor (hash SHA-256 nas propriedades do script); chaves erradas são recusadas.
 - **Chave de administração por sala (`adminKey`):** exigida para alterar situação, tempo, liberações e debriefing.
-- **PIN do professor:** protege apenas a interface no aparelho; a proteção dos dados está nas chaves verificadas no servidor.
+- **Acesso do professor:** um só, com a chave do banco. Ela liga o modo professor, abre o gabarito criptografado e traz as salas do servidor. O antigo PIN fixo no código foi removido.
 - **Rali NFC:** a resposta das missões padrão é conferida no celular. Para avaliações com nota, prefira o CTF Online com perguntas inéditas do seu banco, já que o catálogo embutido é público.
 - **Planilha protegida:** textos enviados pelos alunos são gravados sem risco de virarem fórmulas.
 - **Ambientes isolados:** SQL, terminal, laboratório e Ateliê Web rodam no navegador; a pré-visualização HTML usa `iframe` com `sandbox`, sem execução de scripts.
