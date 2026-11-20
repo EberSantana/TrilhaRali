@@ -32,6 +32,7 @@ function servidor() {
   vm.createContext(ctx);
   vm.runInContext(trecho('// ---------- Desvendando', '// ---------- Grande ranking da Cruzada'), ctx);
   vm.runInContext(trecho('function cruzRankingNome', 'function cruzRankingLista'), ctx);
+  vm.runInContext(trecho('function papeisModo', 'function cleanName'), ctx);
   const call = (fn: string, req: Record<string, unknown>) => JSON.parse(JSON.stringify((ctx[fn] as (r: unknown) => unknown)(req)));
   return { sheets, call };
 }

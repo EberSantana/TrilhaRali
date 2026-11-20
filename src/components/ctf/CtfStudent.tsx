@@ -1,4 +1,6 @@
-import { useTurmaDaSala } from '../../utils/turmasApi';
+import { useSalaPublica } from '../../utils/turmasApi';
+import { CabineDupla } from '../turmas/CabineDupla';
+import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -53,7 +55,10 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const link = useRef(parseCtfHash());
   const [session, setSession] = useState(getStudentSession);
   const [token, setToken] = useState(() => link.current.token || '');
-  const turmaSala = useTurmaDaSala(token);
+  const salaInfo = useSalaPublica(token);
+  const turmaSala = salaInfo?.turma ?? null;
+  const papeisSala = modulo === 'ctf' ? salaInfo?.papeis ?? '' : '';
+  const [cabine, setCabine] = useState('');
   const [nome, setNome] = useState('');
   const [state, setState] = useState<CtfState | null>(null);
   const [answer, setAnswer] = useState('');
@@ -118,14 +123,16 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
     setBusy(true);
     setError('');
     try {
-      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome, chave: getChave(token, nome) });
+      const dupla = cabine.split(',').map((x) => x.trim()).filter(Boolean);
+      const quem = papeisSala ? dupla[0] ?? '' : nome;
+      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
       if ((modulo === 'cruz') !== (s.sala.ordem === 'cruzadinha')) {
         throw new Error(modulo === 'cruz'
           ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
           : 'Este token é de uma Cruzada Online. Abra a Cruzada Online na tela inicial.');
       }
       const next = { token: s.sala.token, nome: s.aluno.nome };
-      saveChave(token, nome, (s as { chave?: string }).chave);
+      saveChave(token, quem, (s as { chave?: string }).chave);
       saveStudentSession(next);
       setSession(next);
       setState(s);
@@ -241,27 +248,34 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             />
           </label>
 
-          <label className="block space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
-            {turmaSala ? (
-              <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
-            ) : (
-              <input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                maxLength={40}
-                autoComplete="name"
-                placeholder="Nome e sobrenome"
-                className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 outline-none ${ac.foco}`}
-              />
-            )}
-          </label>
+          {papeisSala ? (
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
+              <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} />
+            </div>
+          ) : (
+            <label className="block space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
+              {turmaSala ? (
+                <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
+              ) : (
+                <input
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  maxLength={40}
+                  autoComplete="name"
+                  placeholder="Nome e sobrenome"
+                  className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 outline-none ${ac.foco}`}
+                />
+              )}
+            </label>
+          )}
 
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
 
           <button
             type="submit"
-            disabled={busy || token.trim().length < 4 || nome.trim().length < 2}
+            disabled={busy || token.trim().length < 4 || (papeisSala ? cabine.split(',').filter((x) => x.trim().length >= 2).length < 2 : nome.trim().length < 2)}
             className={`w-full py-3.5 rounded-xl font-black text-base ${ac.botao} disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center gap-2 transition active:scale-[0.98]`}
           >
             {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : modulo === 'cruz' ? <Puzzle className="w-5 h-5" /> : <Flag className="w-5 h-5" />}
@@ -321,6 +335,14 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const avisos = (
     <>
 
+      {sala.papeis && (
+        <FaixaCabine
+          nomes={[aluno.nome, ...(aluno.integrantes ?? (state as unknown as { equipe?: { integrantes?: string[] } }).equipe?.integrantes ?? [])]}
+          modo={sala.papeis}
+          rodadaAuto={aluno.acertos}
+          chave={`ctf_${sala.token}_${aluno.nome}`}
+        />
+      )}
       {closed && <StatusBanner>A sala foi encerrada pelo professor. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Veja o ranking final abaixo.</StatusBanner>}
       {!closed && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}

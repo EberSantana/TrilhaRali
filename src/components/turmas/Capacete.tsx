@@ -5,7 +5,7 @@ export type Papel = 'piloto' | 'copiloto' | 'engenheiro';
 export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string; casco2: string; viseira: [string, string]; faixa: string; numero: string; texto: string; borda: string; fundo: string }> = {
   piloto: {
     nome: 'Piloto',
-    funcao: 'Fica com o celular, digita e faz a acusação.',
+    funcao: 'Fica com o celular ou o teclado e envia a resposta.',
     casco: '#ef4444', casco2: '#991b1b', viseira: ['#0f172a', '#334155'], faixa: '#fbbf24', numero: '1',
     texto: 'text-red-300', borda: 'border-red-500/50', fundo: 'bg-red-500/10',
   },
@@ -17,7 +17,7 @@ export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string
   },
   engenheiro: {
     nome: 'Engenheiro de pista',
-    funcao: 'Confere a resposta antes da acusação (só em trio).',
+    funcao: 'Confere a resposta antes de enviar.',
     casco: '#3b82f6', casco2: '#1e3a8a', viseira: ['#0f172a', '#334155'], faixa: '#f8fafc', numero: '3',
     texto: 'text-blue-300', borda: 'border-blue-500/50', fundo: 'bg-blue-500/10',
   },

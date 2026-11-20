@@ -9,7 +9,10 @@ const separa = (v: string) => v.split(',').map((x) => x.trim()).filter(Boolean);
  * Formação da dupla no Desvendando: cada um escolhe o nome no seu capacete. Piloto e copiloto são obrigatórios;
  * o engenheiro de pista só entra quando a turma for ímpar (trio). O valor é a lista na ordem dos papéis.
  */
-export const CabineDupla: React.FC<{ alunos: string[]; ocupados: string[]; value: string; onChange: (v: string) => void }> = ({ alunos, ocupados, value, onChange }) => {
+export const CabineDupla: React.FC<{ alunos: string[] | null; ocupados?: string[]; value: string; onChange: (v: string) => void }> = ({ alunos, ocupados = [], value, onChange }) =>
+  alunos ? <CabineLista alunos={alunos} ocupados={ocupados} value={value} onChange={onChange} /> : <CabineDigitada value={value} onChange={onChange} />;
+
+const CabineLista: React.FC<{ alunos: string[]; ocupados: string[]; value: string; onChange: (v: string) => void }> = ({ alunos, ocupados, value, onChange }) => {
   const nomes = separa(value);
   const [trio, setTrio] = React.useState(nomes.length > 2);
   const vagas = trio ? 3 : 2;
@@ -59,3 +62,31 @@ export const CabineDupla: React.FC<{ alunos: string[]; ocupados: string[]; value
   );
 };
 
+
+/** Sala sem turma: cada papel tem um campo para digitar o nome (mesma ordem: piloto, copiloto, engenheiro). */
+const CabineDigitada: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {
+  const partes = value.split(',');
+  const [trio, setTrio] = React.useState(partes.filter((x) => x.trim()).length > 2);
+  const vagas = trio ? 3 : 2;
+  const muda = (i: number, v: string) => {
+    const novo = Array.from({ length: vagas }, (_, j) => (j === i ? v.replace(/,/g, ' ') : (partes[j] ?? '').trim()));
+    onChange(novo.join(', '));
+  };
+  return (
+    <div className="space-y-2">
+      {ORDEM_PAPEIS.slice(0, vagas).map((papel, i) => (
+        <label key={papel} className={`flex items-center gap-3 rounded-xl border p-2.5 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`}>
+          <Capacete papel={papel} size={40} />
+          <span className="min-w-0 flex-1">
+            <span className={`block text-[11px] font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</span>
+            <input value={(partes[i] ?? '').trim()} onChange={(e) => muda(i, e.target.value)} maxLength={40} placeholder="Nome e sobrenome" className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-violet-500" />
+          </span>
+        </label>
+      ))}
+      <label className="flex items-center gap-2 text-xs text-slate-400">
+        <input type="checkbox" checked={trio} onChange={(e) => { setTrio(e.target.checked); if (!e.target.checked) onChange(partes.slice(0, 2).join(',')); }} className="h-4 w-4 accent-violet-500" />
+        Somos um trio (entra o engenheiro de pista)
+      </label>
+    </div>
+  );
+};

@@ -1,4 +1,5 @@
-import { useTurmaDaSala } from '../../utils/turmasApi';
+import { useSalaPublica } from '../../utils/turmasApi';
+import { FaixaCabine } from '../turmas/Papeis';
 import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,7 +31,9 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
   const [token, setToken] = useState(() => link.current.token || '');
   const [nome, setNome] = useState('');
   const [integrantes, setIntegrantes] = useState('');
-  const turmaSala = useTurmaDaSala(token);
+  const salaInfo = useSalaPublica(token);
+  const turmaSala = salaInfo?.turma ?? null;
+  const comPapeis = !!salaInfo?.papeis;
   const [state, setState] = useState<RaliState | null>(null);
   const [open, setOpen] = useState<RaliTagInfo | null>(null);
   const [code, setCode] = useState('');
@@ -211,11 +214,11 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
           {turmaSala ? (
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes da equipe <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: busque cada um)</span></span>
-              <EscolhaIntegrantes alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} max={8} />
+              <EscolhaIntegrantes alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} max={8} papeis={comPapeis} />
             </div>
           ) : (
             <label className="block space-y-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">(opcional, separe por vírgula)</span></span>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">{comPapeis ? '(na ordem: piloto, copiloto, engenheiro)' : '(opcional, separe por vírgula)'}</span></span>
               <textarea value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} rows={2} maxLength={200} placeholder="Ana, Bruno, Carla" className={input} />
             </label>
           )}
@@ -249,6 +252,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
         </button>
       </StudentBar>
 
+      {sala.papeis && <FaixaCabine nomes={equipe.integrantes} modo={sala.papeis} rodadaAuto={equipe.acertos} chave={`rali_${sala.token}_${equipe.nome}`} rotulo="Box da equipe" />}
       {closed && <StatusBanner>O Rali foi encerrado pelo professor. Confira o resultado final.</StatusBanner>}
       {!closed && timeUp && <StatusBanner>Tempo esgotado! As respostas foram bloqueadas. Confira o resultado final.</StatusBanner>}
       {!finished && waiting && <StatusBanner tone="warn">O cronômetro está parado. Aguarde o professor iniciar para enviar respostas.</StatusBanner>}

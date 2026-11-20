@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals', 'turma'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals', 'turma', 'papeis'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -24,7 +24,7 @@ var SHEET_HEADERS = {
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
   DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas', 'token'],
-  DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em', 'turma'],
+  DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em', 'turma', 'papeis'],
   Turmas: ['id', 'nome', 'alunos', 'atualizado_em'],
   DesvDuplas: ['token', 'gid', 'nome', 'integrantes', 'entrou_em'],
   DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
@@ -280,8 +280,16 @@ function roomInfo(room) {
     debriefing: room.debriefing_liberado === true || String(room.debriefing_liberado).toLowerCase() === 'true',
     timer: timerOut(parseTimer(room.timer), Date.now()),
     tema: getTema(),
+    papeis: String(room.papeis || ''),
     agora: Date.now()
   };
+}
+
+// Papeis da dupla/equipe (piloto, copiloto, engenheiro): '' = sem papeis, rodizio = giram a cada acerto,
+// fixos = nao mudam, dupla = os alunos trocam quando quiserem.
+function papeisModo(v, padrao) {
+  var m = String(v === undefined ? padrao : v || '');
+  return m === 'rodizio' || m === 'fixos' || m === 'dupla' ? m : '';
 }
 
 function cleanName(nome) {
@@ -349,7 +357,8 @@ function buildState(room, nomeKey) {
     sala: roomInfo(room),
     aluno: {
       nome: me.nome, fase: fase, xp: Number(me.xp), acertos: Number(me.acertos),
-      erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos, concluido: concluido
+      erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos, concluido: concluido,
+      integrantes: parseList(me.integrantes)
     },
     missao: missao,
     ranking: ranked.slice(0, 15).map(function (a) {
@@ -429,6 +438,7 @@ function createRoom(req) {
     modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
     banco_liberado: req.bancoLiberado === true,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
+    papeis: tipo === 'rali' || tipo === 'ctf' ? papeisModo(req.papeis, '') : '',
     tipo: tipo,
     ordem: ordem,
     turma: turmaIdValido(req.turma)
@@ -450,8 +460,9 @@ function createRoom(req) {
 function join(req) {
   var room = requireRoom(req.token);
   var nome = cleanName(req.nome);
+  var comEquipe = room.tipo === 'rali' || (room.tipo === 'ctf' && !!room.papeis);
   if (room.tipo !== 'rali') nome = nomeDaTurma(room.turma, nome);
-  else if (room.turma) req.integrantes = (Array.isArray(req.integrantes) ? req.integrantes : []).map(function (n) { return nomeDaTurma(room.turma, n); });
+  if (comEquipe && room.turma) req.integrantes = (Array.isArray(req.integrantes) ? req.integrantes : []).map(function (n) { return nomeDaTurma(room.turma, n); });
   var key = norm(nome);
   var found = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   var chave = String(req.chave || '');
@@ -459,10 +470,17 @@ function join(req) {
     if (room.turma) fail('Este nome já entrou na sala em outro celular. Se você trocou de aparelho, peça ao professor para liberar o seu nome.');
     fail('Já existe alguém com este nome nesta sala. Use outro nome (ex.: nome e sobrenome).');
   }
-  if (room.tipo === 'rali' && room.turma && !found) {
+  if (comEquipe && room.turma && !found) {
     var jaNaSala = {};
-    playersOf(room.token).forEach(function (a) { parseList(a.integrantes).forEach(function (n) { jaNaSala[norm(n)] = String(a.nome); }); });
-    (req.integrantes || []).forEach(function (n) { if (jaNaSala[norm(n)]) fail(n + ' já está na equipe ' + jaNaSala[norm(n)] + '.'); });
+    playersOf(room.token).forEach(function (a) {
+      parseList(a.integrantes).forEach(function (n) { jaNaSala[norm(n)] = String(a.nome); });
+      if (room.tipo === 'ctf') jaNaSala[norm(a.nome)] = String(a.nome);
+    });
+    if (room.tipo === 'ctf' && jaNaSala[key]) fail(nome + ' já está na dupla de ' + jaNaSala[key] + '.');
+    (req.integrantes || []).forEach(function (n) {
+      if (norm(n) === key) fail(n + ' foi escolhido duas vezes.');
+      if (jaNaSala[norm(n)]) fail(n + ' já está na equipe ' + jaNaSala[norm(n)] + '.');
+    });
   }
   if (found && !found.chave) {
     // linha criada antes da v9: ganha a chave do primeiro aparelho que voltar a entrar
@@ -476,7 +494,7 @@ function join(req) {
       chave: chave,
       token: room.token, nome: nome, nome_key: key, fase_atual: 1, xp: 0, acertos: 0,
       erros: 0, fogos: 0, entrou_em: Date.now(),
-      integrantes: room.tipo === 'rali' ? JSON.stringify(cleanMembers(req.integrantes)) : ''
+      integrantes: comEquipe ? JSON.stringify(cleanMembers(req.integrantes)) : ''
     });
   }
   var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
@@ -1319,7 +1337,7 @@ function createDesvRoom(req) {
   var adminKey = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 24);
   appendObj('DesvSalas', {
     token: token, nome: safeText(String(req.nome || 'Desvendando').substring(0, 80)), admin_key: adminKey,
-    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString(), turma: turmaIdValido(req.turma)
+    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString(), turma: turmaIdValido(req.turma), papeis: papeisModo(req.papeis, 'rodizio')
   });
   return { token: token, adminKey: adminKey, casos: casos };
 }
@@ -1395,7 +1413,7 @@ function desvEstado(req) {
   var resolvidos = {};
   readRows('DesvRanking').forEach(function (r) { if (String(r.token) === token && String(r.gid) === gid) resolvidos[String(r.caso)] = Number(r.pontos) || 0; });
   return {
-    sala: { token: token, nome: String(sala.nome), status: String(sala.status), casos: sala.casosLista },
+    sala: { token: token, nome: String(sala.nome), status: String(sala.status), casos: sala.casosLista, papeis: String(sala.papeis || '') },
     dupla: { nome: String(dupla.nome), integrantes: String(dupla.integrantes || '') },
     resolvidos: resolvidos,
     ranking: desvRankingSala(token).slice(0, 50)
@@ -1572,8 +1590,9 @@ function salaTurma(req) {
   if (desv) sala = readRows('DesvSalas').filter(function (r) { return String(r.token) === t; })[0];
   if (!sala) fail('Sala não encontrada. Confira o token.');
   var turma = turmaLer(sala.turma);
-  if (!turma) return { turma: null };
-  return { turma: { nome: turma.nome, alunos: turma.alunos.map(function (a) { return a.n; }), ocupados: nomesOcupados(sala, t, req.gid, desv) } };
+  var papeis = String(sala.papeis || '');
+  if (!turma) return { turma: null, papeis: papeis };
+  return { papeis: papeis, turma: { nome: turma.nome, alunos: turma.alunos.map(function (a) { return a.n; }), ocupados: nomesOcupados(sala, t, req.gid, desv) } };
 }
 
 // Nomes da turma que ja entraram na sala (o aparelho do aluno mostra bloqueados). gid = a propria dupla, que nao conta.
@@ -1589,7 +1608,10 @@ function nomesOcupados(sala, token, gid, desv) {
   }
   playersOf(token).forEach(function (a) {
     if (String(sala.tipo) === 'rali') parseList(a.integrantes).forEach(function (n) { usados.push(String(n)); });
-    else if (a.chave) usados.push(String(a.nome));
+    else {
+      if (a.chave) usados.push(String(a.nome));
+      parseList(a.integrantes).forEach(function (n) { usados.push(String(n)); });
+    }
   });
   return usados;
 }
@@ -1613,8 +1635,10 @@ function turmaNotas(req) {
       try { membros = JSON.parse(String(r.integrantes || '[]')); } catch (e) { membros = []; }
       membros.forEach(function (n) { var x = notas[norm(n)]; if (x) x.rali += xp; });
     } else {
+      var campo = tipo === 'cruz' ? 'cruz' : 'ctf';
       var x = notas[String(r.nome_key)];
-      if (x) x[tipo === 'cruz' ? 'cruz' : 'ctf'] += xp;
+      if (x) x[campo] += xp;
+      parseList(r.integrantes).forEach(function (n) { var y = notas[norm(n)]; if (y && y !== x) y[campo] += xp; });
     }
   });
   var desvTokens = {};
