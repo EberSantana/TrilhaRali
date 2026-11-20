@@ -63,26 +63,42 @@ export function notasCsv(turma: string, alunos: NotaAluno[]): string {
   return '﻿' + [`Turma;${esc(turma)}`, cab.join(';'), ...linhas].join('\n') + '\n';
 }
 
-/** Nomes da turma de uma sala (para o aluno escolher). null = sala sem turma ou servidor antigo. */
-export const nomesDaSala = (token: string) =>
-  ctfCall<{ turma: { nome: string; alunos: string[] } | null }>('salaTurma', { token }).then((r) => r.turma).catch(() => null);
+export interface TurmaDaSala {
+  nome: string;
+  alunos: string[];
+  /** Nomes que já entraram na sala (em outra equipe, dupla ou celular). */
+  ocupados: string[];
+}
 
-/** Busca a lista da turma assim que o token parece completo (6 caracteres). */
-export function useTurmaDaSala(token: string) {
-  const [turma, setTurma] = useState<{ nome: string; alunos: string[] } | null>(null);
+/** Nomes da turma de uma sala (para o aluno escolher). null = sala sem turma ou servidor antigo. */
+export const nomesDaSala = (token: string, gid?: string) =>
+  ctfCall<{ turma: (Omit<TurmaDaSala, 'ocupados'> & { ocupados?: string[] }) | null }>('salaTurma', { token, ...(gid ? { gid } : {}) })
+    .then((r) => (r.turma ? { ...r.turma, ocupados: r.turma.ocupados ?? [] } : null))
+    .catch(() => null);
+
+/** O professor libera um nome (o aluno trocou de celular). */
+export const liberarNome = (token: string, adminKey: string, nome: string) => ctfCall<{ ok: true }>('liberarNome', { token, adminKey, nome });
+
+/** Compara nomes sem acento e sem diferença de maiúsculas. */
+export const normNome = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/** Busca a lista da turma assim que o token parece completo (6 caracteres) e a atualiza a cada 15 s. */
+export function useTurmaDaSala(token: string, gid?: string) {
+  const [turma, setTurma] = useState<TurmaDaSala | null>(null);
   useEffect(() => {
     const t = token.trim().toUpperCase();
     setTurma(null);
     if (t.length !== 6) return;
     let vivo = true;
-    const id = window.setTimeout(() => {
-      void nomesDaSala(t).then((r) => vivo && setTurma(r));
-    }, 350);
+    const busca = () => void nomesDaSala(t, gid).then((r) => vivo && setTurma(r));
+    const id = window.setTimeout(busca, 350);
+    const ciclo = window.setInterval(busca, 15000);
     return () => {
       vivo = false;
       window.clearTimeout(id);
+      window.clearInterval(ciclo);
     };
-  }, [token]);
+  }, [token, gid]);
   return turma;
 }
 
