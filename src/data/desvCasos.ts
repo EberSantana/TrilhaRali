@@ -5,6 +5,8 @@
  * desvCasos.test.ts prova que cada caso tem uma única solução.
  */
 
+import { DESV_CASOS_MAIS } from './desvCasosMais';
+
 export interface DesvSuspeito {
   id: number;
   nome: string;
@@ -15,7 +17,7 @@ export interface DesvSuspeito {
 
 interface DesvBase {
   id: string;
-  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites' | 'Informática Básica';
+  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites' | 'Informática Básica' | 'Redes de Computadores' | 'Segurança da Informação';
   titulo: string;
   nivel: 'Aquecimento' | 'Intermediário' | 'Detetive' | 'Mestre';
   pontos: number;
@@ -39,10 +41,10 @@ export interface DesvCasoSql extends DesvBase {
   tabelas: string;
 }
 
-/** Construção de Sites e Informática Básica: cada suspeito tem uma evidência (código, ficha, e-mail, fórmula...); antes: um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
+/** Construção de Sites, Informática Básica, Redes e Segurança: cada suspeito tem uma evidência (código, ficha, e-mail, fórmula...); antes: um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
 export interface DesvCasoCodigo extends DesvBase {
   tipo: 'codigo';
-  linguagem: 'HTML' | 'CSS' | 'Ficha técnica' | 'E-mail' | 'Documento' | 'Planilha';
+  linguagem: 'HTML' | 'CSS' | 'Ficha técnica' | 'E-mail' | 'Documento' | 'Planilha' | 'Configuração' | 'Log' | 'Regras' | 'Terminal';
   /** código comum a todos os suspeitos (a página onde o trecho entrou) */
   base?: string;
   /** título do bloco base (padrão: "Página onde o trecho entrou") */
@@ -306,7 +308,7 @@ INSERT INTO avisos (texto) VALUES
 ('Quem desviou o dinheiro estava de turno no caixa nos três estornos irregulares.');
 `;
 
-export const DESV_CASOS: DesvCaso[] = [
+const DESV_CASOS_INICIAIS: DesvCaso[] = [
   {
     id: 'c1',
     disciplina: 'Lógica',
@@ -768,3 +770,6 @@ export const DESV_CASOS: DesvCaso[] = [
     ],
   },
 ];
+
+/** c1 a c16 aqui; c17 a c60 em desvCasosMais.ts. Total: 10 casos em cada uma das 6 disciplinas. */
+export const DESV_CASOS: DesvCaso[] = [...DESV_CASOS_INICIAIS, ...DESV_CASOS_MAIS];
