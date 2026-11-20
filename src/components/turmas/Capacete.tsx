@@ -12,14 +12,14 @@ export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string
   copiloto: {
     nome: 'Copiloto',
     funcao: 'Lê as pistas, anota no caderno e orienta a próxima jogada.',
-    casco: '#22d3ee', casco2: '#0e7490', viseira: ['#f59e0b', '#fde68a'], faixa: '#f8fafc', numero: '2',
-    texto: 'text-cyan-300', borda: 'border-cyan-500/50', fundo: 'bg-cyan-500/10',
+    casco: '#22c55e', casco2: '#15803d', viseira: ['#f59e0b', '#fde68a'], faixa: '#f8fafc', numero: '2',
+    texto: 'text-green-300', borda: 'border-green-500/50', fundo: 'bg-green-500/10',
   },
   engenheiro: {
     nome: 'Engenheiro de pista',
     funcao: 'Confere a resposta antes da acusação (só em trio).',
-    casco: '#a3e635', casco2: '#4d7c0f', viseira: ['#0f172a', '#334155'], faixa: '#f8fafc', numero: '3',
-    texto: 'text-lime-300', borda: 'border-lime-500/50', fundo: 'bg-lime-500/10',
+    casco: '#3b82f6', casco2: '#1e3a8a', viseira: ['#0f172a', '#334155'], faixa: '#f8fafc', numero: '3',
+    texto: 'text-blue-300', borda: 'border-blue-500/50', fundo: 'bg-blue-500/10',
   },
 };
 
@@ -28,7 +28,7 @@ export const ORDEM_PAPEIS: Papel[] = ['piloto', 'copiloto', 'engenheiro'];
 
 /**
  * Capacete de Fórmula 1 em vista lateral (desenho próprio). Piloto: casco vermelho e viseira escura; copiloto:
- * casco ciano e viseira dourada espelhada; engenheiro de pista: fone de rádio sobre o capacete verde.
+ * casco verde e viseira dourada espelhada; engenheiro de pista: fone de rádio sobre o capacete azul.
  */
 export const Capacete: React.FC<{ papel: Papel; size?: number; className?: string; title?: string }> = ({ papel, size = 48, className = '', title }) => {
   const p = PAPEIS[papel];
