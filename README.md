@@ -304,7 +304,7 @@ O `vite.config.ts` usa `base: './'`, então o site funciona com qualquer nome de
 
 ## Backend (Google Apps Script)
 
-Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v30.**
+Um único script atende salas de CTF e NFC, banco de perguntas, cronômetro, tema, debriefing, log e análise. O código-fonte está em `src/data/ctfAppsScript.ts` e pode ser copiado pelo painel do professor (*Copiar script do servidor*). **Versão atual: v31.**
 
 ### Configuração inicial
 
@@ -330,6 +330,7 @@ Cole o código novo e use **Implantar › Gerenciar implantações › Editar �
 | **v28** | Grande ranking da Cruzada: ao terminar o treino livre abre uma caixa para o nome; o servidor grava os pontos que ele mesmo contou (aba `CruzRanking`) e a aba *Ranking* mostra os 100 melhores |
 | **v29** | Ranking da Cruzada: palavra revelada por inteiro (vale 0) conta como feita, e a cruzada termina e entra no ranking normalmente |
 | **v30** | Desempenho: cada aba é lida uma vez por requisição, gravação do aluno em bloco, cache de 2 min do banco de palavras da Cruzada (painel limpa na hora; edição direta na planilha aparece em até 2 min) e o telão não consulta com a aba escondida |
+| **v31** | Novo módulo **Desvendando com Conhecimento** (inspirado no @clube.enigma): 4 casos de mistério, 2 de lógica com pistas e 2 de investigação em SQL com 8 suspeitos; o servidor confere a acusação (gabarito em hash), desconta 15 por erro e 10 por dica e mantém o ranking dos detetives (aba DesvRanking) |
 | **RPG** | Missão "A Saga do Reino dos Dados" (pacote B4, 24 capítulos em história de RPG) cobrindo conceitos/SGBD, tipos de banco, modelagem, SQL e transações; use a sala CTF fase a fase |
 | **RPG II** | Missão "A Cidadela das Tabelas" (pacote B5, 21 capítulos) resolvida no Console SQLite sobre o banco da escola: DQL, JOINs, agrupamento, DDL/DML em cópias `rpg_NN`, transação e chefão final |
 | **v23** | Cruzada com todas as disciplinas do Banco: seletor expansível (disciplina inteira ou só alguns assuntos, várias ao mesmo tempo); `selecao: [{disciplina, assuntos}]` no treino e na sala; `cruzAssuntos` lista todas as disciplinas; o banco de palavras aceita qualquer disciplina |
@@ -472,7 +473,7 @@ TrilhaRali/
 │   │   ├── webMissions.ts         60 missões de Construção de Sites 1
 │   │   ├── webLab.ts              Site de exemplo do Ateliê Web
 │   │   ├── consoleMissions.ts     Missões de console usadas nos testes
-│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v30)
+│   │   └── ctfAppsScript.ts       Código do backend (Apps Script v31)
 │   ├── utils/                     Tempo, tema, banco, ranking, API, SQLite, shell e planilha
 │   └── types/                     Tipos compartilhados
 ├── index.html

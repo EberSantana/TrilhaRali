@@ -40,7 +40,14 @@ function cellText(v: unknown): React.ReactNode {
   return String(v);
 }
 
-export const SqlConsole: React.FC = () => {
+interface SqlConsoleProps {
+  /** script SQL do banco inicial (padrão: o banco do Rali) */
+  seed?: string;
+  /** nome do banco inicial no botão e nas mensagens */
+  seedNome?: string;
+}
+
+export const SqlConsole: React.FC<SqlConsoleProps> = ({ seed = BANCO_CTF_SQL, seedNome = 'Banco do Rali' }) => {
   const sqlRef = useRef<SqlJsStatic | null>(null);
   const dbRef = useRef<Database | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -75,18 +82,18 @@ export const SqlConsole: React.FC = () => {
       dbRef.current?.close();
       const db = new SQL.Database();
       try {
-        if (kind === 'rali') db.exec(BANCO_CTF_SQL);
+        if (kind === 'rali') db.exec(seed);
       } catch (e) {
         setError(`Não foi possível criar o banco: ${e instanceof Error ? e.message : String(e)}`);
       }
       dbRef.current = db;
       setOrigin(kind);
       setResults([]);
-      setMessage(kind === 'rali' ? 'Banco do Rali carregado.' : 'Banco vazio criado.');
+      setMessage(kind === 'rali' ? `${seedNome} carregado.` : 'Banco vazio criado.');
       if (kind === 'rali') setError('');
       refreshSchema();
     },
-    [refreshSchema]
+    [refreshSchema, seed, seedNome]
   );
 
   useEffect(() => {
@@ -174,7 +181,7 @@ export const SqlConsole: React.FC = () => {
             }`}
             title="Recria o banco das atividades (apaga o que você alterou)"
           >
-            <RotateCcw className="w-3.5 h-3.5" /> Banco do Rali
+            <RotateCcw className="w-3.5 h-3.5" /> {seedNome}
           </button>
           <button
             onClick={() => createDatabase('vazio')}
