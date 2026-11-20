@@ -312,7 +312,7 @@ test('treino livre: gera a grade sem letras, confere, conta dicas e não toca no
 
 test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala aberta', () => {
   const abas: Record<string, { _row: number; token: string }[]> = {};
-  ['CtfSalas', 'CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise'].forEach((n) => {
+  ['CtfSalas', 'CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfErros', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise'].forEach((n) => {
     abas[n] = [{ _row: 2, token: 'A' }, { _row: 3, token: 'B' }, { _row: 4, token: 'A' }];
   });
   const sala = { _row: 2, token: 'A', status: 'encerrada', admin_key: 'k' };
@@ -328,7 +328,7 @@ test('deleteRoom (v21): apaga de vez a sala encerrada e tudo dela; recusa sala a
   assert.throws(() => (ctx.deleteRoom as (r: unknown) => unknown)({}), /Encerre a sala/);
   sala.status = 'encerrada';
   const r = plain((ctx.deleteRoom as (r: unknown) => { apagadas: number })({}));
-  assert.equal(r.apagadas, 16);
+  assert.equal(r.apagadas, 18);
   for (const n of Object.keys(abas)) assert.deepEqual(abas[n].map((x) => x.token), ['B'], n);
 });
 
