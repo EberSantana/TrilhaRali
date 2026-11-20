@@ -167,3 +167,26 @@ test('Desvendando: piloto e copiloto na ordem, mesma dupla em outro celular mant
   assert.equal(troca.resolvidos.c1, desv.c1.pontos);
   assert.equal(troca.dupla.integrantes, 'Ana Souza, Carla Dias');
 });
+
+test('papéis: o professor escolhe o modo; CTF em dupla credita o copiloto nas notas', () => {
+  const b = comTurma();
+  const ctf = b.call({ action: 'createRoom', nome: 'CTF dupla', missions, modo: 'fixed', turma: b.turma.id, papeis: 'fixos' });
+  assert.equal(b.call({ action: 'salaTurma', token: ctf.token }).papeis, 'fixos');
+  const st = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', integrantes: ['Bruno Lima'] });
+  assert.deepEqual(st.aluno.integrantes, ['Bruno Lima']);
+  assert.equal(st.sala.papeis, 'fixos');
+  assert.match(b.call({ action: 'join', token: ctf.token, nome: 'Bruno Lima', integrantes: ['Carla Dias'] }).error, /já está na dupla/);
+  b.call({ action: 'submit', token: ctf.token, nome: 'Ana Souza', resposta: '8' });
+  const n = b.call({ action: 'turmaNotas', ...K, id: b.turma.id });
+  const por = Object.fromEntries(n.alunos.map((a: Json) => [a.n, a]));
+  assert.equal(por['Ana Souza'].ctf, 10);
+  assert.equal(por['Bruno Lima'].ctf, 10);
+  // CTF sem papéis continua individual; Desvendando começa em rodízio
+  const solo = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed' });
+  assert.equal(b.call({ action: 'join', token: solo.token, nome: 'Zé Silva' }).sala.papeis, '');
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ['c1', 'x', 10, '']]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'] });
+  assert.equal(b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_z1', nome: 'Dupla Z', integrantes: 'A e B' }).sala.papeis, 'rodizio');
+  const dd = b.call({ action: 'createDesvRoom', nome: 'Desv2', casos: ['c1'], papeis: 'dupla' });
+  assert.equal(b.call({ action: 'desvEntrar', token: dd.token, gid: 'aparelho_dupla_z2', nome: 'Dupla Z', integrantes: 'A e B' }).sala.papeis, 'dupla');
+});

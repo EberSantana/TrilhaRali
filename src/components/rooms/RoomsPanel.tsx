@@ -16,6 +16,7 @@ import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { BackPill } from '../common/ModuleShell';
 import { SeletorTurma } from '../turmas/SeletorTurma';
+import { SeletorPapeis, type ModoPapeis } from '../turmas/Papeis';
 import { liberarNome, useTurmas } from '../../utils/turmasApi';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
@@ -93,6 +94,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [nome, setNome] = useState('');
   const turmas = useTurmas();
   const [turmaId, setTurmaId] = useState('');
+  const [papeis, setPapeis] = useState<ModoPapeis>('');
   const [modo, setModo] = useState<ScoringMode>('ctf_dynamic');
   const [ordem, setOrdem] = useState<CtfOrdem>('livre');
   const [novaSelecao, setNovaSelecao] = useState<Selecao>({});
@@ -257,7 +259,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       }));
       missions.push(...bankPool.map(bankToCtfPayload));
       const nomeSala = nome.trim() || `${txt.nome} ${new Date().toLocaleDateString('pt-BR')}`;
-      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo, ...(turmaId ? { turma: turmaId } : {}), ...(tipo === 'ctf' ? { ordem } : {}), ...(usarTimer ? { minutos } : {}) }, apiUrl);
+      const res = await ctfCall<{ token: string; adminKey: string; tipo?: string; ordem?: string }>('createRoom', { nome: nomeSala, modo, missions, bancoLiberado: false, tipo, ...(turmaId ? { turma: turmaId } : {}), ...(papeis ? { papeis } : {}), ...(tipo === 'ctf' ? { ordem } : {}), ...(usarTimer ? { minutos } : {}) }, apiUrl);
       if (nfc && res.tipo !== 'rali') {
         throw new Error('O servidor está numa versão antiga e criou uma sala de CTF. Atualize o script do Apps Script (versão 6) e publique uma nova versão.');
       }
@@ -590,6 +592,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Turma 2026.1 · Banco de Dados" className={input} />
           </label>
           <SeletorTurma turmas={turmas} value={turmaId} onChange={setTurmaId} className={input} />
+          {!cruzSala && <SeletorPapeis value={papeis} onChange={setPapeis} quem={nfc ? 'equipe' : 'dupla'} />}
 
           <div className="space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pontuação</span>

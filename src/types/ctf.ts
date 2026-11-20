@@ -11,6 +11,8 @@ export type CtfOrdem = 'livre' | 'sequencial' | 'cruzadinha';
 
 export interface CtfRoomInfo {
   token: string;
+  /** Papéis da dupla/equipe ('' = sem papéis). */
+  papeis?: '' | 'rodizio' | 'fixos' | 'dupla';
   /** ausente em backends anteriores à versão 6 (sempre CTF) */
   tipo?: RoomTipo;
   /** CTF: 'livre' = painel de desafios (o aluno escolhe a ordem); 'sequencial' = fase a fase. Ausente em salas antigas (sequencial). */
@@ -49,6 +51,8 @@ export interface CtfPlayer {
   fogos: number;
   posicao: number;
   concluido: boolean;
+  /** CTF em dupla: copiloto e engenheiro (o piloto é o nome). */
+  integrantes?: string[];
 }
 
 export interface CtfMission {

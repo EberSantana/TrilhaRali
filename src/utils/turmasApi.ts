@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ModoPapeis } from '../components/turmas/Papeis';
 import { ctfCall } from './ctfApi';
 import { getBancoKey } from './bankApi';
 
@@ -70,11 +71,19 @@ export interface TurmaDaSala {
   ocupados: string[];
 }
 
-/** Nomes da turma de uma sala (para o aluno escolher). null = sala sem turma ou servidor antigo. */
-export const nomesDaSala = (token: string, gid?: string) =>
-  ctfCall<{ turma: (Omit<TurmaDaSala, 'ocupados'> & { ocupados?: string[] }) | null }>('salaTurma', { token, ...(gid ? { gid } : {}) })
-    .then((r) => (r.turma ? { ...r.turma, ocupados: r.turma.ocupados ?? [] } : null))
+/** Dados públicos da sala para a tela de entrada: lista da turma (ou null) e o modo dos papéis. */
+export interface SalaPublica {
+  turma: TurmaDaSala | null;
+  papeis: ModoPapeis;
+}
+
+export const salaPublica = (token: string, gid?: string): Promise<SalaPublica | null> =>
+  ctfCall<{ turma: (Omit<TurmaDaSala, 'ocupados'> & { ocupados?: string[] }) | null; papeis?: string }>('salaTurma', { token, ...(gid ? { gid } : {}) })
+    .then((r) => ({ turma: r.turma ? { ...r.turma, ocupados: r.turma.ocupados ?? [] } : null, papeis: (r.papeis ?? '') as ModoPapeis }))
     .catch(() => null);
+
+/** Nomes da turma de uma sala (para o aluno escolher). null = sala sem turma ou servidor antigo. */
+export const nomesDaSala = (token: string, gid?: string) => salaPublica(token, gid).then((r) => r?.turma ?? null);
 
 /** O professor libera um nome (o aluno trocou de celular). */
 export const liberarNome = (token: string, adminKey: string, nome: string) => ctfCall<{ ok: true }>('liberarNome', { token, adminKey, nome });
@@ -82,15 +91,15 @@ export const liberarNome = (token: string, adminKey: string, nome: string) => ct
 /** Compara nomes sem acento e sem diferença de maiúsculas. */
 export const normNome = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-/** Busca a lista da turma assim que o token parece completo (6 caracteres) e a atualiza a cada 15 s. */
-export function useTurmaDaSala(token: string, gid?: string) {
-  const [turma, setTurma] = useState<TurmaDaSala | null>(null);
+/** Busca os dados da sala assim que o token parece completo (6 caracteres) e os atualiza a cada 15 s. */
+export function useSalaPublica(token: string, gid?: string) {
+  const [info, setInfo] = useState<SalaPublica | null>(null);
   useEffect(() => {
     const t = token.trim().toUpperCase();
-    setTurma(null);
+    setInfo(null);
     if (t.length !== 6) return;
     let vivo = true;
-    const busca = () => void nomesDaSala(t, gid).then((r) => vivo && setTurma(r));
+    const busca = () => void salaPublica(t, gid).then((r) => vivo && setInfo(r));
     const id = window.setTimeout(busca, 350);
     const ciclo = window.setInterval(busca, 15000);
     return () => {
@@ -99,8 +108,11 @@ export function useTurmaDaSala(token: string, gid?: string) {
       window.clearInterval(ciclo);
     };
   }, [token, gid]);
-  return turma;
+  return info;
 }
+
+/** Só a lista da turma da sala (null = sala sem turma). */
+export const useTurmaDaSala = (token: string, gid?: string) => useSalaPublica(token, gid)?.turma ?? null;
 
 /** Turmas do professor para escolher ao criar uma sala (vazio sem a chave do banco). */
 export function useTurmas() {
