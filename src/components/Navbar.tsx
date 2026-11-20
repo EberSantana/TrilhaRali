@@ -207,10 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {isTeacher ? (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="hidden md:inline">Prof. Eber</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
-                    Ativo
-                  </span>
+                  <span>Professor ativo</span>
                 </>
               ) : (
                 <>

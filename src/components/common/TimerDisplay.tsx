@@ -90,16 +90,13 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ timer, seconds, phas
     return (
       <div className={`rounded-2xl border-2 bg-slate-900 ${PHASE_BORDER[phase]} px-6 sm:px-8 py-5 flex flex-wrap items-center gap-x-10 gap-y-4`} role="timer" aria-label={label}>
         <div>
-          <div className="flex items-center gap-2 text-base font-bold uppercase tracking-wider text-slate-400">
-            <Timer className="w-5 h-5" aria-hidden="true" /> Tempo restante
+          <div className="flex items-center gap-3 text-base font-bold uppercase tracking-wider text-slate-400">
+            <span className="flex items-center gap-2"><Timer className="w-5 h-5" aria-hidden="true" /> Tempo restante</span>
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs normal-case tracking-normal ${PHASE_BORDER[phase]} ${PHASE_TEXT[phase].replace(' timer-critico', '')}`}>{PHASE_LABEL[phase]}</span>
           </div>
           <div className={`font-mono font-black tabular-nums leading-none tracking-tight text-7xl sm:text-8xl mt-2 ${PHASE_TEXT[phase]}`}>{clock}</div>
         </div>
-        <div className="flex-1 min-w-64 space-y-3">
-          <div className="flex justify-between gap-4 text-lg text-slate-400">
-            <span>Atividade de {timer.duracaoMin} min</span>
-            <span className={`font-bold ${PHASE_TEXT[phase].replace(' timer-critico', '')}`}>{PHASE_LABEL[phase]}</span>
-          </div>
+        <div className="flex-1 min-w-64">
           <div className="h-5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true">
             <div className={`h-full rounded-full transition-all ${PHASE_BAR[phase]}`} style={{ width: `${(1 - elapsedFraction(timer, seconds)) * 100}%` }} />
           </div>

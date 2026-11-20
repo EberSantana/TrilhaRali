@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Lock, Unlock, Maximize2, Minimize2, Trophy, Medal, Sparkles, Flame, CheckCircle2, XCircle, Plus, Minus, Users, GraduationCap, Smartphone } from 'lucide-react';
+import { Play, Pause, RotateCcw, Lock, Unlock, Maximize2, Minimize2, Trophy, Medal, Sparkles, CheckCircle2, XCircle, Plus, Minus, Users, GraduationCap, Smartphone } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, SubmissionLog, ClassSessionState, ClassPhase, ScoringMode } from '../types';
 import { playSound } from '../utils/audio';
-import { TrilhaLogo } from './TrilhaLogo';
 import { normalizeScoringMode } from '../utils/scoring';
 import { clampMinutes, crossedAlert, TIMER_MAX, timerPhase, TimerInfo } from '../utils/timer';
 import { useMissions } from '../utils/missionsStore';
@@ -182,9 +181,8 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
         <div className="space-y-5">
           <ProjectorHeader
             module="nfc"
-            leading={<TrilhaLogo height={72} className="hidden sm:block" />}
-            title={<><span>Trilha Rali</span><Flame className="w-7 h-7 text-amber-500 fill-amber-500" /></>}
-            subtitle={<>{activeRoomName ? `Sala: ${activeRoomName} • ` : ''}{teams.length} equipes • missões por tags NFC</>}
+            title={activeRoomName || 'Rali local'}
+            subtitle={<>{teams.length} {teams.length === 1 ? 'equipe' : 'equipes'}{scoringMode === 'ctf_dynamic' ? ' · CTF Dinâmico' : ''}</>}
           />
 
           {sessionState.isSubmissionsLocked && (
@@ -212,29 +210,22 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
         </div>
 
         {/* Seletor do modo de pontuação (Painel do Professor) */}
-        <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="text-center md:text-left">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-center md:justify-start gap-1.5">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <span>Modo de Pontuação</span>
-              {!isTeacher && <Lock className="w-3 h-3 text-slate-500" aria-label="Apenas professor" />}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {scoringMode === 'ctf_dynamic'
-                ? 'CTF Dinâmico: quanto mais equipes capturam a mesma tag, menos ela vale (nunca abaixo de 40%).'
-                : 'Rali Tradicional: cada missão sempre vale o XP original.'}
-            </p>
-          </div>
+        <div className="mt-5 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            Pontuação
+            {!isTeacher && <Lock className="w-3 h-3 text-slate-500" aria-label="Apenas professor" />}
+          </span>
 
           <div
             role="radiogroup"
             aria-label="Modo de pontuação"
-            className="inline-flex self-center md:self-auto rounded-xl bg-slate-950 border border-slate-800 p-1 gap-1"
+            className="inline-flex rounded-xl bg-slate-950 border border-slate-800 p-1 gap-1"
           >
             <button
               type="button"
               role="radio"
               aria-checked={scoringMode === 'fixed'}
+              title="Cada missão sempre vale o XP original"
               onClick={() => changeScoringMode('fixed')}
               className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition ${
                 scoringMode === 'fixed' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -246,6 +237,7 @@ export const ClassroomProjector: React.FC<ClassroomProjectorProps> = ({
               type="button"
               role="radio"
               aria-checked={scoringMode === 'ctf_dynamic'}
+              title="Quanto mais equipes capturam a mesma tag, menos ela vale (nunca abaixo de 40%). A primeira ganha a chama."
               onClick={() => changeScoringMode('ctf_dynamic')}
               className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-1.5 ${
                 scoringMode === 'ctf_dynamic' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
