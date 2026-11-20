@@ -21,3 +21,31 @@ export const Medalha: React.FC<{ pos: number; className?: string }> = ({ pos, cl
   ) : (
     <span className={`inline-flex h-7 w-7 items-center justify-center text-sm font-black text-slate-400 ${className}`}>{pos}</span>
   );
+
+const SELO = {
+  laranja: 'from-orange-400 to-red-600 shadow-orange-900/30',
+  ambar: 'from-amber-300 to-amber-600 shadow-amber-900/30',
+  verde: 'from-emerald-400 to-emerald-700 shadow-emerald-900/30',
+  ciano: 'from-cyan-400 to-sky-700 shadow-sky-900/30',
+  violeta: 'from-violet-400 to-violet-700 shadow-violet-900/30',
+  vermelho: 'from-rose-400 to-red-700 shadow-red-900/30',
+  azul: 'from-sky-400 to-blue-700 shadow-blue-900/30',
+  grafite: 'from-slate-500 to-slate-800 shadow-slate-950/30',
+} as const;
+
+export type TomSelo = keyof typeof SELO;
+
+const TAM = { sm: 'h-6 w-6 rounded-md [&>svg]:h-3.5 [&>svg]:w-3.5', md: 'h-8 w-8 rounded-lg [&>svg]:h-4 [&>svg]:w-4', lg: 'h-11 w-11 rounded-xl [&>svg]:h-5 [&>svg]:w-5' } as const;
+
+/**
+ * Selo de ícone: quadrado arredondado com degradê na cor do contexto, brilho no topo e ícone branco.
+ * Usado nos destaques (avisos, gabarito, primeira captura, indicadores); ícones dentro do texto seguem só de traço.
+ */
+export const Selo: React.FC<{ tom: TomSelo; tamanho?: keyof typeof TAM; className?: string; children: React.ReactNode }> = ({ tom, tamanho = 'md', className = '', children }) => (
+  <span
+    aria-hidden
+    className={`relative inline-flex shrink-0 items-center justify-center bg-gradient-to-br text-white shadow-md ring-1 ring-inset ring-white/25 ${SELO[tom]} ${TAM[tamanho]} [&>svg]:relative [&>svg]:drop-shadow-sm before:absolute before:inset-x-1 before:top-0.5 before:h-1/3 before:rounded-[inherit] before:bg-white/25 before:content-[''] ${className}`}
+  >
+    {children}
+  </span>
+);

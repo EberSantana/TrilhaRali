@@ -21,7 +21,7 @@ import { liberarNome, useTurmas } from '../../utils/turmasApi';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
 import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from '../cruz/SelecaoCruz';
-import { Fogo } from '../common/Icones';
+import { Fogo, Selo } from '../common/Icones';
 
 const POLL_MS = 10_000;
 
@@ -689,7 +689,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           ) : (
           <fieldset className={`min-w-0 space-y-3 rounded-2xl border-2 p-3 ${nfc ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-orange-500/50 bg-orange-500/5'}`}>
             <legend className={`flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider ${accentText}`}>
-              <Target className="inline h-4 w-4 align-[-0.15em]" aria-hidden /> Perguntas da sala
+              <Selo tom="laranja" tamanho="sm" className="mr-2 align-middle"><Target /></Selo>Perguntas da sala
               <span className={`rounded-full px-2 py-0.5 text-xs font-black text-white ${nfc ? 'bg-emerald-600' : 'bg-orange-500'}`}>{total}</span>
             </legend>
             <p className="text-[11px] text-slate-400">

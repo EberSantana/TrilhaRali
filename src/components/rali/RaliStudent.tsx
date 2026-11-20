@@ -5,7 +5,7 @@ import { FaixaCabine } from '../turmas/Papeis';
 import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, KeyRound, Loader2, LogOut, Radio, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RaliState, RaliTagInfo } from '../../types/ctf';
 import { clearRaliSession, getChave, saveChave, ctfCall, startPolling, getCtfApiUrl, getRaliSession, parseCtfHash, saveCtfApiUrl, saveRaliSession } from '../../utils/ctfApi';
@@ -19,7 +19,7 @@ import { Btn } from '../common/ui';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { LinuxTerminal } from '../ctf/LinuxTerminal';
 import { parseTagFromLocation } from '../../utils/tagLink';
-import { Fogo } from '../common/Icones';
+import { Fogo, Selo } from '../common/Icones';
 
 
 interface Props {
@@ -307,7 +307,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
                 {open.ja_resolvida && <StatusBanner tone="warn">Sua equipe já resolveu esta missão.</StatusBanner>}
                 {sala.modo === 'ctf_dynamic' && !open.ja_resolvida && (
                   <div className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${open.missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'}`}>
-                    <span className="flex items-center gap-2">{open.missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{open.missao.capturas_anteriores === 0 ? `FLAG INTACTA! Nenhuma equipe resolveu: vale ${open.missao.xp_atual} XP!` : `${open.missao.capturas_anteriores} ${open.missao.capturas_anteriores === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${open.missao.xp_atual} XP agora.`}</span></span>
+                    <span className="flex items-center gap-3">{open.missao.capturas_anteriores === 0 ? <Selo tom="laranja" tamanho="sm"><Flame /></Selo> : <Selo tom="ambar" tamanho="sm"><TriangleAlert /></Selo>}<span>{open.missao.capturas_anteriores === 0 ? `FLAG INTACTA! Nenhuma equipe resolveu: vale ${open.missao.xp_atual} XP!` : `${open.missao.capturas_anteriores} ${open.missao.capturas_anteriores === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${open.missao.xp_atual} XP agora.`}</span></span>
                   </div>
                 )}
                 <div className="bg-slate-950 rounded-xl p-4 border border-slate-800">
@@ -370,8 +370,8 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
               </div>
             )}
             {feedback && (
-              <div role="status" className={`p-4 rounded-xl border flex items-start gap-3 text-sm font-semibold ${feedback.ok ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200' : 'bg-rose-950/80 border-rose-500 text-rose-200'}`}>
-                {feedback.ok ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <XCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+              <div role="status" className={`p-4 rounded-xl border flex items-center gap-3 text-sm font-semibold ${feedback.ok ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200' : 'bg-rose-950/80 border-rose-500 text-rose-200'}`}>
+                {feedback.ok ? <Selo tom="verde"><Check /></Selo> : <Selo tom="vermelho"><X /></Selo>}
                 <span>{feedback.text}</span>
               </div>
             )}
