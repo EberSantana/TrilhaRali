@@ -540,7 +540,7 @@ const DesvCasoView: React.FC<CasoProps> = ({ caso, gid, token, resolvidoCom, onV
                 <p className="inline-flex items-center gap-2 text-base font-black text-emerald-200">
                   <CheckCircle2 className="w-5 h-5" /> Caso desvendado! +{resultado.pontos} pts
                 </p>
-                {resultado.explicacao && <p className="mt-2 text-sm leading-relaxed text-emerald-50">{resultado.explicacao}</p>}
+                {resultado.explicacao && <p className="mt-2 text-sm leading-relaxed text-emerald-200">{resultado.explicacao}</p>}
               </div>
             ) : (
               <>

@@ -90,7 +90,7 @@ export const TeacherAuthModal: React.FC<TeacherAuthModalProps> = ({ isOpen, onCl
 
         {isTeacher ? (
           <div className="space-y-4">
-            <p className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+            <p className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
               <ShieldCheck className="mt-0.5 w-4 h-4 shrink-0" />
               Este aparelho está com a chave {getBancoKey() ? 'conectada' : 'ausente'}: gabarito aberto, salas sincronizadas com o servidor e banco de perguntas liberado.
             </p>
