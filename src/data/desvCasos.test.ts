@@ -26,8 +26,26 @@ const REGRAS: Record<string, Array<(f: Ficha) => boolean>> = {
     (f) => Object.values(f).every(([l, o]) => o !== 'Notebook' || (l !== 'Sala de Redes' && l !== 'Auditório')),
     (f) => Object.values(f).every(([l, o]) => l !== 'Auditório' || o !== 'Pendrive'),
   ],
+  c13: [
+    (f) => Object.values(f).every(([l, o]) => l !== 'Biblioteca' || o === 'Mochila'),
+    (f) => f.Iara[1] === 'Fone de ouvido',
+    (f) => f.Hugo[1] === 'Mochila',
+    (f) => Object.values(f).every(([l, o]) => l !== 'Pátio' || o === 'Fone de ouvido'),
+    (f) => Object.values(f).every(([l, o]) => o !== 'Guarda-chuva' || l !== 'Cantina'),
+    (f) => f.Jonas[0] !== 'Laboratório',
+  ],
+  c14: [
+    (f) => f.Nando[1] === 'Chave mestra',
+    (f) => f.Marta[0] !== 'Quadra',
+    (f) => f['Olívia'][0] === 'Pátio' || f['Olívia'][0] === 'Secretaria',
+    (f) => f.Paulo[1] === 'Grampeador',
+    (f) => Object.values(f).every(([l, o]) => l !== 'Secretaria' || o === 'Pasta azul'),
+    (f) => Object.values(f).every(([l, o]) => o !== 'Grampeador' || l !== 'Copiadora'),
+    (f) => Object.values(f).every(([l, o]) => l !== 'Quadra' || o === 'Garrafa térmica'),
+    (f) => f.Nando[0] === 'Sala de Provas' || f.Nando[0] === 'Secretaria',
+  ],
 };
-const LOCAL_DO_CRIME: Record<string, string> = { c1: 'Laboratório', c2: 'Sala de Redes' };
+const LOCAL_DO_CRIME: Record<string, string> = { c1: 'Laboratório', c2: 'Sala de Redes', c13: 'Laboratório', c14: 'Sala de Provas' };
 // Consulta que prova o culpado em cada caso de SQL
 const PROVA: Record<string, string> = {
   c3: `SELECT s.id FROM catraca c JOIN suspeitos s ON s.id = c.id_suspeito
@@ -36,7 +54,15 @@ const PROVA: Record<string, string> = {
   c4: `SELECT u.id FROM alteracoes a JOIN sessoes s ON s.ip = a.ip AND a.horario BETWEEN s.inicio AND s.fim
        JOIN usuarios u ON u.id = s.id_usuario
        WHERE a.comando LIKE '%placar%' AND a.horario > '18:00'`,
+  c15: `SELECT u.id FROM usuarios u JOIN acessos a ON a.id_usuario = u.id
+        JOIN permissoes p ON p.id_usuario = u.id AND p.area = 'Obras Raras'
+        WHERE a.porta = 'lateral' AND a.entrada < '17:00' AND a.saida > '16:00'`,
+  c16: `SELECT f.id FROM funcionarios f JOIN turnos t ON t.id_func = f.id
+        JOIN estornos e ON e.dia = t.dia AND e.horario BETWEEN t.inicio AND t.fim
+        WHERE e.nota_fiscal IS NULL
+        GROUP BY f.id HAVING COUNT(DISTINCT e.id) = (SELECT COUNT(*) FROM estornos WHERE nota_fiscal IS NULL)`,
 };
+const TABELA_SUSPEITOS: Record<string, string> = { c3: 'suspeitos', c4: 'usuarios', c15: 'usuarios', c16: 'funcionarios' };
 
 // O culpado de cada caso vem do gabarito criptografado (o servidor usa a aba DesvGabarito, com os mesmos dados)
 function gabarito(caso: string): number {
@@ -69,7 +95,7 @@ test('cada caso de SQL aponta um único culpado no banco do caso, igual ao gabar
     const ids = r.length ? r[0].values.map((v) => Number(v[0])) : [];
     assert.deepEqual(ids, [gabarito(c.id)], `${c.id}: prova deu ${JSON.stringify(ids)}`);
     assert.equal(c.suspeitos.length, 8);
-    const nomes = db.exec(`SELECT nome FROM ${c.id === 'c3' ? 'suspeitos' : 'usuarios'} ORDER BY id`)[0].values.map((v) => String(v[0]));
+    const nomes = db.exec(`SELECT nome FROM ${TABELA_SUSPEITOS[c.id]} ORDER BY id`)[0].values.map((v) => String(v[0]));
     assert.deepEqual(nomes, c.suspeitos.map((s) => s.nome));
   }
 });

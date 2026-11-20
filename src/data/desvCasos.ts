@@ -171,6 +171,141 @@ INSERT INTO avisos (texto) VALUES
 ('O sistema registra o IP de toda alteração, mas não o usuário.');
 `;
 
+const SEED_LIVRO = `-- Caso: O Livro Raro da Biblioteca
+CREATE TABLE usuarios (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  turma TEXT NOT NULL
+);
+INSERT INTO usuarios VALUES
+(1, 'Abel Cardoso', '1A'),
+(2, 'Bianca Lemos', '1A'),
+(3, 'Cauã Ribeiro', '2B'),
+(4, 'Dayane Pinto', '2B'),
+(5, 'Elias Barros', '3A'),
+(6, 'Flávia Rocha', '3A'),
+(7, 'Gil Araújo', 'Professor'),
+(8, 'Hana Duarte', '1A');
+
+-- Quem pode entrar na sala de Obras Raras
+CREATE TABLE permissoes (
+  id INTEGER PRIMARY KEY,
+  id_usuario INTEGER NOT NULL REFERENCES usuarios(id),
+  area TEXT NOT NULL
+);
+INSERT INTO permissoes (id_usuario, area) VALUES
+(1, 'Acervo Geral'),
+(2, 'Obras Raras'),
+(3, 'Obras Raras'),
+(4, 'Obras Raras'),
+(5, 'Obras Raras'),
+(6, 'Obras Raras'),
+(7, 'Acervo Geral'),
+(8, 'Acervo Geral');
+
+-- Entradas e saídas da Biblioteca no dia do sumiço (horário HH:MM)
+CREATE TABLE acessos (
+  id INTEGER PRIMARY KEY,
+  id_usuario INTEGER NOT NULL REFERENCES usuarios(id),
+  entrada TEXT NOT NULL,
+  saida TEXT NOT NULL,
+  porta TEXT NOT NULL
+);
+INSERT INTO acessos (id_usuario, entrada, saida, porta) VALUES
+(1, '15:00', '15:50', 'principal'),
+(2, '15:00', '15:30', 'lateral'),
+(2, '16:30', '16:50', 'principal'),
+(3, '16:10', '16:45', 'lateral'),
+(4, '16:20', '17:30', 'principal'),
+(5, '17:10', '17:40', 'lateral'),
+(6, '14:00', '15:30', 'lateral'),
+(7, '16:05', '16:50', 'principal'),
+(8, '16:50', '17:20', 'lateral');
+
+CREATE TABLE avisos (
+  id INTEGER PRIMARY KEY,
+  texto TEXT NOT NULL
+);
+INSERT INTO avisos (texto) VALUES
+('O livro raro foi conferido na estante às 16:00 e a falta foi notada às 17:00.'),
+('Só quem tem permissão para Obras Raras consegue abrir a vitrine.'),
+('O detector da porta principal apita com livros sem baixa. Quem levou o livro saiu pela porta lateral.');
+`;
+
+const SEED_CAIXA = `-- Caso: O Desvio no Caixa da Cantina
+CREATE TABLE funcionarios (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  cargo TEXT NOT NULL
+);
+INSERT INTO funcionarios VALUES
+(1, 'Ivo Prado', 'Caixa'),
+(2, 'Joana Veras', 'Caixa'),
+(3, 'Kleber Dantas', 'Atendente'),
+(4, 'Lívia Matos', 'Caixa'),
+(5, 'Marcelo Sena', 'Atendente'),
+(6, 'Nair Campos', 'Caixa'),
+(7, 'Orlando Reis', 'Gerente'),
+(8, 'Priscila Neves', 'Atendente');
+
+-- Turnos de cada pessoa no caixa (horário HH:MM)
+CREATE TABLE turnos (
+  id INTEGER PRIMARY KEY,
+  id_func INTEGER NOT NULL REFERENCES funcionarios(id),
+  dia TEXT NOT NULL,
+  inicio TEXT NOT NULL,
+  fim TEXT NOT NULL
+);
+INSERT INTO turnos (id_func, dia, inicio, fim) VALUES
+(1, '2026-11-09', '08:00', '12:00'),
+(1, '2026-11-10', '08:00', '12:00'),
+(1, '2026-11-11', '08:00', '13:00'),
+(2, '2026-11-09', '12:00', '18:00'),
+(2, '2026-11-10', '14:00', '18:00'),
+(2, '2026-11-11', '12:00', '18:00'),
+(3, '2026-11-09', '08:00', '12:00'),
+(3, '2026-11-10', '14:00', '18:00'),
+(3, '2026-11-11', '14:00', '18:00'),
+(4, '2026-11-09', '09:00', '13:00'),
+(4, '2026-11-10', '08:00', '14:00'),
+(4, '2026-11-11', '08:00', '13:00'),
+(5, '2026-11-09', '09:00', '11:00'),
+(5, '2026-11-10', '15:00', '17:00'),
+(5, '2026-11-11', '11:30', '13:00'),
+(6, '2026-11-09', '13:00', '18:00'),
+(6, '2026-11-10', '15:00', '18:00'),
+(7, '2026-11-09', '10:00', '10:10'),
+(7, '2026-11-10', '15:30', '16:00'),
+(7, '2026-11-11', '12:00', '12:30'),
+(8, '2026-11-09', '08:00', '10:14'),
+(8, '2026-11-10', '15:41', '18:00'),
+(8, '2026-11-11', '12:06', '15:00');
+
+-- Todo estorno feito no caixa; estorno legítimo tem nota fiscal
+CREATE TABLE estornos (
+  id INTEGER PRIMARY KEY,
+  dia TEXT NOT NULL,
+  horario TEXT NOT NULL,
+  valor REAL NOT NULL,
+  nota_fiscal TEXT
+);
+INSERT INTO estornos (dia, horario, valor, nota_fiscal) VALUES
+('2026-11-09', '10:15', 89.90, NULL),
+('2026-11-09', '14:00', 32.00, 'NF-2217'),
+('2026-11-10', '09:00', 18.50, 'NF-2230'),
+('2026-11-10', '15:40', 120.00, NULL),
+('2026-11-11', '12:05', 75.50, NULL);
+
+CREATE TABLE avisos (
+  id INTEGER PRIMARY KEY,
+  texto TEXT NOT NULL
+);
+INSERT INTO avisos (texto) VALUES
+('Estorno sem nota fiscal é irregular: foram três, em três dias seguidos.'),
+('O sistema não grava quem fez o estorno, só o dia e o horário.'),
+('Quem desviou o dinheiro estava de turno no caixa nos três estornos irregulares.');
+`;
+
 export const DESV_CASOS: DesvCaso[] = [
   {
     id: 'c1',
@@ -515,6 +650,121 @@ export const DESV_CASOS: DesvCaso[] = [
     dicas: [
       'Calcule cada fórmula com B2 = 8, C2 = 6 e D2 = 10, respeitando a ordem das operações.',
       'B2:D2 é o intervalo de B2 até D2; B2;D2 são só as duas células.',
+    ],
+  },
+  {
+    id: 'c13',
+    disciplina: 'Lógica',
+    tipo: 'logica',
+    titulo: 'O Projetor Desaparecido',
+    nivel: 'Intermediário',
+    pontos: 80,
+    historia:
+      'O projetor da turma sumiu do Laboratório durante o intervalo. Quatro estudantes estavam no prédio, cada um em um lugar diferente e cada um com um item diferente.',
+    pergunta: 'Quem estava no Laboratório e levou o projetor?',
+    suspeitos: [
+      { id: 1, nome: 'Hugo' },
+      { id: 2, nome: 'Iara' },
+      { id: 3, nome: 'Jonas' },
+      { id: 4, nome: 'Kátia' },
+    ],
+    locais: ['Laboratório', 'Biblioteca', 'Cantina', 'Pátio'],
+    objetoRotulo: 'Item',
+    objetos: ['Mochila', 'Guarda-chuva', 'Boné', 'Fone de ouvido'],
+    pistas: [
+      'Quem estava na Biblioteca usava a mochila.',
+      'Iara estava com o fone de ouvido.',
+      'Hugo estava com a mochila.',
+      'Quem estava no Pátio usava o fone de ouvido.',
+      'O guarda-chuva não estava na Cantina.',
+      'Jonas não estava no Laboratório.',
+    ],
+    dicas: ['Dois dos itens já têm dono: onde estão Hugo e Iara?', 'Sobram o Laboratório e a Cantina para Jonas e Kátia.'],
+  },
+  {
+    id: 'c14',
+    disciplina: 'Lógica',
+    tipo: 'logica',
+    titulo: 'A Prova que Vazou',
+    nivel: 'Mestre',
+    pontos: 120,
+    historia:
+      'A prova final foi levada da Sala de Provas pouco antes da aplicação. Cinco servidores estavam na escola, cada um em um local e com um objeto diferente, e só um deles estava na Sala de Provas.',
+    pergunta: 'Quem estava na Sala de Provas e pegou a prova?',
+    suspeitos: [
+      { id: 1, nome: 'Lúcio' },
+      { id: 2, nome: 'Marta' },
+      { id: 3, nome: 'Nando' },
+      { id: 4, nome: 'Olívia' },
+      { id: 5, nome: 'Paulo' },
+    ],
+    locais: ['Sala de Provas', 'Copiadora', 'Pátio', 'Quadra', 'Secretaria'],
+    objetoRotulo: 'Objeto',
+    objetos: ['Pen drive', 'Pasta azul', 'Grampeador', 'Garrafa térmica', 'Chave mestra'],
+    pistas: [
+      'Nando estava com a chave mestra.',
+      'Marta não estava na Quadra.',
+      'Olívia estava no Pátio ou na Secretaria.',
+      'Paulo estava com o grampeador.',
+      'Quem estava na Secretaria usava a pasta azul.',
+      'O grampeador não estava na Copiadora.',
+      'Quem estava na Quadra usava a garrafa térmica.',
+      'Nando estava na Sala de Provas ou na Secretaria.',
+    ],
+    dicas: ['Veja quem não pode ficar na Secretaria: ela é da pasta azul.', 'Depois de achar o Nando, descubra onde o Paulo (grampeador) pode estar.'],
+  },
+  {
+    id: 'c15',
+    disciplina: 'Banco de Dados',
+    tipo: 'sql',
+    titulo: 'O Livro Raro da Biblioteca',
+    nivel: 'Detetive',
+    pontos: 100,
+    historia:
+      'Um livro raro desapareceu da vitrine da Biblioteca à tarde. A catraca guarda as entradas e saídas, e a coordenação lembra que só algumas pessoas podem abrir a vitrine. São oito suspeitos.',
+    pergunta: 'Quem levou o livro raro? Investigue no banco do caso e acuse.',
+    suspeitos: [
+      { id: 1, nome: 'Abel Cardoso' },
+      { id: 2, nome: 'Bianca Lemos' },
+      { id: 3, nome: 'Cauã Ribeiro' },
+      { id: 4, nome: 'Dayane Pinto' },
+      { id: 5, nome: 'Elias Barros' },
+      { id: 6, nome: 'Flávia Rocha' },
+      { id: 7, nome: 'Gil Araújo' },
+      { id: 8, nome: 'Hana Duarte' },
+    ],
+    tabelas: 'usuarios, permissoes, acessos, avisos',
+    seed: SEED_LIVRO,
+    dicas: [
+      'Leia os avisos primeiro: SELECT * FROM avisos; eles trazem o horário e a porta.',
+      'Uma pessoa estava na Biblioteca durante o sumiço quando entrou antes do fim da janela e saiu depois do início dela. Junte acessos e permissoes.',
+    ],
+  },
+  {
+    id: 'c16',
+    disciplina: 'Banco de Dados',
+    tipo: 'sql',
+    titulo: 'O Desvio no Caixa da Cantina',
+    nivel: 'Mestre',
+    pontos: 120,
+    historia:
+      'O caixa da cantina fechou a semana com dinheiro a menos. Alguém fez estornos sem nota fiscal, mas o sistema não grava quem foi: só o dia e o horário. Os turnos de cada pessoa estão registrados. São oito suspeitos.',
+    pergunta: 'Quem desviou o dinheiro? Prove pelo banco do caso e acuse.',
+    suspeitos: [
+      { id: 1, nome: 'Ivo Prado' },
+      { id: 2, nome: 'Joana Veras' },
+      { id: 3, nome: 'Kleber Dantas' },
+      { id: 4, nome: 'Lívia Matos' },
+      { id: 5, nome: 'Marcelo Sena' },
+      { id: 6, nome: 'Nair Campos' },
+      { id: 7, nome: 'Orlando Reis' },
+      { id: 8, nome: 'Priscila Neves' },
+    ],
+    tabelas: 'funcionarios, turnos, estornos, avisos',
+    seed: SEED_CAIXA,
+    dicas: [
+      'Estorno sem nota fiscal tem nota_fiscal IS NULL. Quantos são?',
+      'Junte turnos e estornos pelo dia e pelo horário, agrupe por funcionário e confira quem apareceu em TODOS os estornos irregulares (GROUP BY com HAVING COUNT(...)).',
     ],
   },
 ];
