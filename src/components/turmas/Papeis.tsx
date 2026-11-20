@@ -18,10 +18,10 @@ export const SeletorPapeis: React.FC<{ value: ModoPapeis; onChange: (m: ModoPape
   <fieldset className="space-y-1.5">
     <legend className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
       Papéis da {quem}
-      <span className="flex -space-x-1.5" aria-hidden>
-        <Capacete papel="piloto" size={22} />
-        <Capacete papel="copiloto" size={22} />
-        <Capacete papel="engenheiro" size={22} />
+      <span className="flex gap-1" aria-hidden>
+        <Capacete papel="piloto" size={40} />
+        <Capacete papel="copiloto" size={40} />
+        <Capacete papel="engenheiro" size={40} />
       </span>
     </legend>
     <div className="grid gap-1.5 sm:grid-cols-2">
@@ -94,11 +94,11 @@ export const FaixaCabine: React.FC<{ nomes: string[]; modo: ModoPapeis; rodadaAu
       </div>
       <ul className={`grid gap-2 ${comPapel.length > 2 ? 'sm:grid-cols-3' : 'grid-cols-2'}`}>
         {comPapel.map(({ nome, papel }) => (
-          <li key={papel} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`} title={PAPEIS[papel].funcao}>
-            <Capacete papel={papel} size={36} />
+          <li key={papel} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`} title={PAPEIS[papel].funcao}>
+            <Capacete papel={papel} size={64} />
             <div className="min-w-0">
-              <p className={`text-[10px] font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</p>
-              <p className="truncate text-sm">
+              <p className={`text-xs font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</p>
+              <p className="truncate text-base">
                 <NomeDestaque nome={nome} />
               </p>
             </div>

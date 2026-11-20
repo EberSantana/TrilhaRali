@@ -14,7 +14,7 @@ export const EscolhaIntegrantes: React.FC<{ alunos: string[]; ocupados?: string[
         <ul className="flex flex-wrap gap-2">
           {marcados.map((n, i) => (
             <li key={n} className={`inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 py-1 pr-1 text-sm ${papeis && i < 3 ? 'pl-1' : 'pl-3'}`}>
-              {papeis && i < 3 && <Capacete papel={ORDEM_PAPEIS[i]} size={26} />}
+              {papeis && i < 3 && <Capacete papel={ORDEM_PAPEIS[i]} size={40} />}
               <NomeDestaque nome={n} />
               <button type="button" onClick={() => onChange(marcados.filter((x) => x !== n).join(', '))} className="rounded-full p-1 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label={`Tirar ${n}`}>
                 <X className="h-3.5 w-3.5" />
