@@ -6,7 +6,7 @@ import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { CruzEstado, CtfState } from '../../types/ctf';
 import type { CruzApi } from './Cruzadinha';
@@ -35,7 +35,7 @@ import { Cruzadinha } from './Cruzadinha';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
-import { Fogo } from '../common/Icones';
+import { Fogo, Selo } from '../common/Icones';
 
 
 const ACENTO = {
@@ -506,7 +506,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
                     missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'
                   }`}
                 >
-                  <span className="flex items-center gap-2">{missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{missao.capturas_anteriores === 0
+                  <span className="flex items-center gap-3">{missao.capturas_anteriores === 0 ? <Selo tom="laranja" tamanho="sm"><Flame /></Selo> : <Selo tom="ambar" tamanho="sm"><TriangleAlert /></Selo>}<span>{missao.capturas_anteriores === 0
                     ? `FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
                     : `${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}</span></span>
                 </div>
@@ -569,7 +569,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
                 feedback.ok ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200' : 'bg-rose-950/80 border-rose-500 text-rose-200'
               }`}
             >
-              {feedback.ok ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <XCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+              {feedback.ok ? <Selo tom="verde"><Check /></Selo> : <Selo tom="vermelho"><X /></Selo>}
               <span>{feedback.text}</span>
             </div>
           )}

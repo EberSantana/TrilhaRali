@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RankChip, StudentBar, XpChip } from './common/StudentBar';
 import { StatusBanner } from './common/StatusBanner';
-import { Radio, Send, CheckCircle2, XCircle, Sparkles, Smartphone, AlertTriangle, Trophy, Lock, RefreshCw, Search, Check, GraduationCap, MapPin } from 'lucide-react';
+import { Radio, Send, CheckCircle2, XCircle, Sparkles, Smartphone, AlertTriangle, Trophy, Lock, RefreshCw, Search, Check, GraduationCap, MapPin, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, Mission, ClassSessionState, SubmissionLog } from '../types';
 import { useMissions } from '../utils/missionsStore';
@@ -10,7 +10,7 @@ import { playSound } from '../utils/audio';
 import { getAppsScriptUrl } from '../utils/storage';
 import { IfsLogo } from './IfsLogo';
 import { CaptureScore, describeCurrentValue, getNextCaptureScore } from '../utils/scoring';
-import { Fogo } from './common/Icones';
+import { Fogo, Selo } from './common/Icones';
 
 interface StudentScannerProps {
   teams: Team[];
@@ -617,11 +617,11 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               }`}
             >
               {feedback.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <Selo tom="verde"><Check /></Selo>
               ) : feedback.type === 'error' ? (
-                <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <Selo tom="vermelho"><X /></Selo>
               ) : (
-                <Sparkles className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
+                <Selo tom="azul"><Sparkles /></Selo>
               )}
               <div className="text-sm font-medium leading-relaxed">{feedback.text}</div>
             </div>

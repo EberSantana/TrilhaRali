@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, Send, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Send, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CtfState, RaliMissionRef, RaliTagInfo } from '../../types/ctf';
 import { ctfCall } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
 import { StatusBanner } from '../common/StatusBanner';
 import { Btn } from '../common/ui';
-import { Fogo } from '../common/Icones';
+import { Fogo, Selo } from '../common/Icones';
 
 interface Props {
   state: CtfState;
@@ -86,9 +86,9 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
   const feedbackBox = feedback && (
     <div
       role="status"
-      className={`p-4 rounded-xl border flex items-start gap-3 text-sm font-semibold ${feedback.ok ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200' : 'bg-rose-950/80 border-rose-500 text-rose-200'}`}
+      className={`p-4 rounded-xl border flex items-center gap-3 text-sm font-semibold ${feedback.ok ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200' : 'bg-rose-950/80 border-rose-500 text-rose-200'}`}
     >
-      {feedback.ok ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <XCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+      {feedback.ok ? <Selo tom="verde"><Check /></Selo> : <Selo tom="vermelho"><X /></Selo>}
       <span>{feedback.text}</span>
     </div>
   );
@@ -116,7 +116,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
 
           {dinamico && !open.ja_resolvida && (
             <div className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'}`}>
-              <span className="flex items-center gap-2">{missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{missao.capturas_anteriores === 0
+              <span className="flex items-center gap-3">{missao.capturas_anteriores === 0 ? <Selo tom="laranja" tamanho="sm"><Flame /></Selo> : <Selo tom="ambar" tamanho="sm"><TriangleAlert /></Selo>}<span>{missao.capturas_anteriores === 0
                 ? `FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
                 : `${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}</span></span>
             </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, FolderPlus, Archive, Check, X, Plus, Trash2, Download, Smartphone, Calendar, GraduationCap, Pencil, AlertTriangle, Trophy, FileText } from 'lucide-react';
 import { RallyRoom, Team } from '../types';
 import { IfsLogo } from './IfsLogo';
+import { Selo } from './common/Icones';
 
 interface RoomsAndTeamsModalProps {
   rooms: RallyRoom[];
@@ -727,11 +728,11 @@ export const RoomsAndTeamsModal: React.FC<RoomsAndTeamsModalProps> = ({
                       </p>
 
                       <div className="flex items-center gap-3 pt-1 text-xs text-slate-300">
-                        <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" aria-hidden /> {totalStudents} alunos</span>
+                        <span className="inline-flex items-center gap-1.5"><Selo tom="ciano" tamanho="sm"><Users /></Selo> {totalStudents} alunos</span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1"><Trophy className="h-3.5 w-3.5" aria-hidden /> {totalXp} XP acumulado</span>
+                        <span className="inline-flex items-center gap-1.5"><Selo tom="ambar" tamanho="sm"><Trophy /></Selo> {totalXp} XP acumulado</span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1"><FileText className="h-3.5 w-3.5" aria-hidden /> {room.logs.length} submissões</span>
+                        <span className="inline-flex items-center gap-1.5"><Selo tom="violeta" tamanho="sm"><FileText /></Selo> {room.logs.length} submissões</span>
                       </div>
                     </div>
 
