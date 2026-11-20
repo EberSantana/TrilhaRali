@@ -27,6 +27,7 @@ function createBackend() {
     });
     return {
       appendRow: (r: unknown[]) => void data.push(r.slice()),
+      deleteRow: (row: number) => void data.splice(row - 1, 1),
       getDataRange: () => ({ getValues: () => { leituras.n++; return data.map((r) => r.slice()); } }),
       getRange: range,
       getLastRow: () => data.length,
@@ -213,4 +214,20 @@ test('análise da turma: participação, perguntas difíceis (com tentativas err
   assert.deepEqual([t2.participantes, t2.acertos, t2.erros], [2, 0, 2]);
   assert.equal(a.assuntos.find((x: Json) => x.assunto === 'Modelagem').acertos, 0);
   assert.match(b.call({ action: 'turmaAnalise', chave: 'x', id: b.turma.id }).error, /Chave do banco/);
+});
+
+test('apagar de vez: Desvendando e CTF aberto somem do servidor e não voltam na lista', () => {
+  const b = comTurma();
+  const desv = gabaritoAberto().desv!;
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ...Object.entries(desv).map(([c, g]) => [c, g.suspeito, g.pontos, g.explicacao])]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'] });
+  b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_a1', nome: 'Dupla A', integrantes: 'Ana' });
+  assert.match(b.call({ action: 'desvApagar', token: ds.token, adminKey: 'errada' }).error, /inválida/);
+  assert.ok(b.call({ action: 'desvApagar', token: ds.token, adminKey: ds.adminKey }).ok);
+  assert.equal(b.call({ action: 'desvSalasList', ...K }).salas.filter((x: Json) => x.token === ds.token).length, 0);
+
+  const sala = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed' });
+  assert.match(b.call({ action: 'deleteRoom', token: sala.token, adminKey: sala.adminKey }).error, /Encerre/);
+  assert.ok(b.call({ action: 'deleteRoom', token: sala.token, adminKey: sala.adminKey, encerrar: true }).ok);
+  assert.equal(b.call({ action: 'salasList', ...K }).salas.filter((x: Json) => x.token === sala.token).length, 0);
 });

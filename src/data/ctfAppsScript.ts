@@ -37,7 +37,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1, Turmas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, desvApagar: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -110,6 +110,7 @@ function route(req) {
     case 'desvEntrar': return desvEntrar(req);
     case 'desvEstado': return desvEstado(req);
     case 'desvProf': return desvProf(req);
+    case 'desvApagar': return desvApagar(req);
     case 'desvSalasList': return desvSalasList(req);
     case 'turmasList': return turmasList(req);
     case 'turmaSalvar': return turmaSalvar(req);
@@ -747,7 +748,7 @@ function teacherRoom(req) {
 // O CtfLog fica como registro. Precisa da chave de professor da sala.
 function deleteRoom(req) {
   var room = requireAdmin(req);
-  if (room.status !== 'encerrada') fail('Encerre a sala antes de apagá-la de vez.');
+  if (room.status !== 'encerrada' && req.encerrar !== true) fail('Encerre a sala antes de apagá-la de vez.');
   var abas = ['CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfErros', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise', 'CtfSalas'];
   var total = 0;
   abas.forEach(function (nome) {
@@ -1478,6 +1479,21 @@ function desvSalasList(req) {
       };
     })
   };
+}
+
+// Apaga de vez uma sala do Desvendando: a sala, as duplas e os pontos dela somem da planilha.
+function desvApagar(req) {
+  var sala = desvSalaAdmin(req);
+  var token = String(sala.token);
+  var total = 0;
+  ['DesvRanking', 'DesvDuplas', 'DesvSalas'].forEach(function (nome) {
+    var rows = readRows(nome);
+    for (var i = rows.length - 1; i >= 0; i--) {
+      if (String(rows[i].token) === token) { getSheet(nome).deleteRow(rows[i]._row); total++; }
+    }
+    memoLimpa(nome);
+  });
+  return { ok: true, apagadas: total };
 }
 
 // Painel do professor: liberar casos, encerrar/reabrir e acompanhar duplas e acertos
