@@ -8,6 +8,7 @@ import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { Bandeira, CapturaFlag, Captura } from '../common/Bandeira';
 import type { CruzEstado, CtfState } from '../../types/ctf';
 import type { CruzApi } from './Cruzadinha';
 import {
@@ -69,6 +70,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [captura, setCaptura] = useState<Captura | null>(null);
   const answerRef = useRef<HTMLInputElement>(null);
 
   // Link de convite traz a URL do backend: guarda para recarregar a página sem perder
@@ -161,7 +163,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
         const fogo = s.premio?.isFogo;
         try {
           confetti({
-            particleCount: fogo ? 160 : 90,
+            particleCount: fogo ? 160 : 50,
             spread: fogo ? 100 : 70,
             origin: { y: 0.6 },
             colors: fogo ? ['#f97316', '#ef4444', '#f59e0b', '#fde047'] : ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'],
@@ -170,6 +172,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           // ignore
         }
         const xp = s.premio?.xp ?? 0;
+        setCaptura({ id: Date.now(), xp, fogo, detalhe: s.aluno.concluido ? 'última flag!' : `Fase ${s.aluno.fase} desbloqueada` });
         setFeedback({
           ok: true,
           text: fogo
@@ -422,13 +425,15 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
       {temAtelie && <AtelieWeb />}
       <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
 
+      {captura && <CapturaFlag captura={captura} onDone={() => setCaptura(null)} />}
+
       {/* Progresso */}
       {livre ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-400">
             <span>Escolha os desafios na ordem que quiser</span>
-            <span>
-              {aluno.acertos} de {sala.total} resolvidos
+            <span className="inline-flex items-center gap-1">
+              <Bandeira estado="capturada" className="h-4 w-4" /> {aluno.acertos} de {sala.total} flags
             </span>
           </div>
           <div
@@ -448,17 +453,17 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           <span>
             Fase {Math.min(aluno.fase, sala.total)} de {sala.total}
           </span>
-          <span>{aluno.acertos} resolvidas</span>
+          <span className="inline-flex items-center gap-1"><Bandeira estado="capturada" className="h-4 w-4" /> {aluno.acertos} {aluno.acertos === 1 ? 'flag' : 'flags'}</span>
         </div>
-        <div className="flex flex-wrap gap-1" role="img" aria-label={`Fase ${aluno.fase} de ${sala.total}`}>
+        <div className="flex flex-wrap items-end gap-1.5" role="list" aria-label={`Fase ${aluno.fase} de ${sala.total}`}>
           {phases.map((n) => (
-            <span
-              key={n}
-              title={n < aluno.fase ? `Fase ${n}: concluída` : n === aluno.fase ? `Fase ${n}: atual` : `Fase ${n}: bloqueada`}
-              className={`h-2.5 flex-1 min-w-[6px] rounded-full ${
-                n < aluno.fase ? 'bg-emerald-500' : n === aluno.fase ? 'bg-orange-400 animate-pulse' : 'bg-slate-800'
-              }`}
-            />
+            <span key={n} role="listitem" className="inline-flex">
+              <Bandeira
+                estado={n < aluno.fase || aluno.concluido ? 'capturada' : n === aluno.fase ? 'atual' : 'bloqueada'}
+                className="h-6 w-6"
+                title={n < aluno.fase || aluno.concluido ? `Fase ${n}: flag capturada` : n === aluno.fase ? `Fase ${n}: flag da vez` : `Fase ${n}: bloqueada`}
+              />
+            </span>
           ))}
         </div>
       </div>
