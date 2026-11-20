@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
-import { CONSOLE_MISSIONS } from './consoleMissions';
+import { CONSOLE_MISSIONS as CONSOLE_MISSIONS_SEM } from './consoleMissions';
 import { BANCO_CTF_SQL } from '../utils/sqlSeed';
+import { comGabarito } from '../utils/gabaritoTeste';
+const CONSOLE_MISSIONS = comGabarito(CONSOLE_MISSIONS_SEM);
+
 
 // Mesma normalização do servidor (Apps Script) e do app
 const norm = (s: string) =>

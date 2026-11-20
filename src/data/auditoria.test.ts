@@ -1,13 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ALL_MISSIONS } from './missions';
-import { CONSOLE_MISSIONS } from './consoleMissions';
-import { BD_MISSIONS } from './bdMissions';
-import { RPG_MISSIONS } from './rpgMissions';
-import { RPG_CONSOLE_MISSIONS } from './rpgConsoleMissions';
-import { INFO_MISSIONS } from './infoMissions';
-import { WEB_MISSIONS } from './webMissions';
-import { LINUX_MISSIONS } from './linuxMissions';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from './missions';
+import { CONSOLE_MISSIONS as CONSOLE_MISSIONS_SEM } from './consoleMissions';
+import { BD_MISSIONS as BD_MISSIONS_SEM } from './bdMissions';
+import { RPG_MISSIONS as RPG_MISSIONS_SEM } from './rpgMissions';
+import { RPG_CONSOLE_MISSIONS as RPG_CONSOLE_MISSIONS_SEM } from './rpgConsoleMissions';
+import { INFO_MISSIONS as INFO_MISSIONS_SEM } from './infoMissions';
+import { WEB_MISSIONS as WEB_MISSIONS_SEM } from './webMissions';
+import { LINUX_MISSIONS as LINUX_MISSIONS_SEM } from './linuxMissions';
+import { comGabarito } from '../utils/gabaritoTeste';
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+const CONSOLE_MISSIONS = comGabarito(CONSOLE_MISSIONS_SEM);
+const BD_MISSIONS = comGabarito(BD_MISSIONS_SEM);
+const RPG_MISSIONS = comGabarito(RPG_MISSIONS_SEM);
+const RPG_CONSOLE_MISSIONS = comGabarito(RPG_CONSOLE_MISSIONS_SEM);
+const INFO_MISSIONS = comGabarito(INFO_MISSIONS_SEM);
+const WEB_MISSIONS = comGabarito(WEB_MISSIONS_SEM);
+const LINUX_MISSIONS = comGabarito(LINUX_MISSIONS_SEM);
+
 
 // Auditoria geral de todas as perguntas prontas (Rali NFC, CTF e RPG), com a mesma normalização do servidor
 const norm = (s: string) =>

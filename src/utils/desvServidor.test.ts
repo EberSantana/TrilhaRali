@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { CTF_APPS_SCRIPT } from '../data/ctfAppsScript';
+import { gabaritoAberto } from './gabaritoTeste';
 
 // Executa o código real do Desvendando (Apps Script) num simulador mínimo da planilha
 const trecho = (de: string, ate: string) => CTF_APPS_SCRIPT.slice(CTF_APPS_SCRIPT.indexOf(de), CTF_APPS_SCRIPT.indexOf(ate));
@@ -11,7 +12,11 @@ type Row = Record<string, unknown> & { _row: number };
 function servidor() {
   const guardado = new Map<string, string>();
   const cache = { get: (k: string) => guardado.get(k) ?? null, put: (k: string, v: string) => void guardado.set(k, v), remove: (k: string) => void guardado.delete(k) };
-  const sheets: Record<string, Row[]> = { DesvRanking: [] };
+  const desv = gabaritoAberto().desv!;
+  const sheets: Record<string, Row[]> = {
+    DesvRanking: [],
+    DesvGabarito: Object.entries(desv).map(([caso, g], i) => ({ _row: i + 2, caso, suspeito: g.suspeito, pontos: g.pontos, explicacao: g.explicacao })),
+  };
   const ctx: Record<string, unknown> = {
     readRows: (n: string) => sheets[n].map((r) => ({ ...r })),
     appendObj: (n: string, o: Record<string, unknown>) => sheets[n].push({ ...o, _row: sheets[n].length + 2 }),
@@ -59,4 +64,10 @@ test('valida caso, nome e aparelho', () => {
   assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c99', suspeito: 1 }), /Caso desconhecido/);
   assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'L', caso: 'c1', suspeito: 1 }), /nome/);
   assert.throws(() => s.call('desvAcusar', { gid: 'x', nome: 'Lia', caso: 'c1', suspeito: 1 }), /aparelho/);
+});
+
+test('sem a aba DesvGabarito preenchida o servidor avisa em vez de aceitar qualquer acusação', () => {
+  const s = servidor();
+  s.sheets.DesvGabarito.length = 0;
+  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c1', suspeito: 1 }), /DesvGabarito/);
 });

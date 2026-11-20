@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LINUX_MISSIONS } from './linuxMissions';
-import { ALL_MISSIONS } from './missions';
+import { LINUX_MISSIONS as LINUX_MISSIONS_SEM } from './linuxMissions';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from './missions';
 import { createShell, runLine } from '../utils/shell';
 import { normalizeAnswer as norm } from '../utils/validation';
+import { comGabarito } from '../utils/gabaritoTeste';
+const LINUX_MISSIONS = comGabarito(LINUX_MISSIONS_SEM);
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+
 
 test('missões de Linux: ids e tags únicos (também frente às 50 padrão)', () => {
   const all = [...ALL_MISSIONS, ...LINUX_MISSIONS];

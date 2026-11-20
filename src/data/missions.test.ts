@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ALL_MISSIONS } from './missions';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from './missions';
 import { normalizeAnswer as norm } from '../utils/validation';
+import { comGabarito } from '../utils/gabaritoTeste';
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+
 
 test('missões padrão: ids e tags únicos, XP válido', () => {
   assert.equal(new Set(ALL_MISSIONS.map((m) => m.id)).size, ALL_MISSIONS.length);

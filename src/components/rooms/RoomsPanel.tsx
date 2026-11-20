@@ -165,7 +165,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const catalogAsBank = useMemo<BankQuestion[]>(
     () =>
       pool
-        .filter((p) => p.package !== 'banco')
+        .filter((p) => p.package !== 'banco' && p.m.resposta_curta)
         .map(({ m }) => ({
           id: `cat:${m.tag_id}`,
           // Linux entra em Fundamentos de Sistemas Operacionais (assunto "Linux");
@@ -235,6 +235,9 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
         setActiveToken(st.token);
         setNome('');
         return;
+      }
+      if (chosen.some(({ m }) => !m.resposta_curta)) {
+        throw new Error('O gabarito das missões prontas está protegido. Conecte a chave do banco (no campo abaixo) para liberar as respostas neste aparelho e crie a sala de novo.');
       }
       const missions: CtfMissionPayload[] = chosen.map(({ m }) => ({
         tag_id: m.tag_id,

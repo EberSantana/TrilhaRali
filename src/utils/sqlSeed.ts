@@ -22,7 +22,7 @@ CREATE TABLE missoes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tag_id TEXT UNIQUE NOT NULL, -- Texto gravado na NTAG213 (ex: 'tag_01')
   pergunta TEXT NOT NULL,       -- O que aparece no app
-  resposta_curta TEXT NOT NULL, -- Gabarito exato
+  resposta_curta TEXT NOT NULL, -- Gabarito: fica com o professor (vazio no script publico)
   xp_valor INTEGER NOT NULL
 );
 
@@ -41,36 +41,36 @@ INSERT INTO equipes (nome, xp_total) VALUES
 
 -- Dados Iniciais das Missões (30 Desafios Padronizados)
 INSERT INTO missoes (tag_id, pergunta, resposta_curta, xp_valor) VALUES
-('tag_01', 'DDL: Qual comando apaga a estrutura de uma tabela inteira?', 'drop table', 10),
-('tag_02', 'DQL: Rode um SELECT COUNT(*) na tabela Funcionarios. Qual o número total?', '145', 20),
-('tag_03', 'DQL: Faça um JOIN entre Vendas e Produtos. Qual o nome do produto mais vendido?', 'notebook dell', 20),
-('tag_04', 'DML: Qual cláusula é obrigatória usar com UPDATE para não alterar todas as linhas?', 'where', 10),
-('tag_05', 'DQL (Boss): Use subquery para achar o aluno com a maior nota. Digite o nome dele.', 'juliane', 30),
-('tag_acad_01', 'Conceitual: Na relação ALUNO (1,1) contrata PLANO (0,N), qual tabela deve receber a Chave Estrangeira (FK)?', 'aluno', 10),
-('tag_acad_02', 'Lógico: Qual é o nome exato do atributo identificador (Chave Primária) da entidade PLANO?', 'cod_plano', 10),
-('tag_acad_03', 'Físico (Tipagem): Qual foi o tipo de dado sugerido no roteiro para armazenar o campo valor_mensal?', 'decimal', 20),
-('tag_acad_04', 'Caça ao Bug: Qual é o comando SQL gerado pelo brModelo que precisamos APAGAR no SQLite?', 'alter table', 30),
-('tag_acad_05', 'Configuração: Qual é o comando completo usado para ligar verificação de Chaves Estrangeiras?', 'pragma foreign_keys = on', 40),
-('tag_acad_06', 'Boss (Desafio Lógico): Se a cardinalidade fosse (0,N) nos dois lados, o que surgiria?', 'nova tabela', 50),
-('tag_crud_01', 'CREATE: Ao inserir um bem informando apenas descrição e setor, o que o banco insere nas colunas vazias?', 'null', 10),
-('tag_crud_02', 'READ: Qual função agregadora usamos junto com GROUP BY para descobrir o total por situação?', 'count', 10),
-('tag_crud_03', 'READ/SORT: Qual cláusula usamos no final do SELECT para ordenar os registros?', 'order by', 20),
-('tag_crud_04', 'UPDATE: Qual cláusula é de uso obrigatório no UPDATE para impedir alterar a tabela inteira?', 'where', 30),
-('tag_crud_05', 'DELETE (Armadilha): Se o aluno executar DELETE FROM bens; sem filtro, o que acontecerá?', 'apaga tudo', 50),
-('tag_bib_01', 'Chaves: Qual restrição aplicamos no id para garantir que ele seja identificador único?', 'primary key', 10),
-('tag_bib_02', 'Integridade: Ao tentar dar DELETE em aluno com empréstimo ativo, isso é defesa da chave...', 'estrangeira', 20),
-('tag_bib_03', 'INNER JOIN: Que cláusula escrevemos logo após o JOIN para ensinar o predicado de junção?', 'on', 30),
-('tag_bib_04', 'LEFT JOIN: Se usarmos LEFT JOIN, os alunos sem empréstimo aparecerão com qual valor nas colunas?', 'null', 40),
-('tag_bib_05', 'Apelidos: O uso de letras como a, e logo após a tabela no FROM serve para criar qual recurso?', 'apelido', 20),
-('tag_sup_01', 'Teste 01: No SQLite, escrever a palavra apenas JOIN produz exatamente o mesmo resultado que INNER JOIN? (Verdadeiro/Falso)', 'verdadeiro', 10),
-('tag_sup_02', 'Teste 13: Em SQL, para testar se a categoria está vazia, a forma correta é usar = NULL? (Verdadeiro/Falso)', 'falso', 10),
-('tag_sup_03', 'Teste 03: O cruzamento total pelo CROSS JOIN exige que exista cláusula ON? (Verdadeiro/Falso)', 'falso', 20),
-('tag_sup_04', 'Teste 27: Uma Foreign Key nunca pode apontar para uma coluna que não seja Primary Key? (Verdadeiro/Falso)', 'falso', 30),
-('tag_sup_05', 'Versão: Qual função do sistema usamos com um SELECT para descobrir a versão do SQLite?', 'sqlite_version', 50),
-('tag_extra_01', 'DTL (Salvar): Qual é o comando utilizado para confirmar e salvar definitivamente uma transação?', 'commit', 20),
-('tag_extra_02', 'DTL (Desfazer): Se você inseriu um dado errado numa transação BEGIN, qual comando usa para desfazer?', 'rollback', 20),
-('tag_extra_03', 'DCL (Permissão): Qual comando DCL é utilizado de forma teórica para dar permissão de leitura?', 'grant', 30),
-('tag_extra_04', 'Sintaxe (Nulos): A expressão = NULL nunca é verdadeira. Qual é a forma correta?', 'is null', 30);
+('tag_01', 'DDL: Qual comando apaga a estrutura de uma tabela inteira?', '', 10),
+('tag_02', 'DQL: Rode um SELECT COUNT(*) na tabela Funcionarios. Qual o número total?', '', 20),
+('tag_03', 'DQL: Faça um JOIN entre Vendas e Produtos. Qual o nome do produto mais vendido?', '', 20),
+('tag_04', 'DML: Qual cláusula é obrigatória usar com UPDATE para não alterar todas as linhas?', '', 10),
+('tag_05', 'DQL (Boss): Use subquery para achar o aluno com a maior nota. Digite o nome dele.', '', 30),
+('tag_acad_01', 'Conceitual: Na relação ALUNO (1,1) contrata PLANO (0,N), qual tabela deve receber a Chave Estrangeira (FK)?', '', 10),
+('tag_acad_02', 'Lógico: Qual é o nome exato do atributo identificador (Chave Primária) da entidade PLANO?', '', 10),
+('tag_acad_03', 'Físico (Tipagem): Qual foi o tipo de dado sugerido no roteiro para armazenar o campo valor_mensal?', '', 20),
+('tag_acad_04', 'Caça ao Bug: Qual é o comando SQL gerado pelo brModelo que precisamos APAGAR no SQLite?', '', 30),
+('tag_acad_05', 'Configuração: Qual é o comando completo usado para ligar verificação de Chaves Estrangeiras?', '', 40),
+('tag_acad_06', 'Boss (Desafio Lógico): Se a cardinalidade fosse (0,N) nos dois lados, o que surgiria?', '', 50),
+('tag_crud_01', 'CREATE: Ao inserir um bem informando apenas descrição e setor, o que o banco insere nas colunas vazias?', '', 10),
+('tag_crud_02', 'READ: Qual função agregadora usamos junto com GROUP BY para descobrir o total por situação?', '', 10),
+('tag_crud_03', 'READ/SORT: Qual cláusula usamos no final do SELECT para ordenar os registros?', '', 20),
+('tag_crud_04', 'UPDATE: Qual cláusula é de uso obrigatório no UPDATE para impedir alterar a tabela inteira?', '', 30),
+('tag_crud_05', 'DELETE (Armadilha): Se o aluno executar DELETE FROM bens; sem filtro, o que acontecerá?', '', 50),
+('tag_bib_01', 'Chaves: Qual restrição aplicamos no id para garantir que ele seja identificador único?', '', 10),
+('tag_bib_02', 'Integridade: Ao tentar dar DELETE em aluno com empréstimo ativo, isso é defesa da chave...', '', 20),
+('tag_bib_03', 'INNER JOIN: Que cláusula escrevemos logo após o JOIN para ensinar o predicado de junção?', '', 30),
+('tag_bib_04', 'LEFT JOIN: Se usarmos LEFT JOIN, os alunos sem empréstimo aparecerão com qual valor nas colunas?', '', 40),
+('tag_bib_05', 'Apelidos: O uso de letras como a, e logo após a tabela no FROM serve para criar qual recurso?', '', 20),
+('tag_sup_01', 'Teste 01: No SQLite, escrever a palavra apenas JOIN produz exatamente o mesmo resultado que INNER JOIN? (Verdadeiro/Falso)', '', 10),
+('tag_sup_02', 'Teste 13: Em SQL, para testar se a categoria está vazia, a forma correta é usar = NULL? (Verdadeiro/Falso)', '', 10),
+('tag_sup_03', 'Teste 03: O cruzamento total pelo CROSS JOIN exige que exista cláusula ON? (Verdadeiro/Falso)', '', 20),
+('tag_sup_04', 'Teste 27: Uma Foreign Key nunca pode apontar para uma coluna que não seja Primary Key? (Verdadeiro/Falso)', '', 30),
+('tag_sup_05', 'Versão: Qual função do sistema usamos com um SELECT para descobrir a versão do SQLite?', '', 50),
+('tag_extra_01', 'DTL (Salvar): Qual é o comando utilizado para confirmar e salvar definitivamente uma transação?', '', 20),
+('tag_extra_02', 'DTL (Desfazer): Se você inseriu um dado errado numa transação BEGIN, qual comando usa para desfazer?', '', 20),
+('tag_extra_03', 'DCL (Permissão): Qual comando DCL é utilizado de forma teórica para dar permissão de leitura?', '', 30),
+('tag_extra_04', 'Sintaxe (Nulos): A expressão = NULL nunca é verdadeira. Qual é a forma correta?', '', 30);
 
 
 -- 2. TABELAS DE SUPORTE AOS DESAFIOS PRÁTICOS DOS ALUNOS NO PC

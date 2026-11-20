@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
 import { BANCO_CTF_SQL, BANCO_RALI_SQL } from './sqlSeed.ts';
-import { ALL_MISSIONS } from '../data/missions.ts';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from '../data/missions.ts';
+import { comGabarito } from './gabaritoTeste';
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+
 
 const scalar = (db: any, sql: string) => db.exec(sql)[0].values[0][0];
 

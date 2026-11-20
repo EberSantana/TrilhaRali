@@ -17,6 +17,12 @@ export function saveBancoKey(key: string) {
   } catch {
     // ignore
   }
+  avisaChave();
+}
+
+/** Avisa o catálogo de missões para abrir (ou fechar) o gabarito com a chave nova. */
+function avisaChave() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('rali-banco-chave'));
 }
 
 export function clearBancoKey() {
@@ -25,6 +31,7 @@ export function clearBancoKey() {
   } catch {
     // ignore
   }
+  avisaChave();
 }
 
 const withKey = (extra: Record<string, unknown> = {}, chave = getBancoKey()) => ({ chave, ...extra });
@@ -45,4 +52,5 @@ export const publishNfc = (missoes: PublishedMission[], somenteBanco: boolean) =
   ctfCall<{ total: number }>('nfcPublish', withKey({ missoes, somenteBanco }));
 
 /** Público: o celular do aluno lê o conjunto publicado pelo professor. */
-export const fetchNfcSet = () => ctfCall<PublishedSet>('nfcSet');
+/** Com a chave do banco (professor) a lista vem completa; sem ela, sem respostas (script v31+). */
+export const fetchNfcSet = () => ctfCall<PublishedSet>('nfcSet', getBancoKey() ? { chave: getBancoKey() } : {});

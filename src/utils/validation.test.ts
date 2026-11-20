@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeAnswer, validateAnswer } from './validation.ts';
-import { ALL_MISSIONS } from '../data/missions.ts';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from '../data/missions.ts';
+import { comGabarito } from './gabaritoTeste';
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+
 
 test('normalizeAnswer trims, lowercases, and removes punctuation/accents', () => {
   assert.equal(normalizeAnswer('  DROP TABLE; '), 'drop table');
