@@ -80,7 +80,7 @@ const NIVEL_COR: Record<DesvCaso['nivel'], string> = {
 
 /** Desvendando com Conhecimento: o professor cria a sala e libera os casos; as duplas entram com o token. */
 export const DesvModule: React.FC = () => {
-  const [gid] = useState(gidDoAparelho);
+  const [gid, setGid] = useState(gidDoAparelho);
   const [sessao, setSessao] = useState<Sessao | null>(lerSessao);
   const [estado, setEstado] = useState<Estado | null>(null);
   const [erro, setErro] = useState('');
@@ -115,8 +115,13 @@ export const DesvModule: React.FC = () => {
     };
   }, [atualizar]);
 
+  // Sair libera o computador: a próxima dupla começa do zero. Quem saiu volta escolhendo os mesmos nomes
+  // (o servidor reconhece a formação e devolve os pontos).
   const sair = () => {
     gravarLS(K_SESSAO, '');
+    gravarLS(K_GID, '');
+    gravarLS(K_DICAS, '');
+    setGid(gidDoAparelho());
     setSessao(null);
     setEstado(null);
     setAberto(null);
