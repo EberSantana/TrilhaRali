@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
 import { DESV_CASOS, DesvCasoCodigo, DesvCasoLogica, DesvCasoSql } from './desvCasos';
+import { EFEITOS_MAIS, LOGICA_MAIS, PROVA_MAIS, TABELA_SUSPEITOS_MAIS, PistaLogica } from './desvCasosMais.test-data';
 import { CTF_APPS_SCRIPT } from './ctfAppsScript';
 import { gabaritoAberto } from '../utils/gabaritoTeste';
 
@@ -46,6 +47,20 @@ const REGRAS: Record<string, Array<(f: Ficha) => boolean>> = {
   ],
 };
 const LOCAL_DO_CRIME: Record<string, string> = { c1: 'Laboratório', c2: 'Sala de Redes', c13: 'Laboratório', c14: 'Sala de Provas' };
+// Casos c17 a c60 (lógica): as pistas vêm como dados e viram regras aqui
+function regraDe(p: PistaLogica): (f: Ficha) => boolean {
+  const [t, a, b, c] = p;
+  switch (t) {
+    case 'pos': return (f) => f[a][1] === b;
+    case 'negobj': return (f) => f[a][1] !== b;
+    case 'negloc': return (f) => f[a][0] !== b;
+    case 'lo': return (f) => Object.values(f).every(([l, o]) => l !== a || o === b);
+    case 'onotl': return (f) => Object.values(f).every(([l, o]) => o !== a || l !== b);
+    case 'or': return (f) => f[a][0] === b || f[a][0] === c;
+    default: throw new Error(`pista desconhecida: ${t}`);
+  }
+}
+for (const [id, d] of Object.entries(LOGICA_MAIS)) { REGRAS[id] = d.clues.map(regraDe); LOCAL_DO_CRIME[id] = d.crime; }
 // Consulta que prova o culpado em cada caso de SQL
 const PROVA: Record<string, string> = {
   c3: `SELECT s.id FROM catraca c JOIN suspeitos s ON s.id = c.id_suspeito
@@ -62,7 +77,8 @@ const PROVA: Record<string, string> = {
         WHERE e.nota_fiscal IS NULL
         GROUP BY f.id HAVING COUNT(DISTINCT e.id) = (SELECT COUNT(*) FROM estornos WHERE nota_fiscal IS NULL)`,
 };
-const TABELA_SUSPEITOS: Record<string, string> = { c3: 'suspeitos', c4: 'usuarios', c15: 'usuarios', c16: 'funcionarios' };
+const TABELA_SUSPEITOS: Record<string, string> = { c3: 'suspeitos', c4: 'usuarios', c15: 'usuarios', c16: 'funcionarios', ...TABELA_SUSPEITOS_MAIS };
+Object.assign(PROVA, PROVA_MAIS);
 
 // O culpado de cada caso vem do gabarito criptografado (o servidor usa a aba DesvGabarito, com os mesmos dados)
 function gabarito(caso: string): number {
@@ -94,7 +110,7 @@ test('cada caso de SQL aponta um único culpado no banco do caso, igual ao gabar
     const r = db.exec(PROVA[c.id]);
     const ids = r.length ? r[0].values.map((v) => Number(v[0])) : [];
     assert.deepEqual(ids, [gabarito(c.id)], `${c.id}: prova deu ${JSON.stringify(ids)}`);
-    assert.equal(c.suspeitos.length, 8);
+    assert.ok(c.suspeitos.length >= 6, `${c.id}: poucos suspeitos`);
     const nomes = db.exec(`SELECT nome FROM ${TABELA_SUSPEITOS[c.id]} ORDER BY id`)[0].values.map((v) => String(v[0]));
     assert.deepEqual(nomes, c.suspeitos.map((s) => s.nome));
   }
@@ -123,12 +139,13 @@ const EFEITOS: Record<string, Record<string, boolean[]>> = {
   c11: { Vera: [true, true, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [true, true, false], Zeca: [true, false, true], Alice: [false, true, true], 'Benício': [true, false, true], 'Cecília': [false, true, false] },
   //        > 10  três notas  decimal   (valores: 8; 17,33; 8; 24; 11; 9; 19; 10)
   c12: { Nina: [false, true, false], Otto: [true, true, true], Pietra: [false, true, false], Quim: [true, true, false], Rosa: [true, false, false], Saulo: [false, false, false], 'Tainá': [true, true, false], Uriel: [false, true, false] },
+  ...EFEITOS_MAIS,
   c8: { Vera: [true, false, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [false, true, false], Zeca: [true, true, false], Alice: [true, true, false], 'Benício': [false, true, true], 'Cecília': [false, true, true] },
 };
 
-test('cada caso de evidências (Construção de Sites e Informática Básica) tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
+test('cada caso de evidências (Sites, Informática, Redes e Segurança) tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
   const casos = DESV_CASOS.filter((x): x is DesvCasoCodigo => x.tipo === 'codigo');
-  assert.equal(casos.length, 8);
+  assert.equal(casos.length, 30);
   for (const c of casos) {
     const ef = EFEITOS[c.id];
     assert.deepEqual(Object.keys(ef).sort(), c.suspeitos.map((s) => s.nome).sort(), `${c.id}: suspeitos`);
@@ -148,4 +165,12 @@ test('o código público não traz o culpado nem a explicação de nenhum caso',
     assert.ok(!JSON.stringify(DESV_CASOS).includes(g.explicacao.slice(0, 40)), `${caso}: explicação no app`);
   }
   assert.doesNotMatch(CTF_APPS_SCRIPT, /DESV_GABARITO|desv:c\d/);
+});
+
+test('são 6 disciplinas com 10 casos cada, ids c1 a c60 sem repetição', () => {
+  const por = new Map<string, number>();
+  for (const c of DESV_CASOS) por.set(c.disciplina, (por.get(c.disciplina) ?? 0) + 1);
+  assert.equal(por.size, 6);
+  for (const [d, n] of por) assert.equal(n, 10, `${d}: ${n} casos`);
+  assert.deepEqual(DESV_CASOS.map((c) => c.id).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))), Array.from({ length: 60 }, (_, i) => `c${i + 1}`));
 });
