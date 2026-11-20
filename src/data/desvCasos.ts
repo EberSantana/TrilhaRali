@@ -385,7 +385,7 @@ export const DESV_CASOS: DesvCaso[] = [
     tabelas: 'suspeitos, catraca, depoimentos',
     seed: SEED_NOTEBOOK,
     dicas: [
-      'Leia os depoimentos primeiro: SELECT * FROM depoimentos;',
+      'Os depoimentos dão três filtros: a janela de horário em que o notebook sumiu, a cor da mochila e a altura. Qual tabela guarda cada informação?',
       'Use JOIN entre catraca e suspeitos e filtre a sala e a janela de horário em que o notebook sumiu.',
     ],
   },
@@ -412,7 +412,7 @@ export const DESV_CASOS: DesvCaso[] = [
     tabelas: 'usuarios, maquinas, sessoes, alteracoes, avisos',
     seed: SEED_PLACAR,
     dicas: [
-      'Leia os avisos e procure em alteracoes o comando no placar feito fora do horário permitido.',
+      'Os avisos dizem até que horas o placar pode mudar. Filtre as alterações que mexem no placar depois desse horário.',
       'Com o IP e o horário da alteração, procure em sessoes quem estava logado NAQUELE momento (inicio <= horário <= fim).',
     ],
   },
@@ -736,7 +736,7 @@ export const DESV_CASOS: DesvCaso[] = [
     tabelas: 'usuarios, permissoes, acessos, avisos',
     seed: SEED_LIVRO,
     dicas: [
-      'Leia os avisos primeiro: SELECT * FROM avisos; eles trazem o horário e a porta.',
+      'Os avisos trazem três condições: a janela de horário, a porta de saída e a permissão. Descubra qual tabela guarda cada uma.',
       'Uma pessoa estava na Biblioteca durante o sumiço quando entrou antes do fim da janela e saiu depois do início dela. Junte acessos e permissoes.',
     ],
   },
