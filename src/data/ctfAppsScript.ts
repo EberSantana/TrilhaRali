@@ -6,7 +6,7 @@
  * As respostas ficam apenas na planilha: o aluno recebe somente a pergunta da fase atual e a
  * validação (e o avanço de fase) acontece no servidor.
  */
-export const CTF_APPS_SCRIPT = String.raw`// ==========================================================
+const SCRIPT_BASE = String.raw`// ==========================================================
 // RALI IFSTB - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensoes > Apps Script de uma planilha NOVA.
 // Implantar > Nova implantacao > Aplicativo da Web
@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 31 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 31, revisao: '__REVISAO__' });
 }
 
 function doPost(e) {
@@ -2400,3 +2400,18 @@ function nfcSet(req) {
   };
 }
 `;
+
+/** Impressão digital do código do servidor (FNV-1a de 32 bits): muda sozinha a cada alteração do script. */
+function revisaoDe(texto: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texto.length; i++) {
+    h ^= texto.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
+export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
+export const VERSAO_SCRIPT = 31;
+export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);
