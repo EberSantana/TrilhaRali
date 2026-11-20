@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Lock, Plus, Search, Trash2, Trophy, Unlock, Users } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Lock, Plus, RefreshCw, Search, Trash2, Trophy, Unlock, Users } from 'lucide-react';
 import { DESV_CASOS } from '../../data/desvCasos';
 import { ctfCall, getCtfApiUrl } from '../../utils/ctfApi';
+import { getBancoKey } from '../../utils/bankApi';
 import { BackPill } from '../common/ModuleShell';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 
@@ -49,6 +50,37 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [erro, setErro] = useState('');
   const [busy, setBusy] = useState(false);
   const sala = salas.find((s) => s.token === ativa) || null;
+  const [sync, setSync] = useState('');
+  const [syncBusy, setSyncBusy] = useState(false);
+
+  // Traz do servidor as salas criadas em outros aparelhos (precisa da chave do banco conectada neste aparelho)
+  const sincronizar = useCallback(async (silencioso = false) => {
+    const chave = getBancoKey();
+    if (!chave) {
+      if (!silencioso) setSync('Conecte a chave do banco (Professor → Banco de perguntas) para trazer as salas criadas em outros aparelhos.');
+      return;
+    }
+    setSyncBusy(true);
+    try {
+      const r = await ctfCall<{ salas: { token: string; adminKey: string; nome: string; criada: number }[] }>('desvSalasList', { chave });
+      setSalas((atuais) => {
+        const tem = new Set(atuais.map((x) => x.token));
+        const novas = r.salas.filter((x) => !tem.has(x.token)).map((x) => ({ token: x.token, adminKey: x.adminKey, nome: x.nome, criada: x.criada }));
+        const lista = [...atuais, ...novas].sort((a, b) => b.criada - a.criada);
+        gravarSalas(lista);
+        if (!silencioso) setSync(novas.length ? `${novas.length} sala(s) trazida(s) do servidor.` : 'Suas salas já estão em dia com o servidor.');
+        return lista;
+      });
+      setAtiva((a) => a || r.salas[0]?.token || '');
+    } catch (e) {
+      if (!silencioso) setSync(msgErro(e));
+    } finally {
+      setSyncBusy(false);
+    }
+  }, []);
+  useEffect(() => {
+    void sincronizar(true);
+  }, [sincronizar]);
 
   const prof = useCallback(
     async (extra: Record<string, unknown> = {}) => {
@@ -143,9 +175,15 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <Btn variant="primary" className="w-full !bg-violet-600 hover:!bg-violet-500 !border-violet-600" disabled={busy} onClick={() => void criar()} icon={busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}>
             Criar sala {novos.size ? `com ${novos.size} caso(s) liberado(s)` : '(liberar casos depois)'}
           </Btn>
-          {salas.length > 0 && (
-            <div className="space-y-2 border-t border-slate-800 pt-4">
+          <div className="space-y-2 border-t border-slate-800 pt-4">
+            <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Minhas salas</p>
+              <Btn size="sm" variant="ghost" disabled={syncBusy} onClick={() => void sincronizar()} icon={syncBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}>
+                Trazer do servidor
+              </Btn>
+            </div>
+            {sync && <p className="text-xs text-slate-400">{sync}</p>}
+            {salas.length === 0 && <p className="text-xs text-slate-500">Nenhuma sala ainda.</p>}
               {salas.map((s) => (
                 <div key={s.token} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${s.token === ativa ? 'border-violet-500/60 bg-violet-500/10' : 'border-slate-800 bg-slate-950/50'}`}>
                   <button type="button" onClick={() => setAtiva(s.token)} className="min-w-0 flex-1 text-left">
@@ -157,8 +195,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </button>
                 </div>
               ))}
-            </div>
-          )}
+          </div>
         </section>
 
         <section className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-5" aria-label="Sala ao vivo">

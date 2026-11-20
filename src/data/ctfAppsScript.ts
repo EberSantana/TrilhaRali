@@ -108,6 +108,7 @@ function route(req) {
     case 'desvEntrar': return desvEntrar(req);
     case 'desvEstado': return desvEstado(req);
     case 'desvProf': return desvProf(req);
+    case 'desvSalasList': return desvSalasList(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
@@ -1384,6 +1385,23 @@ function desvPontos(caso, erros, dicas) {
 function desvRanking(req) {
   var sala = desvSala(req.token);
   return { sala: { nome: String(sala.nome), status: String(sala.status) }, ranking: desvRankingSala(String(sala.token)) };
+}
+
+// Salas do Desvendando guardadas no servidor: com a chave do banco, o professor recupera todas em qualquer aparelho
+function desvSalasList(req) {
+  requireBancoKey(req);
+  var duplas = {};
+  readRows('DesvDuplas').forEach(function (d) { var t = String(d.token); duplas[t] = (duplas[t] || 0) + 1; });
+  return {
+    salas: readRows('DesvSalas').slice(-200).reverse().map(function (r) {
+      var casos = [];
+      try { casos = JSON.parse(String(r.casos || '[]')); } catch (e) { casos = []; }
+      return {
+        token: String(r.token), nome: String(r.nome), adminKey: String(r.admin_key), status: String(r.status) === 'encerrada' ? 'encerrada' : 'aberta',
+        criada: new Date(r.criada_em).getTime() || 0, casos: casos.length, duplas: duplas[String(r.token)] || 0
+      };
+    })
+  };
 }
 
 // Painel do professor: liberar casos, encerrar/reabrir e acompanhar duplas e acertos
