@@ -15,7 +15,7 @@ export interface DesvSuspeito {
 
 interface DesvBase {
   id: string;
-  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites';
+  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites' | 'Informática Básica';
   titulo: string;
   nivel: 'Aquecimento' | 'Intermediário' | 'Detetive' | 'Mestre';
   pontos: number;
@@ -39,12 +39,14 @@ export interface DesvCasoSql extends DesvBase {
   tabelas: string;
 }
 
-/** Construção de Sites: cada suspeito escreveu um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
+/** Construção de Sites e Informática Básica: cada suspeito tem uma evidência (código, ficha, e-mail, fórmula...); antes: um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
 export interface DesvCasoCodigo extends DesvBase {
   tipo: 'codigo';
-  linguagem: 'HTML' | 'CSS';
+  linguagem: 'HTML' | 'CSS' | 'Ficha técnica' | 'E-mail' | 'Documento' | 'Planilha';
   /** código comum a todos os suspeitos (a página onde o trecho entrou) */
   base?: string;
+  /** título do bloco base (padrão: "Página onde o trecho entrou") */
+  baseRotulo?: string;
   pistas: string[];
 }
 
@@ -397,6 +399,122 @@ export const DESV_CASOS: DesvCaso[] = [
     dicas: [
       'display: block e grid (sem colunas) empilham; flex-wrap: wrap joga o que não cabe para a linha de baixo.',
       'Largura total no content-box = width + padding dos dois lados + borda dos dois lados.',
+    ],
+  },
+{
+    id: 'c9',
+    disciplina: 'Informática Básica',
+    tipo: 'codigo',
+    linguagem: 'Ficha técnica',
+    titulo: 'A Máquina Trocada da Sala Maker',
+    nivel: 'Aquecimento',
+    pontos: 60,
+    historia:
+      'O computador de edição de vídeo da Sala Maker foi trocado por outro durante o recesso. Seis técnicos montaram máquinas naquela semana e cada um deixou a ficha técnica da sua. A máquina encontrada na sala foi examinada.',
+    pergunta: 'De quem é a máquina que apareceu na Sala Maker?',
+    suspeitos: [
+      { id: 1, nome: 'Ana', codigo: 'Memória RAM: 8 GB\nArmazenamento: HD 1 TB\nSistema: Linux Ubuntu' },
+      { id: 2, nome: 'Bruno', codigo: 'Memória RAM: 16 GB\nArmazenamento: SSD 512 GB\nSistema: Windows 11' },
+      { id: 3, nome: 'Caio', codigo: 'Memória RAM: 8 GB\nArmazenamento: SSD 256 GB\nSistema: Windows 11' },
+      { id: 4, nome: 'Duda', codigo: 'Memória RAM: 8 GB\nArmazenamento: SSD 480 GB\nSistema: Linux Mint' },
+      { id: 5, nome: 'Enzo', codigo: 'Memória RAM: 4 GB\nArmazenamento: SSD 240 GB\nSistema: Linux Ubuntu' },
+      { id: 6, nome: 'Fábia', codigo: 'Memória RAM: 4 GB\nArmazenamento: SSD 1 TB + pendrive de 8 GB\nSistema: Linux Mint' },
+    ],
+    pistas: [
+      'A máquina encontrada tinha 8 GB de memória RAM (pendrive não é memória RAM).',
+      'O armazenamento era um SSD, sem partes mecânicas.',
+      'O sistema operacional era um software livre.',
+    ],
+    dicas: ['HD tem disco e cabeça de leitura que se movem; SSD usa chips de memória flash.', 'Linux é software livre; o Windows é proprietário.'],
+  },
+  {
+    id: 'c10',
+    disciplina: 'Informática Básica',
+    tipo: 'codigo',
+    linguagem: 'E-mail',
+    titulo: 'O E-mail da Prova Vazada',
+    nivel: 'Intermediário',
+    pontos: 80,
+    historia:
+      'A prova de amanhã chegou na caixa de entrada da turma do 2º B. Seis pessoas enviaram e-mails sobre a prova naquela tarde. O provedor guardou o cabeçalho de cada mensagem enviada.',
+    pergunta: 'Quem enviou o e-mail que vazou a prova?',
+    suspeitos: [
+      { id: 1, nome: 'Gael', codigo: 'Para: coordenacao@escola.edu.br\nCco: turma2b@escola.edu.br\nAnexo: prova.pdf' },
+      { id: 2, nome: 'Heloísa', codigo: 'Para: turma2b@escola.edu.br\nAnexo: prova.pdf' },
+      { id: 3, nome: 'Igor', codigo: 'Para: coordenacao@escola.edu.br\nCc: turma2b@escola.edu.br\nAnexo: prova.pdf' },
+      { id: 4, nome: 'Júlia', codigo: 'Para: coordenacao@escola.edu.br\nCc: turma2b@escola.edu.br\nAnexo: gabarito.docx' },
+      { id: 5, nome: 'Luan', codigo: 'Para: coordenacao@escola.edu.br\nCc: turma2b@escola.edu.br\nAnexo: (nenhum)' },
+      { id: 6, nome: 'Maya', codigo: 'Para: diretoria@escola.edu.br\nCco: turma2b@escola.edu.br\nAnexo: prova.pdf' },
+    ],
+    pistas: [
+      'A mensagem que vazou trazia o arquivo prova.pdf anexado.',
+      'Quem recebeu conseguia ver a lista de todos os destinatários da mensagem.',
+      'A turma NÃO estava no campo "Para": recebeu a mensagem como cópia.',
+    ],
+    dicas: ['Em Cco (cópia oculta), quem recebe não vê os outros destinatários.', 'Cc é a cópia comum, visível para todos.'],
+  },
+  {
+    id: 'c11',
+    disciplina: 'Informática Básica',
+    tipo: 'codigo',
+    linguagem: 'Documento',
+    titulo: 'O Relatório Fora da Norma',
+    nivel: 'Detetive',
+    pontos: 100,
+    historia:
+      'O relatório da Feira de Ciências foi devolvido pela banca por estar fora das normas da ABNT. Oito estudantes formataram versões do documento no editor de texto, e só uma foi entregue.',
+    pergunta: 'Qual versão foi entregue à banca?',
+    suspeitos: [
+      { id: 1, nome: 'Vera', codigo: 'Fonte: Arial 12\nEspaçamento: 1,5\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: justificado' },
+      { id: 2, nome: 'Wagner', codigo: 'Fonte: Arial 12\nEspaçamento: 1,5\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: à esquerda' },
+      { id: 3, nome: 'Xavier', codigo: 'Fonte: Arial 12\nEspaçamento: 2,0\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: à esquerda' },
+      { id: 4, nome: 'Yasmin', codigo: 'Fonte: Times New Roman 12\nEspaçamento: 1,5\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: justificado' },
+      { id: 5, nome: 'Zeca', codigo: 'Fonte: Arial 12\nEspaçamento: 1,5\nMargens: sup 2 · esq 2 · inf 3 · dir 3 cm\nAlinhamento: à esquerda' },
+      { id: 6, nome: 'Alice', codigo: 'Fonte: Arial 14\nEspaçamento: 1,5\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: à esquerda' },
+      { id: 7, nome: 'Benício', codigo: 'Fonte: Arial 12\nEspaçamento: 1,5\nMargens: 2,5 cm em todos os lados\nAlinhamento: à esquerda' },
+      { id: 8, nome: 'Cecília', codigo: 'Fonte: Arial 12\nEspaçamento: 1,0\nMargens: sup 3 · esq 3 · inf 2 · dir 2 cm\nAlinhamento: centralizado' },
+    ],
+    pistas: [
+      'Fonte, tamanho e espaçamento entre linhas estavam de acordo com a ABNT.',
+      'As margens também seguiam a ABNT.',
+      'O único problema apontado pela banca foi o alinhamento do texto.',
+    ],
+    dicas: [
+      'ABNT para trabalhos: Arial ou Times New Roman tamanho 12, espaçamento 1,5 e texto justificado.',
+      'Margens ABNT: superior e esquerda 3 cm; inferior e direita 2 cm.',
+    ],
+  },
+  {
+    id: 'c12',
+    disciplina: 'Informática Básica',
+    tipo: 'codigo',
+    linguagem: 'Planilha',
+    titulo: 'A Média Impossível do Boletim',
+    nivel: 'Mestre',
+    pontos: 120,
+    baseRotulo: 'As notas na planilha',
+    base: '     |  B  |  C  |  D  |  E (média)\n  2  |  8  |  6  |  10 |  ?',
+    historia:
+      'O boletim de um aluno saiu com uma média maior que 10, o que é impossível. Oito monitores escreveram uma fórmula para a célula E2, e só uma foi copiada para a planilha oficial. Lembre: na planilha, multiplicação e divisão são calculadas antes de soma e subtração.',
+    pergunta: 'De quem é a fórmula que gerou a média impossível?',
+    suspeitos: [
+      { id: 1, nome: 'Nina', codigo: '=MEDIA(B2:D2)' },
+      { id: 2, nome: 'Otto', codigo: '=B2+C2+D2/3' },
+      { id: 3, nome: 'Pietra', codigo: '=(B2+C2+D2)/3' },
+      { id: 4, nome: 'Quim', codigo: '=SOMA(B2:D2)' },
+      { id: 5, nome: 'Rosa', codigo: '=B2+C2/2' },
+      { id: 6, nome: 'Saulo', codigo: '=MEDIA(B2;D2)' },
+      { id: 7, nome: 'Tainá', codigo: '=(B2+C2)+D2/2' },
+      { id: 8, nome: 'Uriel', codigo: '=MAXIMO(B2:D2)' },
+    ],
+    pistas: [
+      'O boletim mostrou um valor MAIOR que 10.',
+      'A fórmula usava as três notas: B2, C2 e D2.',
+      'O valor exibido tinha casas decimais (não era um número inteiro).',
+    ],
+    dicas: [
+      'Calcule cada fórmula com B2 = 8, C2 = 6 e D2 = 10, respeitando a ordem das operações.',
+      'B2:D2 é o intervalo de B2 até D2; B2;D2 são só as duas células.',
     ],
   },
 ];

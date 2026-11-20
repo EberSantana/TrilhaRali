@@ -469,13 +469,13 @@ const GradeLogica: React.FC<{ caso: DesvCasoLogica }> = ({ caso }) => {
 
 /** Construção de Sites: o código comum e o trecho de cada suspeito, para ler e comparar. */
 const CodigoSuspeitos: React.FC<{ caso: DesvCasoCodigo }> = ({ caso }) => (
-  <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Código dos suspeitos">
+  <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5" aria-label="Evidências dos suspeitos">
     <h2 className="text-sm font-black uppercase tracking-wide text-slate-400 inline-flex items-center gap-2">
-      <Code2 className="w-4 h-4" /> Código dos suspeitos ({caso.linguagem})
+      <Code2 className="w-4 h-4" /> Evidências dos suspeitos ({caso.linguagem})
     </h2>
     {caso.base && (
       <div className="mt-3">
-        <p className="text-xs font-semibold text-slate-400">Página onde o trecho entrou</p>
+        <p className="text-xs font-semibold text-slate-400">{caso.baseRotulo || 'Página onde o trecho entrou'}</p>
         <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-sky-200"><code>{caso.base}</code></pre>
       </div>
     )}

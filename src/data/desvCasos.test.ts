@@ -89,12 +89,20 @@ const EFEITOS: Record<string, Record<string, boolean[]>> = {
   //        branco no branco  texto branco pelo id
   c7: { Nina: [false, false], Otto: [true, true], Pietra: [true, false], Quim: [false, false], Rosa: [false, true], Saulo: [false, true], 'Tainá': [false, false], Uriel: [false, false] },
   //        mesma linha  total 300  conteúdo 260
+  //        8 GB RAM  SSD  livre
+  c9: { Ana: [true, false, true], Bruno: [false, true, false], Caio: [true, true, false], Duda: [true, true, true], Enzo: [false, true, true], 'Fábia': [false, true, true] },
+  //        prova.pdf  vê destinatários  turma como cópia
+  c10: { Gael: [true, false, false], 'Heloísa': [true, true, false], Igor: [true, true, true], 'Júlia': [false, true, true], Luan: [false, true, true], Maya: [true, false, false] },
+  //        fonte/espaço ABNT  margens ABNT  só o alinhamento errado
+  c11: { Vera: [true, true, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [true, true, false], Zeca: [true, false, true], Alice: [false, true, true], 'Benício': [true, false, true], 'Cecília': [false, true, false] },
+  //        > 10  três notas  decimal   (valores: 8; 17,33; 8; 24; 11; 9; 19; 10)
+  c12: { Nina: [false, true, false], Otto: [true, true, true], Pietra: [false, true, false], Quim: [true, true, false], Rosa: [true, false, false], Saulo: [false, false, false], 'Tainá': [true, true, false], Uriel: [false, true, false] },
   c8: { Vera: [true, false, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [false, true, false], Zeca: [true, true, false], Alice: [true, true, false], 'Benício': [false, true, true], 'Cecília': [false, true, true] },
 };
 
-test('cada caso de Construção de Sites tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
+test('cada caso de evidências (Construção de Sites e Informática Básica) tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
   const casos = DESV_CASOS.filter((x): x is DesvCasoCodigo => x.tipo === 'codigo');
-  assert.equal(casos.length, 4);
+  assert.equal(casos.length, 8);
   for (const c of casos) {
     const ef = EFEITOS[c.id];
     assert.deepEqual(Object.keys(ef).sort(), c.suspeitos.map((s) => s.nome).sort(), `${c.id}: suspeitos`);
