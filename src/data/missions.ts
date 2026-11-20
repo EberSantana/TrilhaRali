@@ -219,7 +219,7 @@ WHERE nota = (SELECT MAX(nota) FROM Alunos);`
     category: 'Modelagem',
     pergunta: 'Físico (Tipagem): Qual foi o tipo de dado sugerido no roteiro para armazenar o campo valor_mensal?',
     resposta_curta: 'decimal',
-    alternatives: ['decimal', 'numeric', 'real'],
+    alternatives: ['decimal', 'numeric', 'decimal(10,2)', 'numeric(10,2)'],
     xp_valor: 20,
     location_suggestion: 'Monitor Lateral 01',
     explanation: 'Campos monetários e financeiros devem usar tipo DECIMAL / NUMERIC com precisão fixa para evitar dízimas periódicas de ponto flutuante.',
@@ -280,7 +280,7 @@ WHERE nota = (SELECT MAX(nota) FROM Alunos);`
     alternatives: ['null', 'nulo', 'valor nulo'],
     xp_valor: 10,
     location_suggestion: 'Bancada 04 / Monitor',
-    explanation: 'Colunas sem restrição NOT NULL e sem cláusula DEFAULT recebem o ponteiro especial NULL (ausência de valor).',
+    explanation: 'Colunas sem restrição NOT NULL e sem cláusula DEFAULT recebem o marcador especial NULL (ausência de valor).',
     sample_query: 'INSERT INTO bens (descricao, setor) VALUES ("Cadeira Ergonômica", "TI");'
   },
   {
