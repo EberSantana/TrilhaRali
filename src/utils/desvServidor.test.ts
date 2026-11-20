@@ -56,7 +56,7 @@ test('pontuação mínima de 20 e ranking soma os casos por aparelho', () => {
 
 test('valida caso, nome e aparelho', () => {
   const s = servidor();
-  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c9', suspeito: 1 }), /Caso desconhecido/);
+  assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'Lia', caso: 'c99', suspeito: 1 }), /Caso desconhecido/);
   assert.throws(() => s.call('desvAcusar', { gid: GID, nome: 'L', caso: 'c1', suspeito: 1 }), /nome/);
   assert.throws(() => s.call('desvAcusar', { gid: 'x', nome: 'Lia', caso: 'c1', suspeito: 1 }), /aparelho/);
 });
