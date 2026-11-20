@@ -14,7 +14,7 @@ export const CTF_APPS_SCRIPT = String.raw`// ===================================
 // ==========================================================
 
 var SHEET_HEADERS = {
-  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals'],
+  CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals', 'turma'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
   CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
@@ -24,7 +24,8 @@ var SHEET_HEADERS = {
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
   DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas', 'token'],
-  DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em'],
+  DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em', 'turma'],
+  Turmas: ['id', 'nome', 'alunos', 'atualizado_em'],
   DesvDuplas: ['token', 'gid', 'nome', 'integrantes', 'entrou_em'],
   DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
@@ -32,10 +33,10 @@ var SHEET_HEADERS = {
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
-var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1, Turmas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -109,6 +110,11 @@ function route(req) {
     case 'desvEstado': return desvEstado(req);
     case 'desvProf': return desvProf(req);
     case 'desvSalasList': return desvSalasList(req);
+    case 'turmasList': return turmasList(req);
+    case 'turmaSalvar': return turmaSalvar(req);
+    case 'turmaExcluir': return turmaExcluir(req);
+    case 'turmaNotas': return turmaNotas(req);
+    case 'salaTurma': return salaTurma(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
@@ -386,7 +392,7 @@ function createCruzRoom(req) {
     modo: modo, criada_em: new Date().toISOString(), total_fases: grade.palavras.length,
     banco_liberado: false,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
-    tipo: 'cruz', ordem: 'cruzadinha',
+    tipo: 'cruz', ordem: 'cruzadinha', turma: turmaIdValido(req.turma),
     cruzadinha_dicas: dicas, cruzadinha_reveals: cruzLimiteReveals(req.reveals, 5), cruzadinha_palavras: palavras, cruzadinha_grade: JSON.stringify(grade), cruzadinha_disc: disc,
     cruzadinha_assuntos: JSON.stringify(sel)
   });
@@ -423,7 +429,8 @@ function createRoom(req) {
     banco_liberado: req.bancoLiberado === true,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
     tipo: tipo,
-    ordem: ordem
+    ordem: ordem,
+    turma: turmaIdValido(req.turma)
   });
 
   logEvento({ token: token, nome: nome, tipo: tipo }, 'criada', missions.length + ' perguntas; modo ' + modo + (tipo === 'ctf' ? '; ordem ' + ordem : ''));
@@ -442,6 +449,8 @@ function createRoom(req) {
 function join(req) {
   var room = requireRoom(req.token);
   var nome = cleanName(req.nome);
+  if (room.tipo !== 'rali') nome = nomeDaTurma(room.turma, nome);
+  else if (room.turma) req.integrantes = (Array.isArray(req.integrantes) ? req.integrantes : []).map(function (n) { return nomeDaTurma(room.turma, n); });
   var key = norm(nome);
   var found = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   var chave = String(req.chave || '');
@@ -1293,7 +1302,7 @@ function createDesvRoom(req) {
   var adminKey = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 24);
   appendObj('DesvSalas', {
     token: token, nome: safeText(String(req.nome || 'Desvendando').substring(0, 80)), admin_key: adminKey,
-    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString()
+    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString(), turma: turmaIdValido(req.turma)
   });
   return { token: token, adminKey: adminKey, casos: casos };
 }
@@ -1308,6 +1317,12 @@ function desvEntrar(req) {
   var gid = desvGid(req.gid);
   var nome = cruzRankingNome(req.nome);
   var integrantes = String(req.integrantes || '').replace(/\s+/g, ' ').trim().substring(0, 120);
+  if (sala.turma) {
+    var lista = Array.isArray(req.integrantes) ? req.integrantes : String(req.integrantes || '').split(',');
+    lista = lista.map(function (n) { return String(n).trim(); }).filter(function (n) { return n; });
+    if (!lista.length || lista.length > 3) fail('Marque de 1 a 3 integrantes da lista da turma.');
+    integrantes = lista.map(function (n) { return nomeDaTurma(sala.turma, n); }).join(', ');
+  }
   var token = String(sala.token);
   var ja = desvDupla(token, gid);
   if (ja) updateRow('DesvDuplas', ja._row, { nome: safeText(nome), integrantes: safeText(integrantes) });
@@ -1430,6 +1445,135 @@ function desvProf(req) {
     resolvidosPorCaso: porCaso,
     ranking: desvRankingSala(token)
   };
+}
+
+// ---------- Turmas (lista de alunos) e notas ----------
+// O professor cadastra a turma uma vez (matricula e nome). Sala ligada a uma turma: o aluno escolhe o proprio nome
+// na lista, e o relatorio soma os pontos de cada aluno em todas as salas da turma (CTF, Cruzada, Rali NFC e Desvendando).
+function turmaLer(id) {
+  var r = readRows('Turmas').filter(function (t) { return String(t.id) === String(id || ''); })[0];
+  if (!r) return null;
+  var alunos = [];
+  try { alunos = JSON.parse(String(r.alunos || '[]')); } catch (e) { alunos = []; }
+  return { _row: r._row, id: String(r.id), nome: String(r.nome), alunos: alunos };
+}
+
+function turmaIdValido(id) {
+  if (!id) return '';
+  if (!turmaLer(id)) fail('Turma não encontrada.');
+  return String(id);
+}
+
+// Confere o nome com a lista da turma e devolve o nome como cadastrado (sala sem turma: aceita o nome digitado)
+function nomeDaTurma(turmaId, nome) {
+  if (!turmaId) return nome;
+  var t = turmaLer(turmaId);
+  if (!t) return nome;
+  var k = norm(nome);
+  var achou = t.alunos.filter(function (a) { return norm(a.n) === k; })[0];
+  if (!achou) fail('Escolha o seu nome na lista da turma.');
+  return achou.n;
+}
+
+function turmaAlunosLimpos(lista) {
+  var vistos = {};
+  var out = [];
+  (Array.isArray(lista) ? lista : []).forEach(function (a) {
+    var n = String((a && a.n) || '').replace(/\s+/g, ' ').trim().replace(/^[=+\-@]+/, '').substring(0, 60);
+    var m = String((a && a.m) || '').replace(/[^\w.\-\/]/g, '').substring(0, 20);
+    if (n.length < 2 || vistos[norm(n)]) return;
+    vistos[norm(n)] = 1;
+    out.push({ m: m, n: n });
+  });
+  if (out.length > 80) fail('Uma turma pode ter até 80 alunos.');
+  return out;
+}
+
+function turmasList(req) {
+  requireBancoKey(req);
+  return {
+    turmas: readRows('Turmas').map(function (r) {
+      var t = turmaLer(r.id);
+      return { id: t.id, nome: t.nome, alunos: t.alunos };
+    })
+  };
+}
+
+function turmaSalvar(req) {
+  requireBancoKey(req);
+  var nome = String(req.nome || '').replace(/\s+/g, ' ').trim().substring(0, 60);
+  if (nome.length < 2) fail('Dê um nome à turma.');
+  var alunos = turmaAlunosLimpos(req.alunos);
+  if (!alunos.length) fail('Cadastre ao menos um aluno.');
+  var agora = new Date().toISOString();
+  var t = req.id ? turmaLer(req.id) : null;
+  if (t) {
+    updateRow('Turmas', t._row, { nome: safeText(nome), alunos: JSON.stringify(alunos), atualizado_em: agora });
+    return { id: t.id, nome: nome, alunos: alunos };
+  }
+  var id = 'T' + randomFrom(TOKEN_CHARS, 7);
+  appendObj('Turmas', { id: id, nome: safeText(nome), alunos: JSON.stringify(alunos), atualizado_em: agora });
+  return { id: id, nome: nome, alunos: alunos };
+}
+
+function turmaExcluir(req) {
+  requireBancoKey(req);
+  var t = turmaLer(req.id);
+  if (!t) fail('Turma não encontrada.');
+  getSheet('Turmas').deleteRow(t._row);
+  memoLimpa('Turmas');
+  return { ok: true };
+}
+
+// Para a tela de entrada do aluno: so os nomes (sem matricula)
+function salaTurma(req) {
+  var t = String(req.token || '').toUpperCase().trim();
+  var sala = readRows('CtfSalas').filter(function (r) { return String(r.token) === t; })[0] ||
+    readRows('DesvSalas').filter(function (r) { return String(r.token) === t; })[0];
+  if (!sala) fail('Sala não encontrada. Confira o token.');
+  var turma = turmaLer(sala.turma);
+  if (!turma) return { turma: null };
+  return { turma: { nome: turma.nome, alunos: turma.alunos.map(function (a) { return a.n; }) } };
+}
+
+function turmaNotas(req) {
+  requireBancoKey(req);
+  var t = turmaLer(req.id);
+  if (!t) fail('Turma não encontrada.');
+  var salas = readRows('CtfSalas').filter(function (r) { return String(r.turma) === t.id; });
+  var desvSalas = readRows('DesvSalas').filter(function (r) { return String(r.turma) === t.id; });
+  var tipoDe = {};
+  salas.forEach(function (r) { tipoDe[String(r.token)] = tipoOut(r); });
+  var notas = {};
+  t.alunos.forEach(function (a) { notas[norm(a.n)] = { m: a.m, n: a.n, ctf: 0, cruz: 0, rali: 0, desv: 0 }; });
+  readRows('CtfAlunos').forEach(function (r) {
+    var tipo = tipoDe[String(r.token)];
+    if (!tipo) return;
+    var xp = Number(r.xp) || 0;
+    if (tipo === 'rali') {
+      var membros = [];
+      try { membros = JSON.parse(String(r.integrantes || '[]')); } catch (e) { membros = []; }
+      membros.forEach(function (n) { var x = notas[norm(n)]; if (x) x.rali += xp; });
+    } else {
+      var x = notas[String(r.nome_key)];
+      if (x) x[tipo === 'cruz' ? 'cruz' : 'ctf'] += xp;
+    }
+  });
+  var desvTokens = {};
+  desvSalas.forEach(function (r) { desvTokens[String(r.token)] = 1; });
+  var integrantesDe = {};
+  readRows('DesvDuplas').forEach(function (d) { if (desvTokens[String(d.token)]) integrantesDe[String(d.token) + '|' + String(d.gid)] = String(d.integrantes || '').split(','); });
+  readRows('DesvRanking').forEach(function (r) {
+    var membros = integrantesDe[String(r.token) + '|' + String(r.gid)];
+    if (!membros) return;
+    membros.forEach(function (n) { var x = notas[norm(n)]; if (x) x.desv += Number(r.pontos) || 0; });
+  });
+  var alunos = t.alunos.map(function (a) {
+    var x = notas[norm(a.n)];
+    x.total = x.ctf + x.cruz + x.rali + x.desv;
+    return x;
+  });
+  return { turma: { id: t.id, nome: t.nome }, salas: salas.length + desvSalas.length, alunos: alunos };
 }
 
 // ---------- Grande ranking da Cruzada (treino livre) ----------

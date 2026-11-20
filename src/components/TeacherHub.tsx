@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Users,
   Search,
+  GraduationCap,
 } from 'lucide-react';
 
 import { ThemePicker } from './common/ThemePicker';
@@ -33,6 +34,7 @@ interface TeacherHubProps {
   onOpenCtfRooms: () => void;
   onOpenCruzRooms: () => void;
   onOpenDesvRooms: () => void;
+  onOpenTurmas: () => void;
   onOpenAccount: () => void;
 }
 
@@ -179,6 +181,15 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
         <h1 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight text-white">Painel do professor</h1>
         <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
       </header>
+
+      <Section title="Turmas e notas">
+        <Tool
+          title="Turmas e notas"
+          description="Cadastre a lista de alunos de cada turma (cole do SUAP). Nas salas ligadas à turma o aluno escolhe o próprio nome, e as notas de todos os módulos saem em CSV."
+          icon={<GraduationCap className="w-5 h-5" />}
+          onClick={p.onOpenTurmas}
+        />
+      </Section>
 
       <Section title="1 · Conteúdo (compartilhado)">
         <Tool

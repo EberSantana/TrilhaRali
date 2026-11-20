@@ -4,6 +4,8 @@ import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data
 import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 import { ModuleTabs } from '../common/ModuleShell';
+import { useTurmaDaSala } from '../../utils/turmasApi';
+import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 
 const K_GID = 'rali_desv_gid_v1';
 const K_SESSAO = 'rali_desv_sessao_v1';
@@ -253,6 +255,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
   const [token, setToken] = useState(tokenDoLink);
   const [nome, setNome] = useState('');
   const [integrantes, setIntegrantes] = useState('');
+  const turmaSala = useTurmaDaSala(token);
   const [erro, setErro] = useState(erroInicial);
   const [busy, setBusy] = useState(false);
   const entrar = async (e: React.FormEvent) => {
@@ -261,7 +264,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
     setErro('');
     try {
       const ses = { token: token.trim().toUpperCase(), nome: nome.trim(), integrantes: integrantes.trim() };
-      const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid });
+      const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid, ...(turmaSala ? { integrantes: ses.integrantes.split(',').map((x) => x.trim()).filter(Boolean) } : {}) });
       onEntrou({ ...ses, token: est.sala.token }, est);
     } catch (er) {
       setErro(msgErro(er));
@@ -290,14 +293,21 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
           <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da dupla</span>
           <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={30} autoComplete="off" placeholder="Ex.: Detetives do SQL" className={input} />
         </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes</span>
-          <input value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} maxLength={120} autoComplete="off" placeholder="Ana Souza e Bruno Lima" className={input} />
-        </label>
+        {turmaSala ? (
+          <div className="space-y-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: marque até 3)</span></span>
+            <EscolhaIntegrantes alunos={turmaSala.alunos} value={integrantes} onChange={setIntegrantes} max={3} accent="accent-violet-500" />
+          </div>
+        ) : (
+          <label className="block space-y-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes</span>
+            <input value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} maxLength={120} autoComplete="off" placeholder="Ana Souza e Bruno Lima" className={input} />
+          </label>
+        )}
         {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
         <button
           type="submit"
-          disabled={busy || token.trim().length < 4 || nome.trim().length < 2}
+          disabled={busy || token.trim().length < 4 || nome.trim().length < 2 || (!!turmaSala && !integrantes.trim())}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-base font-black text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
