@@ -76,8 +76,8 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           <TrilhaLogo variant="full" height="clamp(150px, calc(100dvh - 430px), 300px)" className="relative drop-shadow-[0_8px_16px_rgba(15,23,42,0.22)]" />
         </div>
         <h1 className="sr-only">Trilha Rali</h1>
-        <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400 sm:text-base">
-          Escolha como você vai participar da atividade de hoje.
+        <p className="mt-4 max-w-md text-balance text-sm leading-relaxed text-slate-400 sm:text-base">
+          Escolha como você vai participar da atividade <span className="whitespace-nowrap">de hoje.</span>
         </p>
       </header>
 
