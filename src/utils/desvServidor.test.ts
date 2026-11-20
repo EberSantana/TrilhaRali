@@ -27,6 +27,7 @@ function servidor() {
     TOKEN_CHARS: 'ABC',
     fail: (m: string) => { throw new Error(m); },
     CacheService: { getScriptCache: () => cache },
+    requireBancoKey: (req: { chave?: string }) => { if (req.chave !== 'chave-banco') throw new Error('Chave do banco inválida.'); },
   };
   vm.createContext(ctx);
   vm.runInContext(trecho('// ---------- Desvendando', '// ---------- Grande ranking da Cruzada'), ctx);
@@ -91,4 +92,13 @@ test('sem entrar na sala não acusa, e sem gabarito na planilha não cria sala',
   const v = servidor();
   v.sheets.DesvGabarito.length = 0;
   assert.throws(() => v.call('createDesvRoom', { casos: ['c1'] }), /DesvGabarito/);
+});
+
+test('com a chave do banco o professor recupera as salas em outro aparelho (com a chave de cada sala)', () => {
+  const s = salaCom(['c1']);
+  s.call('desvEntrar', { token: s.token, gid: DUPLA_A, nome: 'Dupla A' });
+  assert.throws(() => s.call('desvSalasList', { chave: 'errada' }), /Chave do banco/);
+  const l = s.call('desvSalasList', { chave: 'chave-banco' }).salas;
+  assert.equal(l.length, 1);
+  assert.deepEqual([l[0].token, l[0].adminKey, l[0].casos, l[0].duplas, l[0].status], [s.token, s.adminKey, 1, 1, 'aberta']);
 });
