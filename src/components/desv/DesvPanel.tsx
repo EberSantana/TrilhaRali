@@ -16,7 +16,7 @@ interface SalaGuardada {
   nome: string;
   criada: number;
 }
-interface EstadoProf {
+export interface EstadoProf {
   sala: { token: string; nome: string; status: string; casos: string[] };
   duplas: { nome: string; integrantes: string }[];
   resolvidosPorCaso: Record<string, number>;
@@ -273,7 +273,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 };
 
 /** Lista dos casos por disciplina, com caixa de marcar (e quantas duplas já resolveram, no ao vivo). */
-const ListaCasos: React.FC<{ marcados: Set<string>; onAlternar: (id: string) => void; resolvidos?: Record<string, number> }> = ({ marcados, onAlternar, resolvidos }) => (
+export const ListaCasos: React.FC<{ marcados: Set<string>; onAlternar: (id: string) => void; resolvidos?: Record<string, number> }> = ({ marcados, onAlternar, resolvidos }) => (
   <div className="space-y-3">
     {DISCIPLINAS.map((d) => (
       <fieldset key={d} className="space-y-1.5">
