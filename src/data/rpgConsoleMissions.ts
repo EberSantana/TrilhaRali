@@ -1,4 +1,5 @@
 import { Mission } from '../types';
+import { MissaoPublica, semGabarito } from '../utils/gabarito';
 
 /**
  * RPG II de Banco de Dados para o CTF: "A Cidadela das Tabelas", 21 capítulos resolvidos no Console SQLite
@@ -6,7 +7,7 @@ import { Mission } from '../types';
  * (rpgMissions.ts). Os capítulos que alteram dados trabalham em cópias próprias (rpg_NN). rpgConsoleMissions.test.ts repete cada
  * solução no SQLite real e confere o gabarito.
  */
-export const RPG_CONSOLE_MISSIONS: Mission[] = [
+const RPG_CONSOLE_MISSIONS_PUB: MissaoPublica[] = [
   {
     id: 701,
     tag_id: "rpg2_01",
@@ -14,12 +15,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 1 — O Portão da Cidadela. Lia chega à Cidadela das Tabelas, onde a Escola dos Magos guarda seus registros. O guarda do portão quer saber: quantos aprendizes (tabela estudantes) estão cadastrados?",
-    resposta_curta: "8",
-    alternatives: ["8"],
     xp_valor: 10,
     location_suggestion: "Console SQLite · Capítulo 1",
-    explanation: "COUNT(*) conta as linhas da tabela, ou seja, os registros.",
-    sample_query: "SELECT COUNT(*) FROM estudantes;",
   },
   {
     id: 702,
@@ -28,12 +25,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "Modelagem",
     pergunta: "Capítulo 2 — O Grimório de Inscrições. No salão, o escriba abre o grimório matriculas. Quantas COLUNAS (campos) essa tabela possui? Dica: PRAGMA_TABLE_INFO lista as colunas de uma tabela.",
-    resposta_curta: "5",
-    alternatives: ["5"],
     xp_valor: 10,
     location_suggestion: "Console SQLite · Capítulo 2",
-    explanation: "Cada linha de pragma_table_info é uma coluna da tabela: id, id_estudante, id_disciplina, nota e situacao.",
-    sample_query: "SELECT COUNT(*) FROM pragma_table_info('matriculas');",
   },
   {
     id: 703,
@@ -42,12 +35,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 3 — A Folha de Pagamento. O tesoureiro desconfia dos salários. Quantos mestres (tabela professores) ganham MAIS de 5000?",
-    resposta_curta: "3",
-    alternatives: ["3"],
     xp_valor: 10,
     location_suggestion: "Console SQLite · Capítulo 3",
-    explanation: "WHERE filtra as linhas antes da contagem; o operador > compara valores.",
-    sample_query: "SELECT COUNT(*) FROM professores WHERE salario > 5000;",
   },
   {
     id: 704,
@@ -56,12 +45,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 4 — O Maior Feitiço. Entre todos os grimórios da Escola (tabela disciplinas), qual é a MAIOR carga horária registrada?",
-    resposta_curta: "90",
-    alternatives: ["90"],
     xp_valor: 10,
     location_suggestion: "Console SQLite · Capítulo 4",
-    explanation: "MAX é uma função de agregação que devolve o maior valor da coluna.",
-    sample_query: "SELECT MAX(carga_horaria) FROM disciplinas;",
   },
   {
     id: 705,
@@ -70,12 +55,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 5 — A Ficha de Lara. Cada aprendiz pode ter várias inscrições (relação 1:N entre estudantes e matriculas). Quantas inscrições tem a aprendiz Lara Mendes? Una as tabelas com JOIN.",
-    resposta_curta: "3",
-    alternatives: ["3"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 5",
-    explanation: "O JOIN usa a chave estrangeira id_estudante para ligar cada inscrição ao seu aprendiz.",
-    sample_query: "SELECT COUNT(*) FROM estudantes e JOIN matriculas m ON m.id_estudante = e.id WHERE e.nome = 'Lara Mendes';",
   },
   {
     id: 706,
@@ -84,12 +65,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "Modelagem",
     pergunta: "Capítulo 6 — Os Fios Invisíveis. As tabelas são ligadas por fios invisíveis: as chaves estrangeiras. Quantas chaves estrangeiras a tabela matriculas possui? Dica: PRAGMA_FOREIGN_KEY_LIST.",
-    resposta_curta: "2",
-    alternatives: ["2"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 6",
-    explanation: "matriculas referencia estudantes e disciplinas: por isso é a tabela associativa de uma relação N:N.",
-    sample_query: "SELECT COUNT(*) FROM pragma_foreign_key_list('matriculas');",
   },
   {
     id: 707,
@@ -98,12 +75,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 7 — Grimórios Procurados. Algumas disciplinas nunca foram escolhidas e outras foram escolhidas muitas vezes. Quantas disciplinas DIFERENTES têm ao menos uma inscrição em matriculas?",
-    resposta_curta: "7",
-    alternatives: ["7"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 7",
-    explanation: "COUNT(DISTINCT coluna) conta valores diferentes, ignorando repetições.",
-    sample_query: "SELECT COUNT(DISTINCT id_disciplina) FROM matriculas;",
   },
   {
     id: 708,
@@ -112,12 +85,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 8 — O Grimório Sem Dono. Há um grimório sem mestre responsável (o campo id_professor está vazio). Quantas disciplinas estão nessa situação? Lembre: para testar vazio, use IS NULL, nunca = NULL.",
-    resposta_curta: "1",
-    alternatives: ["1"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 8",
-    explanation: "NULL significa ausência de valor; só se testa com IS NULL / IS NOT NULL.",
-    sample_query: "SELECT COUNT(*) FROM disciplinas WHERE id_professor IS NULL;",
   },
   {
     id: 709,
@@ -126,12 +95,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 9 — O Mestre Mais Rico. O Conselho quer homenagear o mestre mais bem pago. Liste os professores do maior para o menor salário (ORDER BY ... DESC). Qual nome aparece primeiro?",
-    resposta_curta: "Fábio Costa",
-    alternatives: ["Fábio Costa","fabio costa"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 9",
-    explanation: "ORDER BY salario DESC ordena do maior para o menor; LIMIT 1 devolve só o primeiro.",
-    sample_query: "SELECT nome FROM professores ORDER BY salario DESC LIMIT 1;",
   },
   {
     id: 710,
@@ -140,12 +105,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 10 — A Ordem Mais Numerosa. Cada mestre pertence a uma Ordem (departamento). Agrupando os professores por departamento, qual a SIGLA da Ordem com mais mestres?",
-    resposta_curta: "INF",
-    alternatives: ["INF","inf"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 10",
-    explanation: "GROUP BY agrupa as linhas e COUNT(*) conta cada grupo; ordenar por contagem decrescente traz o maior grupo.",
-    sample_query: "SELECT d.sigla FROM professores p JOIN departamentos d ON d.id = p.id_departamento GROUP BY d.sigla ORDER BY COUNT(*) DESC LIMIT 1;",
   },
   {
     id: 711,
@@ -154,12 +115,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 11 — Os Grimórios Concorridos. Agrupe as inscrições por disciplina e fique só com os grupos que têm MAIS de 2 inscrições (HAVING). Quantas disciplinas passam nesse filtro?",
-    resposta_curta: "3",
-    alternatives: ["3"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 11",
-    explanation: "HAVING filtra grupos depois do GROUP BY, enquanto WHERE filtra linhas antes dele.",
-    sample_query: "SELECT COUNT(*) FROM (SELECT id_disciplina FROM matriculas GROUP BY id_disciplina HAVING COUNT(*) > 2);",
   },
   {
     id: 712,
@@ -168,12 +125,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 12 — Os Aprovados do Banco. Quantos aprendizes diferentes foram APROVADOS na disciplina \"Banco de Dados\"? Una matriculas e disciplinas com INNER JOIN.",
-    resposta_curta: "3",
-    alternatives: ["3"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 12",
-    explanation: "INNER JOIN devolve só as linhas com correspondência; o WHERE combina o título e a situação com AND.",
-    sample_query: "SELECT COUNT(DISTINCT m.id_estudante) FROM matriculas m JOIN disciplinas d ON d.id = m.id_disciplina WHERE d.titulo = 'Banco de Dados' AND m.situacao = 'Aprovado';",
   },
   {
     id: 713,
@@ -182,12 +135,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 13 — O Mestre Sem Grimório. Um mestre da Escola não leciona nenhuma disciplina. Use LEFT JOIN de professores para disciplinas e procure quem ficou sem correspondência (d.id IS NULL). Qual o nome desse mestre?",
-    resposta_curta: "Elisa Nunes",
-    alternatives: ["Elisa Nunes","elisa nunes"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 13",
-    explanation: "LEFT JOIN mantém todos os professores; os sem disciplina aparecem com NULL nas colunas da outra tabela.",
-    sample_query: "SELECT p.nome FROM professores p LEFT JOIN disciplinas d ON d.id_professor = p.id WHERE d.id IS NULL;",
   },
   {
     id: 714,
@@ -196,12 +145,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DQL",
     pergunta: "Capítulo 14 — A Nota do Reino. O Oráculo calcula a média de todas as notas já lançadas (as notas vazias são ignoradas). Qual é a média, arredondada para 2 casas decimais com ROUND(..., 2)?",
-    resposta_curta: "7.07",
-    alternatives: ["7.07"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 14",
-    explanation: "AVG ignora valores NULL; ROUND(x, 2) arredonda para duas casas.",
-    sample_query: "SELECT ROUND(AVG(nota), 2) FROM matriculas;",
   },
   {
     id: 715,
@@ -210,12 +155,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DDL",
     pergunta: "Capítulo 15 — A Cópia de Lagarto. Lia cria uma cópia do cadastro só com os aprendizes de Lagarto: CREATE TABLE rpg_15 AS SELECT * FROM estudantes WHERE cidade = 'Lagarto'; Depois, quantas linhas tem rpg_15?",
-    resposta_curta: "2",
-    alternatives: ["2"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 15",
-    explanation: "CREATE TABLE ... AS SELECT cria uma tabela nova já preenchida com o resultado da consulta (DDL + DQL).",
-    sample_query: "CREATE TABLE rpg_15 AS SELECT * FROM estudantes WHERE cidade = 'Lagarto';\nSELECT COUNT(*) FROM rpg_15;",
   },
   {
     id: 716,
@@ -224,12 +165,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DML",
     pergunta: "Capítulo 16 — Um Novo Departamento. Crie rpg_16 como cópia de departamentos e insira o departamento (5, 'Física', 'FIS'). Depois de INSERT INTO rpg_16 VALUES (5, 'Física', 'FIS'), quantas linhas tem a cópia?",
-    resposta_curta: "5",
-    alternatives: ["5"],
     xp_valor: 15,
     location_suggestion: "Console SQLite · Capítulo 16",
-    explanation: "INSERT adiciona um registro novo; a cópia tinha 4 departamentos e passa a ter 5.",
-    sample_query: "CREATE TABLE rpg_16 AS SELECT * FROM departamentos;\nINSERT INTO rpg_16 VALUES (5, 'Física', 'FIS');\nSELECT COUNT(*) FROM rpg_16;",
   },
   {
     id: 717,
@@ -238,12 +175,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DML",
     pergunta: "Capítulo 17 — O Aumento dos Magos. Crie rpg_17 como cópia de professores e dê um aumento de 100 aos mestres do departamento 1 (UPDATE ... WHERE id_departamento = 1). Qual passa a ser a SOMA de todos os salários da cópia?",
-    resposta_curta: "30000",
-    alternatives: ["30000"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 17",
-    explanation: "O WHERE limita o UPDATE aos 3 mestres do departamento 1: a soma original (29700) sobe 300.",
-    sample_query: "CREATE TABLE rpg_17 AS SELECT * FROM professores;\nUPDATE rpg_17 SET salario = salario + 100 WHERE id_departamento = 1;\nSELECT SUM(salario) FROM rpg_17;",
   },
   {
     id: 718,
@@ -252,12 +185,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DDL",
     pergunta: "Capítulo 18 — Uma Coluna a Mais. Crie rpg_18 como cópia de disciplinas e acrescente a coluna ativa com ALTER TABLE rpg_18 ADD COLUMN ativa INTEGER DEFAULT 1. Qual é a SOMA da coluna ativa na cópia?",
-    resposta_curta: "8",
-    alternatives: ["8"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 18",
-    explanation: "ALTER TABLE altera a estrutura; o DEFAULT 1 preenche as 8 linhas existentes, e a soma dá 8.",
-    sample_query: "CREATE TABLE rpg_18 AS SELECT * FROM disciplinas;\nALTER TABLE rpg_18 ADD COLUMN ativa INTEGER DEFAULT 1;\nSELECT SUM(ativa) FROM rpg_18;",
   },
   {
     id: 719,
@@ -266,12 +195,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "DML",
     pergunta: "Capítulo 19 — A Limpeza dos Pergaminhos. Crie rpg_19 como cópia de matriculas e apague as inscrições que ainda estão com situacao 'Cursando' (DELETE ... WHERE). Quantas linhas restam na cópia?",
-    resposta_curta: "14",
-    alternatives: ["14"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 19",
-    explanation: "DELETE com WHERE remove só as linhas filtradas: das 17 inscrições, 3 estavam cursando, restam 14.",
-    sample_query: "CREATE TABLE rpg_19 AS SELECT * FROM matriculas;\nDELETE FROM rpg_19 WHERE situacao = 'Cursando';\nSELECT COUNT(*) FROM rpg_19;",
   },
   {
     id: 720,
@@ -280,12 +205,8 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "TCL",
     pergunta: "Capítulo 20 — O Feitiço do Arrependimento. Crie rpg_20 como cópia de professores. Inicie uma transação, apague os mestres sem departamento e depois DESFAÇA tudo: BEGIN; DELETE FROM rpg_20 WHERE id_departamento IS NULL; ROLLBACK; Quantas linhas tem rpg_20 no fim?",
-    resposta_curta: "6",
-    alternatives: ["6"],
     xp_valor: 20,
     location_suggestion: "Console SQLite · Capítulo 20",
-    explanation: "ROLLBACK desfaz tudo desde o BEGIN (atomicidade): nada foi apagado e a cópia continua com 6 linhas. COMMIT confirmaria a exclusão.",
-    sample_query: "CREATE TABLE rpg_20 AS SELECT * FROM professores;\nBEGIN;\nDELETE FROM rpg_20 WHERE id_departamento IS NULL;\nROLLBACK;\nSELECT COUNT(*) FROM rpg_20;",
   },
   {
     id: 721,
@@ -294,11 +215,10 @@ export const RPG_CONSOLE_MISSIONS: Mission[] = [
     packageName: "B5. RPG II · A Cidadela das Tabelas (Console SQL)",
     category: "Boss",
     pergunta: "Capítulo 21 — O Duelo Final. O Chefão das Sombras só será vencido por quem unir quatro tabelas. Entre as inscrições nas disciplinas lecionadas pela professora Ana Prado, qual aprendiz tirou a MAIOR nota? Dica: estudantes → matriculas → disciplinas → professores, com ORDER BY nota DESC LIMIT 1.",
-    resposta_curta: "Sofia Rocha",
-    alternatives: ["Sofia Rocha","sofia rocha"],
     xp_valor: 30,
     location_suggestion: "Console SQLite · Capítulo 21",
-    explanation: "Três JOINs em cadeia ligam aprendiz, inscrição, disciplina e mestre; ORDER BY nota DESC LIMIT 1 pega a maior nota.",
-    sample_query: "SELECT e.nome FROM estudantes e JOIN matriculas m ON m.id_estudante = e.id JOIN disciplinas d ON d.id = m.id_disciplina JOIN professores p ON p.id = d.id_professor WHERE p.nome = 'Ana Prado' ORDER BY m.nota DESC LIMIT 1;",
   },
 ];
+
+/** As respostas, explicações e consultas ficam no gabarito criptografado (src/data/gabarito.enc.json). */
+export const RPG_CONSOLE_MISSIONS: Mission[] = semGabarito(RPG_CONSOLE_MISSIONS_PUB);

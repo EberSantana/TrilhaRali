@@ -1,12 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RPG_MISSIONS } from './rpgMissions';
-import { ALL_MISSIONS } from './missions';
-import { LINUX_MISSIONS } from './linuxMissions';
-import { CONSOLE_MISSIONS } from './consoleMissions';
-import { BD_MISSIONS } from './bdMissions';
-import { INFO_MISSIONS } from './infoMissions';
-import { WEB_MISSIONS } from './webMissions';
+import { RPG_MISSIONS as RPG_MISSIONS_SEM } from './rpgMissions';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from './missions';
+import { LINUX_MISSIONS as LINUX_MISSIONS_SEM } from './linuxMissions';
+import { CONSOLE_MISSIONS as CONSOLE_MISSIONS_SEM } from './consoleMissions';
+import { BD_MISSIONS as BD_MISSIONS_SEM } from './bdMissions';
+import { INFO_MISSIONS as INFO_MISSIONS_SEM } from './infoMissions';
+import { WEB_MISSIONS as WEB_MISSIONS_SEM } from './webMissions';
+import { comGabarito } from '../utils/gabaritoTeste';
+const RPG_MISSIONS = comGabarito(RPG_MISSIONS_SEM);
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+const LINUX_MISSIONS = comGabarito(LINUX_MISSIONS_SEM);
+const CONSOLE_MISSIONS = comGabarito(CONSOLE_MISSIONS_SEM);
+const BD_MISSIONS = comGabarito(BD_MISSIONS_SEM);
+const INFO_MISSIONS = comGabarito(INFO_MISSIONS_SEM);
+const WEB_MISSIONS = comGabarito(WEB_MISSIONS_SEM);
+
 
 const norm = (s: string) =>
   String(s).toLowerCase().trim().replace(/^["']|["']$/g, '').replace(/;+$/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();

@@ -207,7 +207,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
                   Resposta Curta Esperada (Gabarito):
                 </span>
                 <span className="font-mono text-base font-black text-emerald-200">
-                  {selectedMission.resposta_curta}
+                  {selectedMission.resposta_curta || '🔒 Gabarito protegido: conecte a chave do banco na Área do professor'}
                 </span>
                 {selectedMission.alternatives && selectedMission.alternatives.length > 1 && (
                   <p className="text-xs text-emerald-400/80 mt-1">
@@ -294,7 +294,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
                   Resposta Curta Oficial
                 </span>
                 <span className="font-mono text-2xl font-black text-emerald-200">
-                  {selectedMission.resposta_curta}
+                  {selectedMission.resposta_curta || '🔒 Gabarito protegido: conecte a chave do banco na Área do professor'}
                 </span>
               </div>
 

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
 import { DESV_CASOS, DesvCasoCodigo, DesvCasoLogica, DesvCasoSql } from './desvCasos';
-import { createHash } from 'node:crypto';
 import { CTF_APPS_SCRIPT } from './ctfAppsScript';
+import { gabaritoAberto } from '../utils/gabaritoTeste';
 
 type Ficha = Record<string, [string, string]>;
 function perms<T>(xs: T[]): T[][] {
@@ -38,11 +38,11 @@ const PROVA: Record<string, string> = {
        WHERE a.comando LIKE '%placar%' AND a.horario > '18:00'`,
 };
 
-// O script guarda sha256('desv:<caso>:<suspeito>'); o id certo é o único cujo hash aparece no script
+// O culpado de cada caso vem do gabarito criptografado (o servidor usa a aba DesvGabarito, com os mesmos dados)
 function gabarito(caso: string): number {
-  const ids = [1, 2, 3, 4, 5, 6, 7, 8].filter((i) => CTF_APPS_SCRIPT.includes(createHash('sha256').update(`desv:${caso}:${i}`).digest('hex')));
-  assert.equal(ids.length, 1, `gabarito de ${caso}`);
-  return ids[0];
+  const g = gabaritoAberto().desv?.[caso];
+  assert.ok(g, `gabarito de ${caso}`);
+  return g!.suspeito;
 }
 
 test('cada caso de lógica tem exatamente uma solução, e ela bate com o gabarito do servidor', () => {
@@ -112,4 +112,14 @@ test('cada caso de evidências (Construção de Sites e Informática Básica) te
     assert.equal(culpados.length, 1, `${c.id}: ${culpados.length} culpados`);
     assert.equal(culpados[0].id, gabarito(c.id));
   }
+});
+
+test('o código público não traz o culpado nem a explicação de nenhum caso', () => {
+  const desv = gabaritoAberto().desv!;
+  assert.equal(Object.keys(desv).length, DESV_CASOS.length);
+  for (const [caso, g] of Object.entries(desv)) {
+    assert.ok(!CTF_APPS_SCRIPT.includes(g.explicacao.slice(0, 40)), `${caso}: explicação no script`);
+    assert.ok(!JSON.stringify(DESV_CASOS).includes(g.explicacao.slice(0, 40)), `${caso}: explicação no app`);
+  }
+  assert.doesNotMatch(CTF_APPS_SCRIPT, /DESV_GABARITO|desv:c\d/);
 });

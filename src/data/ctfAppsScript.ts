@@ -24,12 +24,13 @@ var SHEET_HEADERS = {
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
   DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas'],
+  DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
-var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
@@ -117,7 +118,7 @@ function route(req) {
     case 'bancoDelete': return bancoDelete(req);
     case 'bancoImport': return bancoImport(req);
     case 'nfcPublish': return nfcPublish(req);
-    case 'nfcSet': return nfcSet();
+    case 'nfcSet': return nfcSet(req);
     default: fail('Acao desconhecida.');
   }
 }
@@ -1227,22 +1228,20 @@ function cruzTreinoCheck(req) {
 }
 
 // ---------- Desvendando com Conhecimento (casos de mistério) ----------
-// O navegador envia a acusacao e o servidor confere, conta os erros e grava os pontos. O gabarito fica como hash
-// (sha256 de 'desv:<caso>:<suspeito>') e a explicacao em base64, para nao ficar a vista no codigo publico.
-var DESV_GABARITO = {
-  c1: { h: 'e98ee9c09a94a84d39e22e16f395725dc60e11550bbfd6c76ed1dc228145e4cd', pontos: 60, ex: 'QnJ1bm8gc8OzIHBvZGUgZXN0YXIgbmEgUXVhZHJhLiBBIGVzY2FkYSDDqSBkYSBBbmEsIGUgcXVlbSBlc3TDoSBuYSBCaWJsaW90ZWNhIHVzYSBvIGNyYWNow6EgY2xvbmFkbzogbG9nbyBBbmEgbsOjbyBlc3TDoSBuYSBCaWJsaW90ZWNhIGUgZmljYSBubyBMYWJvcmF0w7NyaW8uIENhaW8gZmljYSBuYSBCaWJsaW90ZWNhIGNvbSBvIGNyYWNow6EgZSBCcnVubyBjb20gYSBjaGF2ZSByZXNlcnZhLiBBbmEgZXN0YXZhIG5vIExhYm9yYXTDs3JpbzogZm9pIGVsYS4=' },
-  c2: { h: 'db81aa2e147bf57974214b34461f85c22ecb796fd1c76a8d779a2df1ead0e4bf', pontos: 80, ex: 'TyBub3RlYm9vayDDqSBkYSBFbGlzYSBlIG7Do28gZXN0w6EgbmEgU2FsYSBkZSBSZWRlcyBuZW0gbm8gQXVkaXTDs3JpbzsgYSBDYW50aW5hIMOpIGRvIGNlbHVsYXIsIGVudMOjbyBFbGlzYSBlc3TDoSBuYSBTZWNyZXRhcmlhLiBEaWVnbyBzw7MgcG9kZSB0ZXIgbyBjZWx1bGFyLCBsb2dvIGVzdMOhIG5hIENhbnRpbmEuIEbDoWJpbyBmaWNhIG5vIEF1ZGl0w7NyaW8sIHNlbSBvIHBlbmRyaXZlOiBjb20gbyBjYWJvLiBTb2JyYSBwYXJhIEdhYmkgYSBTYWxhIGRlIFJlZGVzLCBjb20gbyBwZW5kcml2ZS4=' },
-  c3: { h: '7273d5848177a840ac3f87037eda60aaf372ef8a9882d7b186a490e8360a6f3e', pontos: 100, ex: 'TyBub3RlYm9vayBzdW1pdSBlbnRyZSAxNDoxNSBlIDE0OjI1LiBQZWxhIGNhdHJhY2EsIGVzdGF2YW0gbm8gTGFib3JhdMOzcmlvIDIgbmVzc2EgamFuZWxhIENhcmxvcywgQmVhdHJpeiBlIEVkdWFyZG8uIE1vY2hpbGEgdmVybWVsaGE6IEJlYXRyaXogZSBFZHVhcmRvLiBNYWlzIGRlIDEsNzUgbTogc8OzIEVkdWFyZG8gKDE4OCBjbSku' },
-  c4: { h: 'f0211425ed5df98da9d5c985804e768252766d93f708ea5d4f1a5d0bb7d5aeaf', pontos: 120, ex: 'QSDDum5pY2EgYWx0ZXJhw6fDo28gbm8gcGxhY2FyIGZvcmEgZG8gZXhwZWRpZW50ZSBmb2kgw6BzIDIxOjQ3LCBkbyBJUCAxMC4wLjAuMjMuIE5hcXVlbGUgSVAgZSBuYXF1ZWxlIGhvcsOhcmlvIHPDsyBoYXZpYSB1bWEgc2Vzc8OjbyBhYmVydGE6IGEgZGEgUmFmYWVsYSAoMjE6NDUgw6BzIDIxOjU1KS4gSm/Do28gUGVkcm8gc2FpdSDDoHMgMjE6NDQgZSBLYXXDoyBlc3RhdmEgZW0gb3V0cmEgbcOhcXVpbmEgKDEwLjAuMC4zMSku' },
-  c5: { h: '269fdfa8c97c7b99f8e36f5d92d1bb48364c3e3b72e391148505463c098e567c', pontos: 60, ex: 'QSBwaXN0YSAxIGVsaW1pbmEgQnJ1bm8gKGNhcmRhcGlvLmh0bWwpIGUgRsOhYmlhICjDom5jb3JhICNjYXJkYXBpbykuIEEgcGlzdGEgMiBlbGltaW5hIEFuYSBlIEVuem8sIHF1ZSB1c2FtIHRhcmdldD0iX2JsYW5rIiBlIGFicmVtIG5vdmEgYWJhLiBFbnRyZSBDYWlvIGUgRHVkYSwgc8OzIER1ZGEgZGVpeG91IGEgaW1hZ2VtIHNlbSBhbHQu' },
-  c6: { h: '2f038205b387eabafdfbb676b6de0a79be7989855a8dcbe9e25b0357a344fef2', pontos: 80, ex: 'QSBwaXN0YSAxIGVsaW1pbmEgR2FlbCBlIEx1YW4gKHR5cGU9ImVtYWlsIiB2YWxpZGEgbyBAKS4gQSBwaXN0YSAyIGVsaW1pbmEgTWF5YTogYm90w6NvIHNlbSB0eXBlIGRlbnRybyBkbyBmb3JtIGVudmlhLiBBIHBpc3RhIDMgZWxpbWluYSBIZWxvw61zYSAobGFiZWwgY29tIGZvcj0iZW1haWwiKSBlIErDumxpYSAobGFiZWwgZW52b2x2ZW5kbyBvIGNhbXBvKS4gU29icmEgSWdvcjogbGFiZWwgc2VtIGZvciwgY2FtcG8gdGV4dCBlIGJvdMOjbyByZXNldC4=' },
-  c7: { h: '0c584304693c7eb9109ccf8c3f144144c2034051e19f2e65e23b763b1f8ad06b', pontos: 100, ex: 'QnJhbmNvcyBubyBicmFuY28gbm8gZmltOiBPdHRvICgjY29tcHJhciB2ZW5jZSAuZGVzdGFxdWUgbm8gdGV4dG87IGZ1bmRvIGJyYW5jbykgZSBQaWV0cmEgKC5idG4uZGVzdGFxdWUgZGVpeGEgbyB0ZXh0byBicmFuY28gZSAuYnRuIG8gZnVuZG8pLiBOb3Mgb3V0cm9zLCBpZCwgY2xhc3NlIG91IG9yZGVtIHRyb2NhbSBhIGNvci4gQSBwaXN0YSAyIHBlZGUgbyBpZCBuYSBjb3IgZG8gdGV4dG86IHPDsyBPdHRvLg==' },
-  c8: { h: 'd058177d80b7f419b7412ef9552f501d19cda0e9586bbea9f14a50f650ac8bc4', pontos: 120, ex: 'TWVzbWEgbGluaGE6IFZlcmEsIFdhZ25lciwgWmVjYSBlIEFsaWNlIChibG9jaywgY29sdW1uIGUgZ3JpZCBlbXBpbGhhbTsgd3JhcCBqb2dhIG8gdGVyY2Vpcm8gcGFyYSBiYWl4bykuIFRvdGFsIGRlIDMwMHB4OiBXYWduZXIgKDI2MCs0MCksIFplY2EgKDI4MCsyMCkgZSBBbGljZSAoYm9yZGVyLWJveCAzMDApLiBDb250ZcO6ZG8gZGUgMjYwcHg6IHPDsyBXYWduZXIgKFplY2EgdGVtIDI4MCBlIEFsaWNlIDMwMC02MD0yNDApLg==' },
-  c9: { h: '9a226ee117d0604b4bdc8d9da60690171411c14c2d26d5a64f8d51b45ecfcf5a', pontos: 60, ex: 'OCBHQiBkZSBSQU06IEFuYSwgQ2FpbyBlIER1ZGEgKG8gcGVuZHJpdmUgZGEgRsOhYmlhIG7Do28gw6kgUkFNKS4gU1NEOiBDYWlvIGUgRHVkYSAoQW5hIHVzYSBIRCkuIFNvZnR3YXJlIGxpdnJlOiBEdWRhLCBjb20gTGludXggTWludDsgQ2FpbyB1c2EgV2luZG93cywgcXVlIMOpIHByb3ByaWV0w6FyaW8u' },
-  c10: { h: '724b841a16e7187879734a7aa87fb1e45bbf8b7b555910ea11ed033cb90f5bd5', pontos: 80, ex: 'Q29tIHByb3ZhLnBkZjogR2FlbCwgSGVsb8Otc2EsIElnb3IgZSBNYXlhLiBHYWVsIGUgTWF5YSBwdXNlcmFtIGEgdHVybWEgZW0gQ2NvLCBlbnTDo28gbmluZ3XDqW0gdmlhIG9zIG91dHJvcyBkZXN0aW5hdMOhcmlvcy4gSGVsb8Otc2EgcMO0cyBhIHR1cm1hIGVtIFBhcmEuIFNvYnJhIElnb3IsIGNvbSBhIHR1cm1hIGVtIENjLg==' },
-  c11: { h: '27a6d852949a2f817a9cc40008956aa673a234a6d6b9f1399bece887f94f8c51', pontos: 100, ex: 'QUJOVDogQXJpYWwgb3UgVGltZXMgMTIsIGVzcGHDp2FtZW50byAxLDUsIG1hcmdlbnMgMy8zLzIvMiBjbSBlIHRleHRvIGp1c3RpZmljYWRvLiBYYXZpZXIsIEFsaWNlIGUgQ2Vjw61saWEgZXJyYW0gZm9udGUgb3UgZXNwYcOnYW1lbnRvOyBaZWNhIGUgQmVuw61jaW8sIGFzIG1hcmdlbnM7IFZlcmEgZSBZYXNtaW4gZXN0w6NvIHRvdGFsbWVudGUgY2VydGFzLiBTw7MgV2FnbmVyIGVycmEgYXBlbmFzIG8gYWxpbmhhbWVudG8gKMOgIGVzcXVlcmRhKS4=' },
-  c12: { h: '24d419aade8bd6a8182105cf00c4374384cf580df85913ef449e367da4d5f3d2', pontos: 120, ex: 'Q29tIDgsIDYgZSAxMDogTmluYSBlIFBpZXRyYSBkw6NvIDg7IFF1aW0gMjQgKGludGVpcm8pOyBSb3NhIDgrMyA9IDExLCBzZW0gRDI7IFNhdWxvIDk7IFRhaW7DoSAxNCs1ID0gMTkgKGludGVpcm8pOyBVcmllbCAxMC4gT3R0byBjYWxjdWxhIDgrNisoMTAvMykgPSAxNywzMzogbWFpb3IgcXVlIDEwLCBjb20gYXMgdHLDqnMgbm90YXMgZSBjYXNhcyBkZWNpbWFpcy4gRmFsdGFyYW0gb3MgcGFyw6pudGVzZXMu' }
-};
+// O navegador envia a acusacao e o servidor confere, conta os erros e grava os pontos. O gabarito fica SO na aba
+// DesvGabarito da planilha (caso, suspeito, pontos, explicacao), nunca no codigo publico.
+function desvGabarito() {
+  var cache = CacheService.getScriptCache();
+  var g = cache.get('desvGab_v31');
+  if (g) return JSON.parse(g);
+  var mapa = {};
+  readRows('DesvGabarito').forEach(function (r) {
+    var c = String(r.caso || '').trim();
+    if (c) mapa[c] = { suspeito: Number(r.suspeito) || 0, pontos: Number(r.pontos) || 0, explicacao: String(r.explicacao || '') };
+  });
+  cache.put('desvGab_v31', JSON.stringify(mapa), 600);
+  return mapa;
+}
 
 function desvGid(v) {
   var g = String(v || '');
@@ -1256,7 +1255,9 @@ function desvResolvidos(gid) {
 
 function desvAcusar(req) {
   var gid = desvGid(req.gid);
-  var caso = DESV_GABARITO[String(req.caso)];
+  var gab = desvGabarito();
+  if (!Object.keys(gab).length) fail('O gabarito do Desvendando ainda não foi carregado na planilha (aba DesvGabarito).');
+  var caso = gab[String(req.caso)];
   if (!caso) fail('Caso desconhecido.');
   var nome = cruzRankingNome(req.nome);
   var ja = desvResolvidos(gid).filter(function (r) { return String(r.caso) === String(req.caso); })[0];
@@ -1264,7 +1265,7 @@ function desvAcusar(req) {
   var cache = CacheService.getScriptCache();
   var chave = 'desv_' + gid + '_' + req.caso;
   var erros = Number(cache.get(chave) || 0);
-  if (sha256hex('desv:' + String(req.caso) + ':' + (Number(req.suspeito) || 0)) !== caso.h) {
+  if ((Number(req.suspeito) || 0) !== caso.suspeito) {
     erros++;
     cache.put(chave, String(erros), 21600);
     return { correto: false, erros: erros, valeAgora: desvPontos(caso, erros, req.dicas) };
@@ -1277,7 +1278,7 @@ function desvAcusar(req) {
 }
 
 function desvExplica(caso) {
-  return Utilities.newBlob(Utilities.base64Decode(caso.ex)).getDataAsString('UTF-8');
+  return caso.explicacao;
 }
 
 function desvPontos(caso, erros, dicas) {
@@ -1917,15 +1918,22 @@ function nfcPublish(req) {
 }
 
 // Publico: os celulares dos alunos leem o conjunto publicado (o Rali NFC valida no aparelho, como as missoes padrao)
-function nfcSet() {
+// Sem a chave do banco (aparelho de aluno) a lista vem sem resposta, aceitas e explicacao: a conferencia e no servidor.
+function bancoChaveOk(req) {
+  var hash = PropertiesService.getScriptProperties().getProperty('BANCO_KEY_HASH');
+  return !!hash && !!req && sha256hex(String(req.chave || '')) === hash;
+}
+
+function nfcSet(req) {
+  var professor = bancoChaveOk(req);
   var rows = readRows('NfcPublicadas').filter(function (r) { return String(r.tag_id) !== ''; });
   return {
     somenteBanco: PropertiesService.getScriptProperties().getProperty('NFC_SOMENTE_BANCO') !== 'false',
     missoes: rows.map(function (r) {
       return {
         tag_id: String(r.tag_id), disciplina: r.disciplina, assunto: r.assunto, tipo: r.tipo === 'multipla' ? 'multipla' : 'exata',
-        pergunta: r.pergunta, resposta: String(r.resposta), aceitas: parseList(r.aceitas), opcoes: parseList(r.opcoes),
-        xp: Number(r.xp) || 10, explicacao: r.explicacao || ''
+        pergunta: r.pergunta, resposta: professor ? String(r.resposta) : '', aceitas: professor ? parseList(r.aceitas) : [], opcoes: parseList(r.opcoes),
+        xp: Number(r.xp) || 10, explicacao: professor ? r.explicacao || '' : ''
       };
     })
   };

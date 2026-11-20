@@ -13,7 +13,9 @@ import { RPG_CONSOLE_MISSIONS } from '../data/rpgConsoleMissions';
 const BASE: Mission[] = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS, ...RPG_MISSIONS, ...RPG_CONSOLE_MISSIONS, ...INFO_MISSIONS, ...WEB_MISSIONS];
 const EXTRAS: Mission[] = [...LINUX_MISSIONS, ...BD_MISSIONS, ...RPG_MISSIONS, ...RPG_CONSOLE_MISSIONS, ...INFO_MISSIONS, ...WEB_MISSIONS];
 import { publishedToMission } from './bank';
-import { fetchNfcSet } from './bankApi';
+import { fetchNfcSet, getBancoKey } from './bankApi';
+import { abrirGabarito, aplicarGabarito, Gabarito, GabaritoCifrado } from './gabarito';
+import GABARITO_CIFRADO from '../data/gabarito.enc.json';
 import { getCtfApiUrl } from './ctfApi';
 
 const KEY = 'rali_nfc_published_v1';
@@ -44,12 +46,42 @@ export function mergeMissions(set: PublishedSet | null): Mission[] {
 }
 
 let published: PublishedSet | null = typeof window === 'undefined' ? null : load();
+let gabarito: Gabarito | null = null;
 let merged: Mission[] = mergeMissions(published);
 const listeners = new Set<() => void>();
 
+function recalcula() {
+  merged = aplicarGabarito(mergeMissions(published), gabarito);
+  listeners.forEach((l) => l());
+}
+
+/** O gabarito das missões prontas está aberto neste aparelho (professor com a chave do banco)? */
+export const gabaritoAberto = () => gabarito !== null;
+
+/** Abre o gabarito com a chave do banco; chave errada ou ausente deixa fechado. */
+export async function abrirGabaritoCom(chave: string): Promise<boolean> {
+  if (!chave) {
+    gabarito = null;
+    recalcula();
+    return false;
+  }
+  try {
+    gabarito = await abrirGabarito(GABARITO_CIFRADO as GabaritoCifrado, chave);
+  } catch {
+    gabarito = null;
+  }
+  recalcula();
+  return gabarito !== null;
+}
+
+if (typeof window !== 'undefined') {
+  void abrirGabaritoCom(getBancoKey());
+  window.addEventListener('rali-banco-chave', () => void abrirGabaritoCom(getBancoKey()));
+}
+
 function set(next: PublishedSet | null) {
   published = next;
-  merged = mergeMissions(next);
+  merged = aplicarGabarito(mergeMissions(next), gabarito);
   try {
     if (next) localStorage.setItem(KEY, JSON.stringify(next));
     else localStorage.removeItem(KEY);

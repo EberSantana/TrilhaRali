@@ -1,12 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { WEB_MISSIONS } from './webMissions';
-import { ALL_MISSIONS } from './missions';
-import { LINUX_MISSIONS } from './linuxMissions';
-import { BD_MISSIONS } from './bdMissions';
-import { INFO_MISSIONS } from './infoMissions';
-import { CONSOLE_MISSIONS } from './consoleMissions';
+import { WEB_MISSIONS as WEB_MISSIONS_SEM } from './webMissions';
+import { ALL_MISSIONS as ALL_MISSIONS_SEM } from './missions';
+import { LINUX_MISSIONS as LINUX_MISSIONS_SEM } from './linuxMissions';
+import { BD_MISSIONS as BD_MISSIONS_SEM } from './bdMissions';
+import { INFO_MISSIONS as INFO_MISSIONS_SEM } from './infoMissions';
+import { CONSOLE_MISSIONS as CONSOLE_MISSIONS_SEM } from './consoleMissions';
 import { SITE_CSS, SITE_HTML, montarDocumento } from './webLab';
+import { comGabarito } from '../utils/gabaritoTeste';
+const WEB_MISSIONS = comGabarito(WEB_MISSIONS_SEM);
+const ALL_MISSIONS = comGabarito(ALL_MISSIONS_SEM);
+const LINUX_MISSIONS = comGabarito(LINUX_MISSIONS_SEM);
+const BD_MISSIONS = comGabarito(BD_MISSIONS_SEM);
+const INFO_MISSIONS = comGabarito(INFO_MISSIONS_SEM);
+const CONSOLE_MISSIONS = comGabarito(CONSOLE_MISSIONS_SEM);
+
 
 // Mesma normalização do servidor (Apps Script) e do app
 const norm = (s: string) =>

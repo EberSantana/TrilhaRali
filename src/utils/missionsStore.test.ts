@@ -12,6 +12,7 @@ import { WEB_MISSIONS } from '../data/webMissions.ts';
 const PADRAO = [...ALL_MISSIONS, ...LINUX_MISSIONS, ...BD_MISSIONS, ...RPG_MISSIONS, ...RPG_CONSOLE_MISSIONS, ...INFO_MISSIONS, ...WEB_MISSIONS];
 import { emptyDraft } from './bank.ts';
 
+
 const pub = (tag: string) => ({ ...emptyDraft('Redes'), pergunta: 'Pergunta de teste?', resposta: 'ok', tag_id: tag });
 
 test('sem publicação, valem as missões padrão', () => {
