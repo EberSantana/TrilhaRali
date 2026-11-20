@@ -156,7 +156,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
   if (showBank) return <BankManager onBack={() => setShowBank(false)} onOpenCtf={() => { setShowBank(false); p.onOpenCtfRooms(); }} />;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10">
       <header>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button

@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, Code2, Database, Lightbulb, Loader2, NotebookP
 import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data/desvCasos';
 import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
+import { ModuleTabs } from '../common/ModuleShell';
 
 const K_GID = 'rali_desv_gid_v1';
 const K_NOME = 'rali_desv_nome_v1';
@@ -72,7 +73,7 @@ export const DesvModule: React.FC = () => {
 
   if (aberto) {
     return (
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-4">
+      <div>
         <DesvCasoView
           caso={aberto}
           gid={gid}
@@ -84,34 +85,22 @@ export const DesvModule: React.FC = () => {
     );
   }
 
-  const tab = (id: 'casos' | 'ranking', label: string, icone: React.ReactNode) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={aba === id}
-      onClick={() => setAba(id)}
-      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
-        aba === id ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
-      }`}
-    >
-      {icone}
-      {label}
-    </button>
-  );
-
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-6 pb-4">
-      <header className="text-center">
-        <h1 className="text-3xl font-black tracking-tight text-white">Desvendando com Conhecimento</h1>
-        <p className="mt-2 text-sm text-slate-400 max-w-2xl mx-auto">
-          Cada caso tem um culpado e só uma resposta que dá para provar. Use as pistas ou investigue no banco de dados, e acuse com certeza:
-          cada acusação errada custa pontos.
-        </p>
-      </header>
-      <div role="tablist" aria-label="Desvendando" className="mt-5 max-w-md mx-auto flex gap-1 bg-slate-900 border border-slate-800 rounded-xl p-1">
-        {tab('casos', 'Casos', <Search className="w-4 h-4" />)}
-        {tab('ranking', 'Ranking', <Trophy className="w-4 h-4" />)}
-      </div>
+    <div>
+      <p className="mx-auto mb-4 max-w-2xl text-center text-sm text-slate-400">
+        Cada caso tem um culpado e só uma resposta que dá para provar. Use as pistas ou investigue no banco de dados, e acuse com
+        certeza: cada acusação errada custa pontos.
+      </p>
+      <ModuleTabs<'casos' | 'ranking'>
+        accent="violet"
+        label="Desvendando"
+        value={aba}
+        onChange={setAba}
+        tabs={[
+          { id: 'casos', label: 'Casos', icon: <Search className="w-4 h-4" /> },
+          { id: 'ranking', label: 'Ranking', icon: <Trophy className="w-4 h-4" /> },
+        ]}
+      />
       {aba === 'casos' ? (
         <div className="mt-6 space-y-6">
           {DISCIPLINAS.map((d) => (
