@@ -35,6 +35,7 @@ interface TeacherHubProps {
   onOpenCruzRooms: () => void;
   onOpenDesvRooms: () => void;
   onOpenTurmas: () => void;
+  onOpenAoVivo: () => void;
   onOpenAccount: () => void;
 }
 
@@ -181,6 +182,22 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
         <h1 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight text-white">Painel do professor</h1>
         <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
       </header>
+
+      <button
+        type="button"
+        onClick={p.onOpenAoVivo}
+        className="mt-6 flex w-full items-center gap-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-5 text-left transition hover:bg-rose-500/15 outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+      >
+        <span className="relative flex h-3 w-3 shrink-0" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-black text-white">Aula ao vivo</span>
+          <span className="block text-sm text-slate-300">Todas as salas abertas num só lugar: token e QR, cronômetro, telão, quem precisa de ajuda, ranking e encerrar.</span>
+        </span>
+        <MonitorPlay className="h-6 w-6 shrink-0 text-rose-300" />
+      </button>
 
       <Section title="Turmas e notas">
         <Tool
