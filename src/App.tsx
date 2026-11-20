@@ -457,7 +457,7 @@ export default function App() {
             onOpenCruzRooms={() => handleChangeModule('prof-cruz')}
             onOpenDesvRooms={() => handleChangeModule('prof-desv')}
             onOpenTurmas={() => handleChangeModule('prof-turmas')}
-            onOpenAccount={() => handleOpenTeacherAuth('PIN e sessão')}
+            onOpenAccount={() => handleOpenTeacherAuth('Chave e sessão')}
           />
         </main>
       ) : (
@@ -588,7 +588,7 @@ export default function App() {
         />
       )}
 
-      {/* Modal de Autenticação do Professor (PIN) */}
+      {/* Modal de Autenticação do Professor (chave do banco) */}
       <TeacherAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => {

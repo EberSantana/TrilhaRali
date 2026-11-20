@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-purple-700 text-white shadow-lg shadow-purple-700/30 ring-1 ring-purple-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Debriefing e Gabaritos Oficiais'}
+              title={!isTeacher ? 'Restrito ao professor (requer a chave do banco)' : 'Debriefing e Gabaritos Oficiais'}
             >
               <HelpCircle className="w-4 h-4 text-purple-300" />
               <span>Debriefing</span>
@@ -140,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-amber-700 text-white shadow-lg shadow-amber-700/30 ring-1 ring-amber-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Catálogo de missões'}
+              title={!isTeacher ? 'Restrito ao professor (requer a chave do banco)' : 'Catálogo de missões'}
             >
               <Tag className="w-4 h-4 text-amber-300" />
               <span>Missões</span>
@@ -155,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-sky-700 text-white shadow-lg shadow-sky-700/30 ring-1 ring-sky-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Console SQLite Pedagógico'}
+              title={!isTeacher ? 'Restrito ao professor (requer a chave do banco)' : 'Console SQLite Pedagógico'}
             >
               <Database className="w-4 h-4 text-sky-300" />
               <span className="hidden sm:inline">SQLite</span>
@@ -170,7 +170,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/30 ring-1 ring-teal-400/50'
                   : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
               }`}
-              title={!isTeacher ? 'Restrito ao Professor (Requer PIN)' : 'Configuração Google Sheets e Apps Script'}
+              title={!isTeacher ? 'Restrito ao professor (requer a chave do banco)' : 'Configuração Google Sheets e Apps Script'}
             >
               <Sheet className="w-4 h-4 text-teal-300" />
               <span className="hidden sm:inline">Sheets</span>

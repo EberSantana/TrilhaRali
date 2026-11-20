@@ -142,7 +142,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
         </div>
         <h1 className="mt-5 text-2xl font-black text-white">Área do professor</h1>
         <p className="mt-2 text-sm text-slate-400">
-          Digite o seu PIN para gerenciar salas, missões, CTF e o banco de perguntas.
+          Entre com a chave do banco para gerenciar turmas, salas, missões e o banco de perguntas.
         </p>
         <button
           type="button"
@@ -150,7 +150,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
           className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500"
         >
           <KeyRound className="w-4 h-4" />
-          Entrar com PIN
+          Entrar com a chave do banco
         </button>
         <div className="mt-4">
           <button type="button" onClick={p.onHome} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-800"><ArrowLeft className="w-3.5 h-3.5" />Início</button>
@@ -268,7 +268,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
       </Section>
 
       <Section title="6 · Conta">
-        <Tool title="PIN e sessão" description="Altere o PIN ou saia do modo professor." icon={<KeyRound className="w-5 h-5" />} onClick={p.onOpenAccount} />
+        <Tool title="Chave e sessão" description="Troque a chave do banco ou saia do modo professor." icon={<KeyRound className="w-5 h-5" />} onClick={p.onOpenAccount} />
       </Section>
     </div>
   );
