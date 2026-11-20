@@ -30,6 +30,7 @@ var SHEET_HEADERS = {
   DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
+  CtfErros: ['token', 'tag_id', 'nome_key', 'timestamp'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
@@ -114,6 +115,7 @@ function route(req) {
     case 'turmaSalvar': return turmaSalvar(req);
     case 'turmaExcluir': return turmaExcluir(req);
     case 'turmaNotas': return turmaNotas(req);
+    case 'turmaAnalise': return turmaAnalise(req);
     case 'salaTurma': return salaTurma(req);
     case 'liberarNome': return liberarNome(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
@@ -535,6 +537,7 @@ function submit(req) {
 
   if (aceitas.indexOf(ans) < 0) {
     updateRow('CtfAlunos', me._row, { erros: Number(me.erros) + 1, ultimo_erro: agora });
+    appendObj('CtfErros', { token: room.token, tag_id: String(m.tag_id), nome_key: key, timestamp: agora });
     var errState = buildState(room, key);
     errState.correto = false;
     return errState;
@@ -686,6 +689,7 @@ function raliSubmit(req) {
   var key = norm(me.nome);
   if (aceitas.indexOf(ans) < 0) {
     updateRow('CtfAlunos', me._row, { erros: Number(me.erros) + 1, ultimo_erro: agora });
+    appendObj('CtfErros', { token: room.token, tag_id: tag, nome_key: key, timestamp: agora });
     var errState = raliBuildState(room, key);
     errState.correto = false;
     return errState;
@@ -744,7 +748,7 @@ function teacherRoom(req) {
 function deleteRoom(req) {
   var room = requireAdmin(req);
   if (room.status !== 'encerrada') fail('Encerre a sala antes de apagá-la de vez.');
-  var abas = ['CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise', 'CtfSalas'];
+  var abas = ['CtfMissoes', 'CtfAlunos', 'CtfCapturas', 'CtfErros', 'CtfCruzCapturas', 'CtfCruzDicas', 'CtfResumo', 'CtfAnalise', 'CtfSalas'];
   var total = 0;
   abas.forEach(function (nome) {
     var rows = readRows(nome);
@@ -1501,6 +1505,117 @@ function desvProf(req) {
     duplas: duplas.map(function (d) { return { nome: String(d.nome), integrantes: String(d.integrantes || '') }; }),
     resolvidosPorCaso: porCaso,
     ranking: desvRankingSala(token)
+  };
+}
+
+// ---------- Analise da turma (professor) ----------
+// Junta todas as salas ligadas a turma: participacao e desempenho de cada aluno, perguntas mais dificeis
+// (acertos e tentativas erradas), assuntos (pacote) e casos do Desvendando.
+function turmaAnalise(req) {
+  requireBancoKey(req);
+  var t = turmaLer(req.id);
+  if (!t) fail('Turma não encontrada.');
+  var salas = readRows('CtfSalas').filter(function (r) { return String(r.turma) === t.id; });
+  var dsalas = readRows('DesvSalas').filter(function (r) { return String(r.turma) === t.id; });
+  var salaDe = {};
+  salas.forEach(function (r) { salaDe[String(r.token)] = r; });
+  var dsalaDe = {};
+  dsalas.forEach(function (r) { dsalaDe[String(r.token)] = r; });
+
+  var alunos = {};
+  t.alunos.forEach(function (a) {
+    alunos[norm(a.n)] = { n: a.n, total: 0, ctf: 0, cruz: 0, rali: 0, desv: 0, salas: {}, acertos: 0, erros: 0, ultimo: 0 };
+  });
+  var credita = function (nome, campo, pts, token, acertos, erros, quando) {
+    var x = alunos[norm(nome)];
+    if (!x) return;
+    x[campo] += pts;
+    x.total += pts;
+    x.salas[token] = 1;
+    x.acertos += acertos;
+    x.erros += erros;
+    if (quando > x.ultimo) x.ultimo = quando;
+  };
+  var participantes = {};
+  readRows('CtfAlunos').forEach(function (r) {
+    var token = String(r.token);
+    var sala = salaDe[token];
+    if (!sala) return;
+    participantes[token] = (participantes[token] || 0) + 1;
+    var tipo = tipoOut(sala);
+    var campo = tipo === 'cruz' ? 'cruz' : tipo === 'rali' ? 'rali' : 'ctf';
+    var membros = parseList(r.integrantes);
+    if (tipo !== 'rali') membros = [String(r.nome)].concat(membros);
+    var quando = Math.max(Number(r.entrou_em) || 0, Number(r.ultimo_acerto) || 0, Number(r.ultimo_erro) || 0);
+    membros.forEach(function (n) { credita(n, campo, Number(r.xp) || 0, token, Number(r.acertos) || 0, Number(r.erros) || 0, quando); });
+  });
+
+  // perguntas (CTF e Rali NFC)
+  var acertosTag = {}, errosTag = {};
+  readRows('CtfCapturas').forEach(function (c) { if (salaDe[String(c.token)]) { var k = String(c.token) + '|' + String(c.tag_id); acertosTag[k] = (acertosTag[k] || 0) + 1; } });
+  readRows('CtfErros').forEach(function (c) { if (salaDe[String(c.token)]) { var k = String(c.token) + '|' + String(c.tag_id); errosTag[k] = (errosTag[k] || 0) + 1; } });
+  var perguntas = {};
+  readRows('CtfMissoes').forEach(function (m) {
+    var token = String(m.token);
+    if (!salaDe[token] || isCruz(salaDe[token])) return;
+    var tag = String(m.tag_id);
+    var p = perguntas[tag] || (perguntas[tag] = { tag_id: tag, pergunta: String(m.pergunta || ''), pacote: String(m.pacote || ''), categoria: String(m.categoria || ''), salas: 0, participantes: 0, acertos: 0, erros: 0 });
+    p.salas++;
+    p.participantes += participantes[token] || 0;
+    p.acertos += acertosTag[token + '|' + tag] || 0;
+    p.erros += errosTag[token + '|' + tag] || 0;
+  });
+  var listaPerg = Object.keys(perguntas).map(function (k) { return perguntas[k]; }).filter(function (p) { return p.participantes > 0; });
+  var assuntos = {};
+  listaPerg.forEach(function (p) {
+    var a = assuntos[p.pacote || 'Sem assunto'] || (assuntos[p.pacote || 'Sem assunto'] = { assunto: p.pacote || 'Sem assunto', perguntas: 0, participantes: 0, acertos: 0, erros: 0 });
+    a.perguntas++;
+    a.participantes += p.participantes;
+    a.acertos += p.acertos;
+    a.erros += p.erros;
+  });
+
+  // Desvendando
+  var integrantesDe = {}, duplasSala = {};
+  readRows('DesvDuplas').forEach(function (d) {
+    var token = String(d.token);
+    if (!dsalaDe[token]) return;
+    duplasSala[token] = (duplasSala[token] || 0) + 1;
+    var membros = String(d.integrantes || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+    integrantesDe[token + '|' + String(d.gid)] = membros;
+    var quando = Date.parse(String(d.entrou_em)) || 0;
+    membros.forEach(function (n) { credita(n, 'desv', 0, token, 0, 0, quando); });
+  });
+  var casos = {};
+  readRows('DesvRanking').forEach(function (r) {
+    var token = String(r.token);
+    if (!dsalaDe[token]) return;
+    var c = casos[String(r.caso)] || (casos[String(r.caso)] = { caso: String(r.caso), resolvidos: 0, erros: 0, dicas: 0, pontos: 0 });
+    c.resolvidos++;
+    c.erros += Number(r.erros) || 0;
+    c.dicas += Number(r.dicas) || 0;
+    c.pontos += Number(r.pontos) || 0;
+    var quando = Date.parse(String(r.quando)) || 0;
+    (integrantesDe[token + '|' + String(r.gid)] || []).forEach(function (n) { credita(n, 'desv', Number(r.pontos) || 0, token, 1, Number(r.erros) || 0, quando); });
+  });
+  var duplasTotal = 0;
+  Object.keys(duplasSala).forEach(function (k) { duplasTotal += duplasSala[k]; });
+
+  return {
+    turma: { id: t.id, nome: t.nome, alunos: t.alunos.length },
+    salas: salas.map(function (r) {
+      return { token: String(r.token), nome: String(r.nome), tipo: tipoOut(r), status: String(r.status), criada: String(r.criada_em), participantes: participantes[String(r.token)] || 0 };
+    }).concat(dsalas.map(function (r) {
+      return { token: String(r.token), nome: String(r.nome), tipo: 'desv', status: String(r.status), criada: String(r.criada_em), participantes: duplasSala[String(r.token)] || 0 };
+    })),
+    alunos: t.alunos.map(function (a) {
+      var x = alunos[norm(a.n)];
+      return { n: x.n, total: x.total, ctf: x.ctf, cruz: x.cruz, rali: x.rali, desv: x.desv, salas: Object.keys(x.salas).length, tokens: Object.keys(x.salas), acertos: x.acertos, erros: x.erros, ultimo: x.ultimo };
+    }),
+    perguntas: listaPerg,
+    assuntos: Object.keys(assuntos).map(function (k) { return assuntos[k]; }),
+    casos: Object.keys(casos).map(function (k) { return casos[k]; }),
+    duplas: duplasTotal
   };
 }
 
