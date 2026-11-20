@@ -1,4 +1,6 @@
 import { useSalaPublica } from '../../utils/turmasApi';
+import { marcarUso, sessaoParada } from '../../utils/sessaoUso';
+import { ConfirmaQuem } from '../common/ConfirmaQuem';
 import { FaixaCabine } from '../turmas/Papeis';
 import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
 import { StudentDebrief } from '../rooms/StudentDebrief';
@@ -28,6 +30,7 @@ interface Props {
 export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
   const link = useRef(parseCtfHash());
   const [session, setSession] = useState(getRaliSession);
+  const [conferir, setConferir] = useState(() => !!getRaliSession() && sessaoParada('rali'));
   const [token, setToken] = useState(() => link.current.token || '');
   const [nome, setNome] = useState('');
   const [integrantes, setIntegrantes] = useState('');
@@ -166,7 +169,12 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
     }
   };
 
+  useEffect(() => {
+    if (state && !conferir) marcarUso('rali');
+  }, [state, conferir]);
+
   const handleLeave = () => {
+    setConferir(false);
     clearRaliSession();
     setSession(null);
     setState(null);
@@ -229,6 +237,18 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
           <p className="text-[11px] text-center text-slate-500">Voltar depois com o mesmo nome de equipe continua de onde vocês pararam.</p>
         </form>
       </div>
+    );
+  }
+
+  if (conferir) {
+    return (
+      <ConfirmaQuem
+        pergunta={<>Vocês são a equipe {state.equipe.nome}?</>}
+        detalhe={[state.equipe.integrantes.join(', '), `Sala ${state.sala.nome} · ${state.equipe.xp} XP`].filter(Boolean).join(' · ')}
+        outro="Somos outra equipe"
+        onContinuar={() => setConferir(false)}
+        onOutro={handleLeave}
+      />
     );
   }
 

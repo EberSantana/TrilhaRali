@@ -1,4 +1,6 @@
 import { useSalaPublica } from '../../utils/turmasApi';
+import { marcarUso, sessaoParada } from '../../utils/sessaoUso';
+import { ConfirmaQuem } from '../common/ConfirmaQuem';
 import { CabineDupla } from '../turmas/CabineDupla';
 import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
@@ -54,6 +56,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const ac = ACENTO[modulo];
   const link = useRef(parseCtfHash());
   const [session, setSession] = useState(getStudentSession);
+  const [conferir, setConferir] = useState(() => !!getStudentSession() && sessaoParada('ctf'));
   const [token, setToken] = useState(() => link.current.token || '');
   const salaInfo = useSalaPublica(token);
   const turmaSala = salaInfo?.turma ?? null;
@@ -185,7 +188,12 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
     }
   };
 
+  useEffect(() => {
+    if (state && !conferir) marcarUso('ctf');
+  }, [state, conferir]);
+
   const handleLeave = () => {
+    setConferir(false);
     clearStudentSession();
     setSession(null);
     setState(null);
@@ -286,6 +294,21 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           </p>
         </form>
       </div>
+    );
+  }
+
+  // ---------- Computador do laboratório: sessão parada desde outra aula ----------
+  if (conferir) {
+    const quem = [state.aluno.nome, ...(state.aluno.integrantes ?? [])];
+    return (
+      <ConfirmaQuem
+        pergunta={quem.length > 1 ? <>Vocês são {quem.join(' e ')}?</> : <>Você é {quem[0]}?</>}
+        detalhe={`Sala ${state.sala.nome} · ${state.aluno.xp} XP`}
+        outro={quem.length > 1 ? 'Somos outra dupla' : 'Sou outra pessoa'}
+        botao={ac.botao}
+        onContinuar={() => setConferir(false)}
+        onOutro={handleLeave}
+      />
     );
   }
 
