@@ -23,15 +23,16 @@ var SHEET_HEADERS = {
   CruzBanco: ['disciplina', 'palavra', 'dica', 'ativo', 'assunto'],
   CtfLog: ['quando', 'token', 'sala', 'tipo', 'evento', 'detalhe'],
   CruzRanking: ['quando', 'nome', 'pontos', 'palavras', 'dicas', 'assuntos', 'gid'],
+  DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
   Banco: ['id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'ativo', 'atualizado_em'],
   NfcPublicadas: ['tag_id', 'disciplina', 'assunto', 'tipo', 'pergunta', 'resposta', 'aceitas', 'opcoes', 'xp', 'explicacao', 'publicada_em']
 };
-var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1 };
+var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -46,7 +47,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 30 });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 31 });
 }
 
 function doPost(e) {
@@ -98,6 +99,9 @@ function route(req) {
     case 'cruzTreinoHint': return cruzTreinoHint(req);
     case 'cruzTreinoRanking': return cruzTreinoRanking(req);
     case 'cruzRanking': return cruzRanking(req);
+    case 'desvAcusar': return desvAcusar(req);
+    case 'desvRanking': return desvRanking(req);
+    case 'desvMeus': return desvMeus(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
@@ -1220,6 +1224,83 @@ function cruzTreinoCheck(req) {
   t.resolvidas.push({ id: p.id, xp: xp });
   treinoPut(t);
   return treinoRetorno(t, { correta: true, id: p.id, nova: { palavra: p.palavra, posicao: 1, xp: xp, ajuda: ajudadas > 0 } });
+}
+
+// ---------- Desvendando com Conhecimento (casos de mistério) ----------
+// O navegador envia a acusacao e o servidor confere, conta os erros e grava os pontos. O gabarito fica como hash
+// (sha256 de 'desv:<caso>:<suspeito>') e a explicacao em base64, para nao ficar a vista no codigo publico.
+var DESV_GABARITO = {
+  c1: { h: 'e98ee9c09a94a84d39e22e16f395725dc60e11550bbfd6c76ed1dc228145e4cd', pontos: 60, ex: 'QnJ1bm8gc8OzIHBvZGUgZXN0YXIgbmEgUXVhZHJhLiBBIGVzY2FkYSDDqSBkYSBBbmEsIGUgcXVlbSBlc3TDoSBuYSBCaWJsaW90ZWNhIHVzYSBvIGNyYWNow6EgY2xvbmFkbzogbG9nbyBBbmEgbsOjbyBlc3TDoSBuYSBCaWJsaW90ZWNhIGUgZmljYSBubyBMYWJvcmF0w7NyaW8uIENhaW8gZmljYSBuYSBCaWJsaW90ZWNhIGNvbSBvIGNyYWNow6EgZSBCcnVubyBjb20gYSBjaGF2ZSByZXNlcnZhLiBBbmEgZXN0YXZhIG5vIExhYm9yYXTDs3JpbzogZm9pIGVsYS4=' },
+  c2: { h: 'db81aa2e147bf57974214b34461f85c22ecb796fd1c76a8d779a2df1ead0e4bf', pontos: 80, ex: 'TyBub3RlYm9vayDDqSBkYSBFbGlzYSBlIG7Do28gZXN0w6EgbmEgU2FsYSBkZSBSZWRlcyBuZW0gbm8gQXVkaXTDs3JpbzsgYSBDYW50aW5hIMOpIGRvIGNlbHVsYXIsIGVudMOjbyBFbGlzYSBlc3TDoSBuYSBTZWNyZXRhcmlhLiBEaWVnbyBzw7MgcG9kZSB0ZXIgbyBjZWx1bGFyLCBsb2dvIGVzdMOhIG5hIENhbnRpbmEuIEbDoWJpbyBmaWNhIG5vIEF1ZGl0w7NyaW8sIHNlbSBvIHBlbmRyaXZlOiBjb20gbyBjYWJvLiBTb2JyYSBwYXJhIEdhYmkgYSBTYWxhIGRlIFJlZGVzLCBjb20gbyBwZW5kcml2ZS4=' },
+  c3: { h: '7273d5848177a840ac3f87037eda60aaf372ef8a9882d7b186a490e8360a6f3e', pontos: 100, ex: 'TyBub3RlYm9vayBzdW1pdSBlbnRyZSAxNDoxNSBlIDE0OjI1LiBQZWxhIGNhdHJhY2EsIGVzdGF2YW0gbm8gTGFib3JhdMOzcmlvIDIgbmVzc2EgamFuZWxhIENhcmxvcywgQmVhdHJpeiBlIEVkdWFyZG8uIE1vY2hpbGEgdmVybWVsaGE6IEJlYXRyaXogZSBFZHVhcmRvLiBNYWlzIGRlIDEsNzUgbTogc8OzIEVkdWFyZG8gKDE4OCBjbSku' },
+  c4: { h: 'f0211425ed5df98da9d5c985804e768252766d93f708ea5d4f1a5d0bb7d5aeaf', pontos: 120, ex: 'QSDDum5pY2EgYWx0ZXJhw6fDo28gbm8gcGxhY2FyIGZvcmEgZG8gZXhwZWRpZW50ZSBmb2kgw6BzIDIxOjQ3LCBkbyBJUCAxMC4wLjAuMjMuIE5hcXVlbGUgSVAgZSBuYXF1ZWxlIGhvcsOhcmlvIHPDsyBoYXZpYSB1bWEgc2Vzc8OjbyBhYmVydGE6IGEgZGEgUmFmYWVsYSAoMjE6NDUgw6BzIDIxOjU1KS4gSm/Do28gUGVkcm8gc2FpdSDDoHMgMjE6NDQgZSBLYXXDoyBlc3RhdmEgZW0gb3V0cmEgbcOhcXVpbmEgKDEwLjAuMC4zMSku' }
+};
+
+function desvGid(v) {
+  var g = String(v || '');
+  if (!/^[A-Za-z0-9_-]{8,40}$/.test(g)) fail('Identificador do aparelho inválido. Recarregue a página.');
+  return g;
+}
+
+function desvResolvidos(gid) {
+  return readRows('DesvRanking').filter(function (r) { return String(r.gid) === gid; });
+}
+
+function desvAcusar(req) {
+  var gid = desvGid(req.gid);
+  var caso = DESV_GABARITO[String(req.caso)];
+  if (!caso) fail('Caso desconhecido.');
+  var nome = cruzRankingNome(req.nome);
+  var ja = desvResolvidos(gid).filter(function (r) { return String(r.caso) === String(req.caso); })[0];
+  if (ja) return { correto: true, jaResolvido: true, pontos: Number(ja.pontos) || 0, explicacao: desvExplica(caso) };
+  var cache = CacheService.getScriptCache();
+  var chave = 'desv_' + gid + '_' + req.caso;
+  var erros = Number(cache.get(chave) || 0);
+  if (sha256hex('desv:' + String(req.caso) + ':' + (Number(req.suspeito) || 0)) !== caso.h) {
+    erros++;
+    cache.put(chave, String(erros), 21600);
+    return { correto: false, erros: erros, valeAgora: desvPontos(caso, erros, req.dicas) };
+  }
+  var pontos = desvPontos(caso, erros, req.dicas);
+  appendObj('DesvRanking', { quando: new Date().toISOString(), nome: safeText(nome), gid: gid, caso: String(req.caso), pontos: pontos, erros: erros, dicas: Math.max(0, Math.min(5, Number(req.dicas) || 0)) });
+  cache.remove(chave);
+  cache.remove('desvRanking_v31');
+  return { correto: true, pontos: pontos, erros: erros, explicacao: desvExplica(caso) };
+}
+
+function desvExplica(caso) {
+  return Utilities.newBlob(Utilities.base64Decode(caso.ex)).getDataAsString('UTF-8');
+}
+
+function desvPontos(caso, erros, dicas) {
+  var d = Math.max(0, Math.min(5, Number(dicas) || 0));
+  return Math.max(20, caso.pontos - 15 * erros - 10 * d);
+}
+
+function desvMeus(req) {
+  var gid = desvGid(req.gid);
+  var feitos = {};
+  desvResolvidos(gid).forEach(function (r) { feitos[String(r.caso)] = Number(r.pontos) || 0; });
+  return { resolvidos: feitos };
+}
+
+function desvRanking(req) {
+  var cache = CacheService.getScriptCache();
+  var guardado = cache.get('desvRanking_v31');
+  if (guardado) return JSON.parse(guardado);
+  var por = {};
+  readRows('DesvRanking').forEach(function (r) {
+    var g = String(r.gid);
+    var e = por[g] || (por[g] = { nome: String(r.nome), pontos: 0, casos: 0, quando: String(r.quando) });
+    e.pontos += Number(r.pontos) || 0;
+    e.casos++;
+    if (String(r.quando) > e.quando) { e.quando = String(r.quando); e.nome = String(r.nome); }
+  });
+  var lista = Object.keys(por).map(function (g) { return por[g]; });
+  lista.sort(function (a, b) { return b.pontos - a.pontos || (a.quando < b.quando ? -1 : 1); });
+  var r = { ranking: lista.slice(0, 100).map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, casos: x.casos }; }), total: lista.length };
+  cache.put('desvRanking_v31', JSON.stringify(r), 30);
+  return r;
 }
 
 // ---------- Grande ranking da Cruzada (treino livre) ----------

@@ -17,6 +17,7 @@ import { AboutView } from './components/AboutView';
 import type { AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
 import { CruzModule } from './components/cruz/CruzModule';
+import { DesvModule } from './components/desv/DesvModule';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
 import { HomeLanding } from './components/HomeLanding';
@@ -58,6 +59,7 @@ function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/professor')) return 'professor';
   if (hash.startsWith('#/ctf')) return 'ctf';
   if (hash.startsWith('#/cruzada')) return 'cruz';
+  if (hash.startsWith('#/desvendando')) return 'desv';
   if (hash.startsWith('#/rali') || parseTagFromLocation(hash, search)) return 'rali';
   return null;
 }
@@ -182,7 +184,7 @@ export default function App() {
 
   // Troca de módulo mantém o endereço compartilhável (#/ctf)
   const MODULE_HASH: Record<AppModule, string> = {
-    home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', professor: '#/professor',
+    home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', desv: '#/desvendando', professor: '#/professor',
     'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', local: '#/professor/local',
   };
   const handleChangeModule = (next: AppModule) => {
@@ -363,6 +365,7 @@ export default function App() {
             onOpenRali={() => handleChangeModule('rali')}
             onOpenCtf={() => handleChangeModule('ctf')}
             onOpenCruz={() => handleChangeModule('cruz')}
+            onOpenDesv={() => handleChangeModule('desv')}
             onOpenTeacher={() => handleChangeModule('professor')}
           />
         </main>
@@ -387,6 +390,10 @@ export default function App() {
       ) : appModule === 'cruz' ? (
         <main className="flex-1 pb-16">
           <CruzModule />
+        </main>
+      ) : appModule === 'desv' ? (
+        <main className="flex-1 pb-16">
+          <DesvModule />
         </main>
       ) : appModule === 'prof-rali' && isTeacher ? (
         <main className="flex-1 pb-16">
