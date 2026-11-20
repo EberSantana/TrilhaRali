@@ -196,7 +196,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   // ---------- Retomando sessão salva ----------
   if (session && !state && !error) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center text-slate-400 flex flex-col items-center gap-3">
+      <div className="max-w-md mx-auto py-16 text-center text-slate-400 flex flex-col items-center gap-3">
         <Loader2 className={`w-8 h-8 animate-spin ${ac.spin}`} />
         <span className="text-sm">Voltando para a sala {session.token}…</span>
       </div>
@@ -207,7 +207,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   if (!session || !state) {
     const hasApi = !!getCtfApiUrl();
     return (
-      <div className="max-w-md mx-auto px-4 py-10">
+      <div className="max-w-md mx-auto py-2">
         <form onSubmit={handleJoin} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
           <div className="text-center space-y-1">
             <div className={`mx-auto w-14 h-14 rounded-2xl border flex items-center justify-center ${ac.icone}`}>
@@ -323,7 +323,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   // Sala só de Cruzadinha: o aluno entra direto na grade; o ranking conta as palavras acertadas.
   if (sala.ordem === 'cruzadinha') {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+      <div className="space-y-5">
         {barra}
         {avisos}
         {finished && (
@@ -360,7 +360,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+    <div className="space-y-5">
       {barra}
       {avisos}
 

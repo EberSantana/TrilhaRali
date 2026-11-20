@@ -18,6 +18,8 @@ import type { AppModule } from './components/ModuleSwitcher';
 import { CtfModule } from './components/ctf/CtfModule';
 import { CruzModule } from './components/cruz/CruzModule';
 import { DesvModule } from './components/desv/DesvModule';
+import { ModuleShell } from './components/common/ModuleShell';
+import { TRILHAS } from './components/common/trilhas';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
 import { HomeLanding } from './components/HomeLanding';
@@ -371,6 +373,7 @@ export default function App() {
         </main>
       ) : appModule === 'rali' ? (
         <main className="flex-1 pb-16">
+          <ModuleShell id="rali" {...TRILHAS.rali} onHome={() => handleChangeModule('home')}>
           <RaliStudent
             pendingTag={pendingTag}
             onTagConsumed={() => {
@@ -382,18 +385,25 @@ export default function App() {
               }
             }}
           />
+          </ModuleShell>
         </main>
       ) : appModule === 'ctf' ? (
         <main className="flex-1 pb-16">
-          <CtfModule />
+          <ModuleShell id="ctf" {...TRILHAS.ctf} onHome={() => handleChangeModule('home')}>
+            <CtfModule />
+          </ModuleShell>
         </main>
       ) : appModule === 'cruz' ? (
         <main className="flex-1 pb-16">
-          <CruzModule />
+          <ModuleShell id="cruz" {...TRILHAS.cruz} onHome={() => handleChangeModule('home')}>
+            <CruzModule />
+          </ModuleShell>
         </main>
       ) : appModule === 'desv' ? (
         <main className="flex-1 pb-16">
-          <DesvModule />
+          <ModuleShell id="desv" {...TRILHAS.desv} onHome={() => handleChangeModule('home')}>
+            <DesvModule />
+          </ModuleShell>
         </main>
       ) : appModule === 'prof-rali' && isTeacher ? (
         <main className="flex-1 pb-16">

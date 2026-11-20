@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Flag, Copy, Download, KeyRound, Loader2, Pencil, Plus, RefreshCw, Send, Trash2, Upload, X } from 'lucide-react';
 import { BankQuestion, BankQuestionDraft } from '../../types/bank';
 import { auditBank, AuditIssue, emptyDraft, tidyDraft, validateDraft, exportCsv, exportJson, setCtfPrefill, tagName } from '../../utils/bank';
+import { BackPill } from '../common/ModuleShell';
 import { clearBancoKey, deleteQuestion, getBancoKey, importQuestions, listBanco, pingBanco, publishNfc, saveBancoKey, saveQuestion } from '../../utils/bankApi';
 import { setPublishedLocal } from '../../utils/missionsStore';
 import { QuestionForm } from './QuestionForm';
@@ -165,7 +166,7 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
   const ativas = questions.filter((q) => q.ativo).length;
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10">
-      <button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white"><ArrowLeft className="w-4 h-4" /> Painel do professor</button>
+      <BackPill onClick={onBack} className="mb-4">Painel do professor</BackPill>
 
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>

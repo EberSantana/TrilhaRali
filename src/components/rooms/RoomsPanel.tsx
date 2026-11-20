@@ -14,6 +14,7 @@ import { getBancoKey, listBanco, pingBanco, saveBancoKey } from '../../utils/ban
 import { TimerControl } from '../common/TimerControl';
 import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
+import { BackPill } from '../common/ModuleShell';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
 import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from '../cruz/SelecaoCruz';
@@ -529,7 +530,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       <header className="space-y-3">
-        <Btn variant="ghost" size="sm" onClick={onBack} icon={<ArrowLeft className="w-4 h-4" />}>Painel do professor</Btn>
+        <BackPill onClick={onBack}>Painel do professor</BackPill>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${nfc ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-orange-500/10 border-orange-500/30 text-orange-300'}`}>

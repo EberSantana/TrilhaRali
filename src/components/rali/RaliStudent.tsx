@@ -170,7 +170,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
 
   if (session && !state && !error) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center text-slate-400 flex flex-col items-center gap-3">
+      <div className="max-w-md mx-auto py-16 text-center text-slate-400 flex flex-col items-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         <span className="text-sm">Voltando para a sala {session.token}…</span>
       </div>
@@ -182,7 +182,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
     const hasApi = !!getCtfApiUrl();
     const input = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none';
     return (
-      <div className="max-w-md mx-auto px-4 py-10">
+      <div className="max-w-md mx-auto py-2">
         <form onSubmit={handleJoin} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5">
           <div className="text-center space-y-1">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
@@ -223,7 +223,7 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
   const done = missoes.filter((m) => m.concluida).length;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+    <div className="space-y-5">
       <StudentBar
         module="nfc"
         context={sala.nome}
