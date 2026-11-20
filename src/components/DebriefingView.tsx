@@ -1,16 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  HelpCircle, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Tv, 
-  Code, 
-  Lightbulb, 
-  TrendingDown, 
-  Sparkles,
-  X,
-  GraduationCap
-} from 'lucide-react';
+import { HelpCircle, AlertTriangle, CheckCircle2, Tv, Code, Lightbulb, TrendingDown, Sparkles, X, GraduationCap, Check, Lock } from 'lucide-react';
 import { Mission, SubmissionLog } from '../types';
 import { useMissions } from '../utils/missionsStore';
 
@@ -164,7 +153,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
                         </span>
                       )}
                       <span className="text-xs font-bold text-emerald-400">
-                        {correctCount} ✓
+                        {correctCount} <Check className="inline h-3 w-3" aria-label="acertos" />
                       </span>
                     </div>
                     <span className="text-[11px] text-slate-400 block mt-1">
@@ -207,7 +196,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
                   Resposta Curta Esperada (Gabarito):
                 </span>
                 <span className="font-mono text-base font-black text-emerald-200">
-                  {selectedMission.resposta_curta || '🔒 Gabarito protegido: conecte a chave do banco na Área do professor'}
+                  {selectedMission.resposta_curta || <span className="inline-flex items-center gap-1.5"><Lock className="h-4 w-4" aria-hidden /> Gabarito protegido: conecte a chave do banco na Área do professor</span>}
                 </span>
                 {selectedMission.alternatives && selectedMission.alternatives.length > 1 && (
                   <p className="text-xs text-emerald-400/80 mt-1">
@@ -232,7 +221,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
 
               <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">
-                  💡 Explicação para a Turma:
+                  <Lightbulb className="inline h-4 w-4 align-[-0.15em]" aria-hidden /> Explicação para a Turma:
                 </span>
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {selectedMission.explanation}
@@ -294,7 +283,7 @@ export const DebriefingView: React.FC<DebriefingViewProps> = ({ logs }) => {
                   Resposta Curta Oficial
                 </span>
                 <span className="font-mono text-2xl font-black text-emerald-200">
-                  {selectedMission.resposta_curta || '🔒 Gabarito protegido: conecte a chave do banco na Área do professor'}
+                  {selectedMission.resposta_curta || <span className="inline-flex items-center gap-1.5"><Lock className="h-4 w-4" aria-hidden /> Gabarito protegido: conecte a chave do banco na Área do professor</span>}
                 </span>
               </div>
 

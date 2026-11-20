@@ -73,7 +73,7 @@ export function validateAnswer(
     return {
       correto: true,
       xpGanho: mission.xp_valor,
-      mensagem: `🎉 Resposta Correta! +${mission.xp_valor} XP adicionados à sua equipe!`,
+      mensagem: `Resposta correta! +${mission.xp_valor} XP adicionados à sua equipe!`,
       mission,
     };
   }
@@ -81,7 +81,7 @@ export function validateAnswer(
   return {
     correto: false,
     xpGanho: 0,
-    mensagem: '❌ Resposta incorreta. Revise a query no computador e tente novamente!',
+    mensagem: 'Resposta incorreta. Revise a query no computador e tente novamente!',
     mission,
   };
 }

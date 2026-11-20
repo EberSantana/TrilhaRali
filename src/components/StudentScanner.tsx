@@ -1,21 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RankChip, StudentBar, XpChip } from './common/StudentBar';
 import { StatusBanner } from './common/StatusBanner';
-import { 
-  Radio, 
-  Send, 
-  CheckCircle2, 
-  XCircle, 
-  Sparkles, 
-  Smartphone, 
-  AlertTriangle, 
-  Trophy, 
-  Lock,
-  RefreshCw,
-  Search,
-  Check,
-  GraduationCap
-} from 'lucide-react';
+import { Radio, Send, CheckCircle2, XCircle, Sparkles, Smartphone, AlertTriangle, Trophy, Lock, RefreshCw, Search, Check, GraduationCap, MapPin } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Team, Mission, ClassSessionState, SubmissionLog } from '../types';
 import { useMissions } from '../utils/missionsStore';
@@ -23,7 +9,8 @@ import { validateAnswer } from '../utils/validation';
 import { playSound } from '../utils/audio';
 import { getAppsScriptUrl } from '../utils/storage';
 import { IfsLogo } from './IfsLogo';
-import { CaptureScore, describeCurrentValue, getNextCaptureScore, getPositionBadge } from '../utils/scoring';
+import { CaptureScore, describeCurrentValue, getNextCaptureScore } from '../utils/scoring';
+import { Fogo } from './common/Icones';
 
 interface StudentScannerProps {
   teams: Team[];
@@ -96,7 +83,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
       setNfcStatusMessage(`Tag detectada com sucesso: ${found.tag_id}!`);
       if (jaResolvida) {
         playSound('error', sessionState.soundEnabled);
-        setFeedback({ type: 'error', text: `⚠️ ATENÇÃO: a tag ${found.tag_id} já foi resolvida pela sua equipe. Escolha outra tag da mesa!` });
+        setFeedback({ type: 'error', text: `ATENÇÃO: a tag ${found.tag_id} já foi resolvida pela sua equipe. Escolha outra tag da mesa!` });
       } else {
         playSound('scan', sessionState.soundEnabled);
         setFeedback({ type: 'info', text: `Missão carregada: ${found.tag_id}` });
@@ -302,8 +289,8 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
         text:
           award.mode === 'ctf_dynamic'
             ? award.isFogo
-              ? `🔥 PRIMEIRA A CAPTURAR! +${award.xp} XP para ${currentTeam.nome}!`
-              : `${getPositionBadge(award.posicao)} ${award.posicao}º lugar! +${award.xp} XP para ${currentTeam.nome}!`
+              ? `PRIMEIRA A CAPTURAR! +${award.xp} XP para ${currentTeam.nome}!`
+              : `${award.posicao}º lugar! +${award.xp} XP para ${currentTeam.nome}!`
             : `ACERTOU! +${award.xp} XP para ${currentTeam.nome}!`,
       });
       setStudentAnswer('');
@@ -383,7 +370,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
                         : 'bg-slate-950 text-slate-300'
                     }`}
                   >
-                    {aluno} {aluno === currentTeam.scanner_aluno && '📱 (Scanner)'}
+                    {aluno} {aluno === currentTeam.scanner_aluno && <span className="inline-flex items-center gap-0.5"><Smartphone className="h-3 w-3" aria-hidden /> Scanner</span>}
                   </span>
                 ))}
               </div>
@@ -535,7 +522,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               {activeMission.pergunta}
             </p>
             <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              📍 <span className="font-semibold text-slate-300">Local da Tag:</span> {activeMission.location_suggestion}
+              <MapPin className="inline h-3.5 w-3.5 align-[-0.15em]" aria-hidden /> <span className="font-semibold text-slate-300">Local da Tag:</span> {activeMission.location_suggestion}
             </p>
           </div>
 
@@ -544,7 +531,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
             <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-xl p-4 text-emerald-300 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
               <div>
-                <p className="font-bold text-sm">⚠️ Atenção: tag já resolvida pela sua equipe!</p>
+                <p className="font-bold text-sm">Atenção: tag já resolvida pela sua equipe!</p>
                 <p className="text-xs text-emerald-400/80">
                   {mySolve ? `Resolvida por ${mySolve.autor_aluno || mySolve.equipe_nome} às ${timeOf(mySolve.timestamp)}. ` : ''}
                   Os pontos desta missão já estão no saldo. Escolha outra tag da mesa!
@@ -651,7 +638,7 @@ export const StudentScanner: React.FC<StudentScannerProps> = ({
               Missões Conquistadas ({currentTeam.missoes_concluidas.length})
             </h4>
             <span className="text-xs text-emerald-400 font-mono font-semibold">
-              {(currentTeam.fogos_count || 0) > 0 && <span className="mr-2 text-orange-300">🔥 x{currentTeam.fogos_count}</span>}
+              {(currentTeam.fogos_count || 0) > 0 && <span className="mr-2 text-orange-300"><Fogo /> x{currentTeam.fogos_count}</span>}
               Total: {currentTeam.xp_total} XP
             </span>
           </div>

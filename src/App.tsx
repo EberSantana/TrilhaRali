@@ -53,7 +53,7 @@ import { INITIAL_TEAMS } from './data/missions';
 import { getMissions, refreshPublished } from './utils/missionsStore';
 import { useRaliSession } from './utils/raliSession';
 import { RaliTimerBar, useRaliLocked } from './components/common/RaliTimerBar';
-import { getNextCaptureScore, getPositionBadge, CaptureScore } from './utils/scoring';
+import { getNextCaptureScore, CaptureScore } from './utils/scoring';
 import { parseTagFromLocation } from './utils/tagLink';
 
 function moduleFromLocation(hash: string, search: string): AppModule | null {
@@ -279,7 +279,7 @@ export default function App() {
 
     const mensagem =
       score.mode === 'ctf_dynamic'
-        ? `${getPositionBadge(score.posicao)} ${score.posicao}º a capturar (+${score.xp} XP)!`
+        ? `${score.posicao}º a capturar (+${score.xp} XP)!`
         : `Acertou a missão (+${score.xp} XP)!`;
 
     const newLog: SubmissionLog = {

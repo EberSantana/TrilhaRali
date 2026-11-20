@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, Send, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Send, XCircle, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CtfState, RaliMissionRef, RaliTagInfo } from '../../types/ctf';
 import { ctfCall } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
 import { StatusBanner } from '../common/StatusBanner';
 import { Btn } from '../common/ui';
+import { Fogo } from '../common/Icones';
 
 interface Props {
   state: CtfState;
@@ -68,7 +69,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
         } catch {
           // ignore
         }
-        setFeedback({ ok: true, text: fogo ? `🔥 Primeiro a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
+        setFeedback({ ok: true, text: fogo ? `Primeiro a resolver! +${s.premio?.xp ?? 0} XP.` : `Correto! +${s.premio?.xp ?? 0} XP.` });
         setOpen(null);
         setAnswer('');
       } else {
@@ -115,9 +116,9 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
 
           {dinamico && !open.ja_resolvida && (
             <div className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${missao.capturas_anteriores === 0 ? 'bg-orange-950/70 border-orange-500/60 text-orange-200' : 'bg-amber-950/50 border-amber-500/40 text-amber-200'}`}>
-              {missao.capturas_anteriores === 0
-                ? `🔥 FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
-                : `⚠️ ${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}
+              <span className="flex items-center gap-2">{missao.capturas_anteriores === 0 ? <Fogo /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />}<span>{missao.capturas_anteriores === 0
+                ? `FLAG INTACTA! Ninguém resolveu ainda: vale ${missao.xp_atual} XP!`
+                : `${missao.capturas_anteriores} ${missao.capturas_anteriores === 1 ? 'aluno já resolveu' : 'alunos já resolveram'}: vale ${missao.xp_atual} XP agora.`}</span></span>
             </div>
           )}
           {open.ja_resolvida && <StatusBanner tone="warn">Você já resolveu este desafio.</StatusBanner>}
@@ -210,7 +211,7 @@ export const CtfChallenges: React.FC<Props> = ({ state, session, locked, onState
                       </div>
                       <div className="mt-1 text-sm font-bold text-slate-100 truncate">{m.categoria || 'Desafio'}</div>
                       <div className="mt-0.5 text-[11px] text-slate-400">
-                        {m.capturas === 0 ? (dinamico ? '🔥 intacto' : 'ninguém ainda') : `${m.capturas} ${m.capturas === 1 ? 'resolveu' : 'resolveram'}`}
+                        {m.capturas === 0 ? (dinamico ? <><Fogo /> intacto</> : 'ninguém ainda') : `${m.capturas} ${m.capturas === 1 ? 'resolveu' : 'resolveram'}`}
                       </div>
                     </button>
                   </li>

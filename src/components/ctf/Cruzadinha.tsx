@@ -255,7 +255,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
       setEst(e);
       if (e.nova) {
         playSound('success', true);
-        dizer(e.nova.xp > 0 ? (treino ? `✔ ${e.nova.palavra}: +${e.nova.xp} pts` : `✔ ${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) + (e.nova.ajuda ? ' · −2 pts por dica de letra usada nesta palavra' : '') : `✔ ${e.nova.palavra}: sem pontos, todas as letras já estavam reveladas por dica`);
+        dizer(e.nova.xp > 0 ? (treino ? `${e.nova.palavra}: +${e.nova.xp} pts` : `${e.nova.palavra}: +${e.nova.xp} XP (${e.nova.posicao}º a resolver)`) + (e.nova.ajuda ? ' · −2 pts por dica de letra usada nesta palavra' : '') : `${e.nova.palavra}: sem pontos, todas as letras já estavam reveladas por dica`);
       }
     },
     [dizer, treino],
@@ -477,11 +477,11 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
             {feitas.size}/{palavras.length} palavras
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300">{est.xp} {treino ? 'pts' : 'XP'}</span>
-          <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas de letra restantes (definidas pelo professor)">
-            💡 {restantes}/{est.limite}
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Dicas de letra restantes (definidas pelo professor)">
+            <Lightbulb className="h-3.5 w-3.5" aria-hidden /> {restantes}/{est.limite}
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Revelar palavra: restantes (definidas pelo professor)">
-            👁 {restantesPal}/{limitePal}
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300" title="Revelar palavra: restantes (definidas pelo professor)">
+            <Eye className="h-3.5 w-3.5" aria-hidden /> {restantesPal}/{limitePal}
           </span>
         </div>
       </header>

@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  Tag, 
-  Search, 
-  Copy, 
-  Check, 
-  Printer, 
-  Smartphone, 
-  MapPin, 
-  Sparkles, 
-  ExternalLink,
-  BookOpen,
-  GraduationCap,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { Tag, Search, Copy, Check, Printer, Smartphone, MapPin, Sparkles, ExternalLink, BookOpen, GraduationCap, Eye, EyeOff, Lock } from 'lucide-react';
 import { Mission, MissionPackage } from '../types';
 import { useMissions } from '../utils/missionsStore';
 import { IfsLogo } from './IfsLogo';
@@ -275,11 +261,11 @@ export const MissionsCatalog: React.FC = () => {
                     <span className="text-slate-400">Gabarito:</span>
                     {showGabarito ? (
                       <span className="font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
-                        "{mission.resposta_curta || '🔒 Gabarito protegido: conecte a chave do banco na Área do professor'}"
+                        "{mission.resposta_curta || 'Gabarito protegido: conecte a chave do banco na Área do professor'}"
                       </span>
                     ) : (
                       <span className="font-mono text-slate-500 italic text-[11px] bg-slate-800/80 px-2 py-0.5 rounded">
-                        🔒 Oculto durante o Rali
+                        <Lock className="inline h-3.5 w-3.5 align-[-0.15em]" aria-hidden /> Oculto durante o Rali
                       </span>
                     )}
                   </div>

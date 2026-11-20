@@ -37,7 +37,7 @@ export interface CaptureScore {
   posicao: number;
   xp: number;
   baseXp: number;
-  isFogo: boolean; // 🔥 primeira equipe a capturar (só no modo dinâmico)
+  isFogo: boolean; // primeira equipe a capturar (só no modo dinâmico)
   mode: ScoringMode;
 }
 
@@ -54,17 +54,10 @@ export function getNextCaptureScore(mission: Pick<Mission, 'tag_id' | 'xp_valor'
   };
 }
 
-export function getPositionBadge(posicao: number): string {
-  if (posicao === 1) return '🔥';
-  if (posicao === 2) return '🥈';
-  if (posicao === 3) return '🥉';
-  return '🎖️';
-}
-
 /** Texto curto para o celular antes de enviar a resposta. */
 export function describeCurrentValue(score: CaptureScore): string {
   if (score.mode === 'fixed') return `Vale ${score.xp} XP`;
-  if (score.posicao === 1) return `🔥 FLAG INTACTA! Nenhuma equipe resolveu ainda: vale ${score.xp} XP!`;
+  if (score.posicao === 1) return `FLAG INTACTA! Nenhuma equipe resolveu ainda: vale ${score.xp} XP!`;
   const n = score.posicao - 1;
-  return `⚠️ ${n} ${n === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${score.xp} XP se você enviar agora!`;
+  return `${n} ${n === 1 ? 'equipe já resolveu' : 'equipes já resolveram'}: vale ${score.xp} XP se você enviar agora!`;
 }

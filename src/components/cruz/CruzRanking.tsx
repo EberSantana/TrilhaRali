@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Trophy } from 'lucide-react';
 import { ctfCall } from '../../utils/ctfApi';
+import { Medalha } from '../common/Icones';
 
 export interface LinhaRanking {
   pos: number;
@@ -11,7 +12,6 @@ export interface LinhaRanking {
   quando: string;
 }
 
-const medalha = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : String(pos));
 
 /** Grande Ranking da Cruzada: nome e pontos de quem terminou uma cruzada no treino livre. */
 export const CruzRanking: React.FC<{ destaque?: string }> = ({ destaque: destaqueProp }) => {
@@ -81,7 +81,7 @@ export const CruzRanking: React.FC<{ destaque?: string }> = ({ destaque: destaqu
                   eu ? 'border-emerald-500/60 bg-emerald-500/10' : l.pos <= 3 ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-800 bg-slate-950'
                 }`}
               >
-                <span className="w-9 shrink-0 text-center text-lg font-black text-amber-300">{medalha(l.pos)}</span>
+                <span className="flex w-9 shrink-0 justify-center"><Medalha pos={l.pos} /></span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-black text-white">{l.nome}</p>
                   <p className="truncate text-[11px] text-slate-500">

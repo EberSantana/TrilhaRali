@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Database, SqlJsStatic } from 'sql.js';
-import { Database as DbIcon, Download, Eraser, Loader2, Play, RotateCcw, Table2, Terminal } from 'lucide-react';
+import { Database as DbIcon, Download, Eraser, Loader2, Play, RotateCcw, Table2, Terminal, KeyRound } from 'lucide-react';
 import { BANCO_CTF_SQL } from '../../utils/sqlSeed';
 
 const MAX_ROWS = 500;
@@ -247,7 +247,7 @@ export const SqlConsole: React.FC<SqlConsoleProps> = ({ seed = BANCO_CTF_SQL, se
                         {t.columns.map((c) => (
                           <li key={c.name} className="text-[11px] font-mono text-slate-300 flex justify-between gap-2">
                             <span className="truncate">
-                              {c.pk && <span title="Chave primária">🔑 </span>}
+                              {c.pk && <KeyRound className="mr-1 inline h-3 w-3 text-amber-300" aria-label="Chave primária" />}
                               {c.name}
                             </span>
                             <span className="text-slate-500 shrink-0">{c.type}</span>
