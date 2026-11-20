@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Download, GraduationCap, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { BarChart3, Download, GraduationCap, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { BackPill } from '../common/ModuleShell';
 import { Btn, StepTitle } from '../common/ui';
 import { getBancoKey } from '../../utils/bankApi';
+import { AnaliseTurma } from './AnaliseTurma';
+import { analiseDaTurma, type Analise } from '../../utils/analiseTurma';
 import { excluirTurma, lerListaAlunos, listarTurmas, NotaAluno, notasCsv, notasDaTurma, salvarTurma, Turma } from '../../utils/turmasApi';
 
 const msgErro = (e: unknown) => {
@@ -28,6 +30,8 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [busy, setBusy] = useState(false);
   const [notas, setNotas] = useState<{ turma: string; salas: number; alunos: NotaAluno[] } | null>(null);
   const [notasBusy, setNotasBusy] = useState('');
+  const [analise, setAnalise] = useState<Analise | null>(null);
+  const [analiseBusy, setAnaliseBusy] = useState('');
 
   const carregar = useCallback(async () => {
     if (!getBancoKey()) {
@@ -74,6 +78,19 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       await carregar();
     } catch (e) {
       setErro(msgErro(e));
+    }
+  };
+
+  const verAnalise = async (t: Turma) => {
+    setAnaliseBusy(t.id);
+    setErro('');
+    try {
+      setAnalise(await analiseDaTurma(t.id));
+      window.setTimeout(() => document.getElementById('analise-turma')?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch (e) {
+      setErro(msgErro(e));
+    } finally {
+      setAnaliseBusy('');
     }
   };
 
@@ -191,6 +208,14 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               </Btn>
               <Btn
                 size="sm"
+                disabled={analiseBusy === t.id}
+                onClick={() => void verAnalise(t)}
+                icon={analiseBusy === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BarChart3 className="w-3.5 h-3.5" />}
+              >
+                Análise
+              </Btn>
+              <Btn
+                size="sm"
                 icon={<Pencil className="w-3.5 h-3.5" />}
                 onClick={() => setEditando({ id: t.id, nome: t.nome, texto: t.alunos.map((a) => (a.m ? `${a.m};${a.n}` : a.n)).join('\n') })}
               >
@@ -203,6 +228,12 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         ))}
       </section>
+
+      {analise && (
+        <div id="analise-turma" className="scroll-mt-4">
+          <AnaliseTurma analise={analise} onFechar={() => setAnalise(null)} onBaixar={baixar} />
+        </div>
+      )}
 
       {notas && (
         <section className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-5" aria-label="Notas da turma">

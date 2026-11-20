@@ -190,3 +190,27 @@ test('papéis: o professor escolhe o modo; CTF em dupla credita o copiloto nas n
   const dd = b.call({ action: 'createDesvRoom', nome: 'Desv2', casos: ['c1'], papeis: 'dupla' });
   assert.equal(b.call({ action: 'desvEntrar', token: dd.token, gid: 'aparelho_dupla_z2', nome: 'Dupla Z', integrantes: 'A e B' }).sala.papeis, 'dupla');
 });
+
+test('análise da turma: participação, perguntas difíceis (com tentativas erradas), assuntos e casos', () => {
+  const b = comTurma();
+  const miss2 = [...missions, { tag_id: 't2', categoria: 'DDL', pacote: 'Modelagem', pergunta: 'Q2?', resposta: 'pk', alternativas: [], xp: 10 }];
+  const ctf = b.call({ action: 'createRoom', nome: 'CTF', missions: miss2, modo: 'fixed', turma: b.turma.id, ordem: 'livre' });
+  b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza' });
+  b.call({ action: 'join', token: ctf.token, nome: 'Bruno Lima' });
+  b.ctx.ERROR_COOLDOWN_MS = 0;
+  b.call({ action: 'raliSubmit', token: ctf.token, nome: 'Ana Souza', tag_id: 't2', resposta: 'errado' });
+  b.call({ action: 'raliSubmit', token: ctf.token, nome: 'Bruno Lima', tag_id: 't2', resposta: 'errado' });
+  b.call({ action: 'raliSubmit', token: ctf.token, nome: 'Ana Souza', tag_id: 't1', resposta: '8' });
+  b.call({ action: 'raliSubmit', token: ctf.token, nome: 'Bruno Lima', tag_id: 't1', resposta: '8' });
+  const a = b.call({ action: 'turmaAnalise', ...K, id: b.turma.id });
+  assert.ok(!a.error, a.error);
+  assert.equal(a.turma.alunos, 3);
+  const por = Object.fromEntries(a.alunos.map((x: Json) => [x.n, x]));
+  assert.equal(por['Ana Souza'].salas, 1);
+  assert.equal(por['Carla Dias'].salas, 0);
+  assert.deepEqual([por['Ana Souza'].acertos, por['Ana Souza'].erros], [1, 1]);
+  const t2 = a.perguntas.find((p: Json) => p.tag_id === 't2');
+  assert.deepEqual([t2.participantes, t2.acertos, t2.erros], [2, 0, 2]);
+  assert.equal(a.assuntos.find((x: Json) => x.assunto === 'Modelagem').acertos, 0);
+  assert.match(b.call({ action: 'turmaAnalise', chave: 'x', id: b.turma.id }).error, /Chave do banco/);
+});
