@@ -134,3 +134,36 @@ test('notas da turma somam CTF, Rali NFC (cada integrante) e Desvendando (cada i
   assert.equal(por['Carla Dias'].total, por['Carla Dias'].rali + desv.c1.pontos);
   assert.equal(por['Ana Souza'].m, '2024001');
 });
+
+test('nomes já usados: aparecem ocupados, outro celular é recusado e o professor libera', () => {
+  const b = comTurma();
+  const sala = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id });
+  b.call({ action: 'join', token: sala.token, nome: 'Ana Souza' });
+  assert.deepEqual(b.call({ action: 'salaTurma', token: sala.token }).turma.ocupados, ['Ana Souza']);
+  assert.match(b.call({ action: 'join', token: sala.token, nome: 'Ana Souza', chave: 'outro-celular' }).error, /liberar/);
+  assert.match(b.call({ action: 'liberarNome', token: sala.token, adminKey: 'errada', nome: 'Ana Souza' }).error, /inválida/);
+  assert.ok(b.call({ action: 'liberarNome', token: sala.token, adminKey: sala.adminKey, nome: 'Ana Souza' }).ok);
+  const novo = b.call({ action: 'join', token: sala.token, nome: 'Ana Souza', chave: 'outro-celular' });
+  assert.ok(!novo.error, novo.error);
+
+  const rali = b.call({ action: 'createRoom', tipo: 'rali', nome: 'Rali', missions, modo: 'fixed', turma: b.turma.id });
+  b.call({ action: 'join', token: rali.token, nome: 'Os Joins', integrantes: ['Bruno Lima'] });
+  assert.match(b.call({ action: 'join', token: rali.token, nome: 'Outra', integrantes: ['bruno lima', 'Carla Dias'] }).error, /já está na equipe Os Joins/);
+});
+
+test('Desvendando: piloto e copiloto na ordem, mesma dupla em outro celular mantém os pontos', () => {
+  const b = comTurma();
+  const desv = gabaritoAberto().desv!;
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ...Object.entries(desv).map(([c, g]) => [c, g.suspeito, g.pontos, g.explicacao])]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'], turma: b.turma.id });
+  const e1 = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_a1', nome: 'Dupla', integrantes: ['Carla Dias', 'Ana Souza'] });
+  assert.equal(e1.dupla.integrantes, 'Carla Dias, Ana Souza');
+  assert.match(b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_b1', nome: 'Dupla B', integrantes: ['Ana Souza', 'Ana Souza'] }).error, /duas vezes/);
+  b.call({ action: 'desvAcusar', token: ds.token, gid: 'aparelho_dupla_a1', caso: 'c1', suspeito: desv.c1.suspeito });
+  assert.deepEqual(b.call({ action: 'salaTurma', token: ds.token, gid: 'aparelho_dupla_b1' }).turma.ocupados, ['Carla Dias', 'Ana Souza']);
+  assert.match(b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_b1', nome: 'Dupla B', integrantes: ['Bruno Lima', 'Ana Souza'] }).error, /já está na dupla/);
+  const troca = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_b1', nome: 'Dupla', integrantes: ['Ana Souza', 'Carla Dias'] });
+  assert.ok(!troca.error, troca.error);
+  assert.equal(troca.resolvidos.c1, desv.c1.pontos);
+  assert.equal(troca.dupla.integrantes, 'Ana Souza, Carla Dias');
+});

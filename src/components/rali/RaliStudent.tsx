@@ -210,8 +210,8 @@ export const RaliStudent: React.FC<Props> = ({ pendingTag, onTagConsumed }) => {
           </label>
           {turmaSala ? (
             <div className="space-y-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes da equipe <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: marque cada um)</span></span>
-              <EscolhaIntegrantes alunos={turmaSala.alunos} value={integrantes} onChange={setIntegrantes} max={8} />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes da equipe <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: busque cada um)</span></span>
+              <EscolhaIntegrantes alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} max={8} />
             </div>
           ) : (
             <label className="block space-y-1.5">

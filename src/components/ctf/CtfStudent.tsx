@@ -1,4 +1,5 @@
 import { useTurmaDaSala } from '../../utils/turmasApi';
+import { BuscaNome } from '../turmas/BuscaNome';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle } from 'lucide-react';
@@ -241,20 +242,9 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           </label>
 
           <label className="block space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome (${turmaSala.nome})` : 'Seu nome'}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
             {turmaSala ? (
-              <select
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white focus:ring-2 outline-none ${ac.foco}`}
-              >
-                <option value="">Escolha o seu nome na lista</option>
-                {turmaSala.alunos.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+              <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
             ) : (
               <input
                 value={nome}

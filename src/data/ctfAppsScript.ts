@@ -36,7 +36,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1, Turmas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -115,6 +115,7 @@ function route(req) {
     case 'turmaExcluir': return turmaExcluir(req);
     case 'turmaNotas': return turmaNotas(req);
     case 'salaTurma': return salaTurma(req);
+    case 'liberarNome': return liberarNome(req);
     case 'cruzRankingApagar': return cruzRankingApagar(req);
     case 'setDebriefing': return setDebriefing(req);
     case 'debriefTeacher': return debriefTeacher(req);
@@ -455,7 +456,13 @@ function join(req) {
   var found = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   var chave = String(req.chave || '');
   if (found && found.chave && String(found.chave) !== chave) {
+    if (room.turma) fail('Este nome já entrou na sala em outro celular. Se você trocou de aparelho, peça ao professor para liberar o seu nome.');
     fail('Já existe alguém com este nome nesta sala. Use outro nome (ex.: nome e sobrenome).');
+  }
+  if (room.tipo === 'rali' && room.turma && !found) {
+    var jaNaSala = {};
+    playersOf(room.token).forEach(function (a) { parseList(a.integrantes).forEach(function (n) { jaNaSala[norm(n)] = String(a.nome); }); });
+    (req.integrantes || []).forEach(function (n) { if (jaNaSala[norm(n)]) fail(n + ' já está na equipe ' + jaNaSala[norm(n)] + '.'); });
   }
   if (found && !found.chave) {
     // linha criada antes da v9: ganha a chave do primeiro aparelho que voltar a entrar
@@ -689,6 +696,16 @@ function requireAdmin(req) {
   var room = requireRoom(req.token);
   if (String(room.admin_key) !== String(req.adminKey || '')) fail('Chave de professor inválida para esta sala.');
   return room;
+}
+
+// O aluno trocou de celular: o professor apaga a chave do nome e o proximo aparelho que entrar com ele assume.
+function liberarNome(req) {
+  var room = requireAdmin(req);
+  var key = norm(req.nome);
+  var a = playersOf(room.token).filter(function (p) { return p.nome_key === key; })[0];
+  if (!a) fail('Esse nome não está na sala.');
+  updateRow('CtfAlunos', a._row, { chave: '' });
+  return { ok: true };
 }
 
 function teacherRoom(req) {
@@ -1320,11 +1337,33 @@ function desvEntrar(req) {
   if (sala.turma) {
     var lista = Array.isArray(req.integrantes) ? req.integrantes : String(req.integrantes || '').split(',');
     lista = lista.map(function (n) { return String(n).trim(); }).filter(function (n) { return n; });
-    if (!lista.length || lista.length > 3) fail('Marque de 1 a 3 integrantes da lista da turma.');
-    integrantes = lista.map(function (n) { return nomeDaTurma(sala.turma, n); }).join(', ');
+    if (!lista.length || lista.length > 3) fail('Escolha o piloto, o copiloto e, se for trio, o engenheiro.');
+    lista = lista.map(function (n) { return nomeDaTurma(sala.turma, n); });
+    var vistos = {};
+    lista.forEach(function (n) { if (vistos[norm(n)]) fail(n + ' foi escolhido duas vezes.'); vistos[norm(n)] = 1; });
+    integrantes = lista.join(', ');
   }
   var token = String(sala.token);
   var ja = desvDupla(token, gid);
+  if (sala.turma && !ja) {
+    // mesma dupla em outro celular: assume a dupla antiga (pontos continuam); nomes em outra dupla = recusa
+    var chaveDe = function (txt) { return String(txt || '').split(',').map(function (n) { return norm(n.trim()); }).filter(function (n) { return n; }).sort().join('|'); };
+    var minha = chaveDe(integrantes);
+    var duplasSala = readRows('DesvDuplas').filter(function (d) { return String(d.token) === token; });
+    var mesma = duplasSala.filter(function (d) { return chaveDe(d.integrantes) === minha; })[0];
+    if (mesma) {
+      var antigo = String(mesma.gid);
+      updateRow('DesvDuplas', mesma._row, { gid: gid, nome: safeText(nome), integrantes: safeText(integrantes) });
+      readRows('DesvRanking').forEach(function (r) { if (String(r.token) === token && String(r.gid) === antigo) updateRow('DesvRanking', r._row, { gid: gid }); });
+      memoLimpa('DesvDuplas'); memoLimpa('DesvRanking');
+      return desvEstado({ token: token, gid: gid });
+    }
+    duplasSala.forEach(function (d) {
+      String(d.integrantes || '').split(',').forEach(function (n) {
+        if (n.trim() && vistos[norm(n.trim())]) fail(n.trim() + ' já está na dupla ' + String(d.nome) + '. Entrem com a mesma formação de antes ou falem com o professor.');
+      });
+    });
+  }
   if (ja) updateRow('DesvDuplas', ja._row, { nome: safeText(nome), integrantes: safeText(integrantes) });
   else appendObj('DesvDuplas', { token: token, gid: gid, nome: safeText(nome), integrantes: safeText(integrantes), entrou_em: new Date().toISOString() });
   return desvEstado({ token: token, gid: gid });
@@ -1528,12 +1567,31 @@ function turmaExcluir(req) {
 // Para a tela de entrada do aluno: so os nomes (sem matricula)
 function salaTurma(req) {
   var t = String(req.token || '').toUpperCase().trim();
-  var sala = readRows('CtfSalas').filter(function (r) { return String(r.token) === t; })[0] ||
-    readRows('DesvSalas').filter(function (r) { return String(r.token) === t; })[0];
+  var sala = readRows('CtfSalas').filter(function (r) { return String(r.token) === t; })[0];
+  var desv = !sala;
+  if (desv) sala = readRows('DesvSalas').filter(function (r) { return String(r.token) === t; })[0];
   if (!sala) fail('Sala não encontrada. Confira o token.');
   var turma = turmaLer(sala.turma);
   if (!turma) return { turma: null };
-  return { turma: { nome: turma.nome, alunos: turma.alunos.map(function (a) { return a.n; }) } };
+  return { turma: { nome: turma.nome, alunos: turma.alunos.map(function (a) { return a.n; }), ocupados: nomesOcupados(sala, t, req.gid, desv) } };
+}
+
+// Nomes da turma que ja entraram na sala (o aparelho do aluno mostra bloqueados). gid = a propria dupla, que nao conta.
+function nomesOcupados(sala, token, gid, desv) {
+  var usados = [];
+  if (desv) {
+    var g = String(gid || '');
+    readRows('DesvDuplas').forEach(function (d) {
+      if (String(d.token) !== token || String(d.gid) === g) return;
+      String(d.integrantes || '').split(',').forEach(function (n) { if (n.trim()) usados.push(n.trim()); });
+    });
+    return usados;
+  }
+  playersOf(token).forEach(function (a) {
+    if (String(sala.tipo) === 'rali') parseList(a.integrantes).forEach(function (n) { usados.push(String(n)); });
+    else if (a.chave) usados.push(String(a.nome));
+  });
+  return usados;
 }
 
 function turmaNotas(req) {

@@ -46,7 +46,7 @@ export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv', { accent: Accent;
     title: 'Desvendando',
     tagline: 'Mistérios em dupla, liberados pelo professor',
     comoJogar: [
-      { titulo: 'Entre com a dupla', texto: 'Digite o token da sala que o professor mostrou, o nome da dupla e os integrantes.' },
+      { titulo: 'Monte a cabine', texto: 'Digite o token da sala e o nome da dupla. Cada um escolhe o seu nome no capacete: o piloto (vermelho, nº 1) fica com o celular e faz a acusação; o copiloto (ciano, nº 2) lê as pistas e anota no caderno. A cada caso resolvido, troquem de lugar.' },
       { titulo: 'Espere os casos', texto: 'Só aparecem os casos que o professor liberou para a sua turma. Novos casos surgem sozinhos na lista.' },
       { titulo: 'Investigue juntos', texto: 'Leiam a história e as pistas e usem a grade, o banco de dados do caso ou as evidências. Só uma resposta pode ser provada.' },
       { titulo: 'Acusem com certeza', texto: 'Cada acusação errada tira 15 pontos e cada dica tira 10. Ao acertar, vem a explicação e os pontos vão para o ranking da sala.' },

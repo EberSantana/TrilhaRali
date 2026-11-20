@@ -5,7 +5,9 @@ import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 import { ModuleTabs } from '../common/ModuleShell';
 import { useTurmaDaSala } from '../../utils/turmasApi';
-import { EscolhaIntegrantes } from '../turmas/EscolhaIntegrantes';
+import { CabineDupla } from '../turmas/CabineDupla';
+import { Capacete, PAPEIS, papeisDaRodada } from '../turmas/Capacete';
+import { NomeDestaque } from '../turmas/BuscaNome';
 
 const K_GID = 'rali_desv_gid_v1';
 const K_SESSAO = 'rali_desv_sessao_v1';
@@ -182,6 +184,7 @@ export const DesvModule: React.FC = () => {
           <LogOut className="w-4 h-4" />
         </button>
       </div>
+      <CabineRodada integrantes={estado.dupla.integrantes} rodada={Object.keys(estado.resolvidos).length} />
       {encerrada && <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">O professor encerrou esta sala. Os casos ficam só para consulta.</p>}
       <ModuleTabs<'casos' | 'ranking'>
         accent="violet"
@@ -250,12 +253,39 @@ const CartaoCaso: React.FC<{ caso: DesvCaso; feito?: number; onAbrir: () => void
   </button>
 );
 
+/** Quem pilota e quem copilota agora. Os papéis giram a cada caso resolvido ("Troquem de lugar!"). */
+const CabineRodada: React.FC<{ integrantes: string; rodada: number }> = ({ integrantes, rodada }) => {
+  const nomes = integrantes.split(',').map((x) => x.trim()).filter(Boolean);
+  if (nomes.length < 2) return null;
+  const papeis = papeisDaRodada(nomes, rodada);
+  return (
+    <section aria-label="Cabine da dupla" className="mb-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Cabine · caso {rodada + 1}</p>
+        {rodada > 0 && <p className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wide text-amber-300">Troquem de lugar!</p>}
+      </div>
+      <ul className={`grid gap-2 ${papeis.length > 2 ? 'sm:grid-cols-3' : 'grid-cols-2'}`}>
+        {papeis.map(({ nome, papel }) => (
+          <li key={papel} className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`} title={PAPEIS[papel].funcao}>
+            <Capacete papel={papel} size={36} />
+            <div className="min-w-0">
+              <p className={`text-[10px] font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</p>
+              <p className="truncate text-sm"><NomeDestaque nome={nome} /></p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-slate-500">{PAPEIS[papeis[0].papel].nome}: {PAPEIS.piloto.funcao.toLowerCase()} {PAPEIS.copiloto.nome}: {PAPEIS.copiloto.funcao.toLowerCase()}</p>
+    </section>
+  );
+};
+
 /** Entrada da dupla: token do professor, nome da dupla e integrantes. */
 const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: Sessao, e: Estado) => void }> = ({ gid, erroInicial, onEntrou }) => {
   const [token, setToken] = useState(tokenDoLink);
   const [nome, setNome] = useState('');
   const [integrantes, setIntegrantes] = useState('');
-  const turmaSala = useTurmaDaSala(token);
+  const turmaSala = useTurmaDaSala(token, gid);
   const [erro, setErro] = useState(erroInicial);
   const [busy, setBusy] = useState(false);
   const entrar = async (e: React.FormEvent) => {
@@ -295,8 +325,8 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
         </label>
         {turmaSala ? (
           <div className="space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes <span className="font-normal normal-case text-slate-500">({turmaSala.nome}: marque até 3)</span></span>
-            <EscolhaIntegrantes alunos={turmaSala.alunos} value={integrantes} onChange={setIntegrantes} max={3} accent="accent-violet-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla <span className="font-normal normal-case text-slate-500">({turmaSala.nome})</span></span>
+            <CabineDupla alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} />
           </div>
         ) : (
           <label className="block space-y-1.5">
@@ -307,7 +337,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
         {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
         <button
           type="submit"
-          disabled={busy || token.trim().length < 4 || nome.trim().length < 2 || (!!turmaSala && !integrantes.trim())}
+          disabled={busy || token.trim().length < 4 || nome.trim().length < 2 || (!!turmaSala && integrantes.split(',').filter((x) => x.trim()).length < 2)}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-base font-black text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}

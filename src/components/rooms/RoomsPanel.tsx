@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, KeyRound, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
@@ -16,7 +16,7 @@ import { DurationInline } from '../common/DurationPicker';
 import { TimerOp } from '../../utils/timer';
 import { BackPill } from '../common/ModuleShell';
 import { SeletorTurma } from '../turmas/SeletorTurma';
-import { useTurmas } from '../../utils/turmasApi';
+import { liberarNome, useTurmas } from '../../utils/turmasApi';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
 import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from '../cruz/SelecaoCruz';
@@ -504,6 +504,17 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     setSyncMsg(`Sala “${r.nome}” apagada de vez.`);
   };
 
+  const liberar = async (nomeAluno: string) => {
+    if (!activeRoom) return;
+    if (!window.confirm(`Liberar "${nomeAluno}" para entrar em outro celular? O progresso continua; o aparelho antigo deixa de valer.`)) return;
+    try {
+      await liberarNome(activeRoom.token, activeRoom.adminKey, nomeAluno);
+      window.alert(`${nomeAluno} liberado: agora é só entrar no celular novo.`);
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const downloadCsv = () => {
     if (!view || !activeRoom) return;
     // Planilhas executam células que começam com = + - @ : o apóstrofo as mantém como texto
@@ -946,7 +957,18 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                           <tr key={`${a.nome}-${i}`} className="hover:bg-slate-950/50">
                             <td className="px-3 py-2 font-mono text-slate-500">{i + 1}</td>
                             <td className="px-3 py-2">
-                              <div className="font-semibold text-slate-100">{a.nome}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-slate-100">{a.nome}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => void liberar(a.nome)}
+                                  className="rounded p-1 text-slate-600 hover:bg-slate-800 hover:text-amber-300"
+                                  title="Trocou de celular? Libera este nome para entrar em outro aparelho"
+                                  aria-label={`Liberar ${a.nome} para outro celular`}
+                                >
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                               {nfc && a.integrantes && a.integrantes.length > 0 && <div className="text-[11px] text-slate-400">{a.integrantes.join(', ')}</div>}
                             </td>
                             <td className="px-3 py-2">
