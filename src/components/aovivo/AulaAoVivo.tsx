@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BookOpenCheck, Copy, Flag, Loader2, MonitorPlay, Power, Puzzle, Radio, RefreshCw, Search, Settings2, Trophy, Users } from 'lucide-react';
 import { BackPill } from '../common/ModuleShell';
+import { AvisoServidor } from '../common/AvisoServidor';
 import { Btn, QrImage } from '../common/ui';
 import { TimerControl } from '../common/TimerControl';
 import { RoomProjector } from '../rooms/RoomProjector';
@@ -94,6 +95,7 @@ export const AulaAoVivo: React.FC<{ onBack: () => void; onAbrirPainel: (modulo: 
         </div>
       </header>
 
+      <AvisoServidor />
       {erro && <p className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-sm text-rose-300">{erro}</p>}
 
       {!carregando && !salas.length && !erro && (
