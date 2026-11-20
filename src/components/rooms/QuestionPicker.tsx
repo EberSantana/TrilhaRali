@@ -14,6 +14,16 @@ const collator = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base'
 const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const PAGE = 25;
 
+/** Áreas para agrupar as disciplinas e a lista não ficar longa. O que não estiver aqui vai para "Outras". */
+const AREAS: { nome: string; disciplinas: string[] }[] = [
+  { nome: 'Dados', disciplinas: ['Banco de Dados'] },
+  { nome: 'Redes e Segurança', disciplinas: ['Redes de Computadores', 'Projeto de Redes', 'Segurança da Informação'] },
+  { nome: 'Desenvolvimento', disciplinas: ['Engenharia de Software', 'Construção de Sites 1', 'Programação 1', 'Programação Web (back-end)'] },
+  { nome: 'Fundamentos', disciplinas: ['Informática Básica', 'Fundamentos para Sistemas de Informação', 'Fundamentos de Sistemas Operacionais', 'Organização de Computadores', 'Lógica', 'Mapas Mentais de TI'] },
+];
+/** Só agrupa quando há disciplinas suficientes para a lista ficar longa */
+const MIN_PARA_AGRUPAR = 5;
+
 interface Assunto {
   nome: string;
   qs: BankQuestion[];
@@ -45,6 +55,7 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
   const [inativas, setInativas] = useState(false);
   const [soMarcadas, setSoMarcadas] = useState(false);
   const [abertasD, setAbertasD] = useState<Set<string>>(new Set());
+  const [abertasG, setAbertasG] = useState<Set<string>>(new Set());
   const [abertosA, setAbertosA] = useState<Set<string>>(new Set());
   const [limite, setLimite] = useState<Record<string, number>>({});
   const [qtd, setQtd] = useState(10);
@@ -173,6 +184,66 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
   const campo = 'rounded-lg bg-slate-950 border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200';
   const disciplinasVisiveis = soMarcadas ? arvore.filter((d) => marcados(d.qs) > 0) : arvore;
 
+  const cartaoDisciplina = (d: Disciplina) => {
+        const sel = marcados(d.qs);
+        const aberta = abertasD.has(d.nome) || (soMarcadas && sel > 0);
+        return (
+          <div key={d.nome} role="treeitem" aria-expanded={aberta} className={`overflow-hidden rounded-xl border ${sel > 0 ? rowOn : 'border-slate-800 bg-slate-950/50'}`}>
+            <div className="flex items-center gap-2 px-2.5 py-2">
+              <Tri checked={sel === d.qs.length && d.qs.length > 0} partial={sel > 0} onChange={() => alternar(d.qs)} label={`Marcar toda a disciplina ${d.nome}`} accentClass={ring} />
+              <button type="button" onClick={() => toggleSet(abertasD, d.nome, setAbertasD)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                {aberta ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words text-sm font-bold leading-snug text-white">{d.nome}</span>
+                  <span className="block text-[10px] text-slate-400">{d.assuntos.length} assunto(s) · {d.qs.length} perguntas</span>
+                </span>
+                <span className={`${chip} ${sel > 0 ? txtAccent : ''}`}>{sel}/{d.qs.length}</span>
+              </button>
+            </div>
+            <div className="px-2.5 pb-2">{barra(sel, d.qs.length)}</div>
+
+            {aberta && (
+              <div className="space-y-1.5 border-t border-slate-800 bg-slate-950/40 p-2" role="group">
+                {d.assuntos
+                  .filter((a) => !soMarcadas || marcados(a.qs) > 0)
+                  .map((a) => {
+                    const chave = `${d.nome}|${a.nome}`;
+                    const selA = marcados(a.qs);
+                    const abertoA = abertosA.has(chave) || (soMarcadas && selA > 0);
+                    return (
+                      <div key={chave} role="treeitem" aria-expanded={abertoA} className={`rounded-lg border ${selA > 0 ? 'border-slate-600' : 'border-slate-800'} bg-slate-900/70`}>
+                        <div className="flex items-center gap-2 px-2 py-1.5">
+                          <Tri checked={selA === a.qs.length && a.qs.length > 0} partial={selA > 0} onChange={() => alternar(a.qs)} label={`Marcar todo o assunto ${a.nome}`} accentClass={ring} />
+                          <button type="button" onClick={() => toggleSet(abertosA, chave, setAbertosA)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                            {abertoA ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />}
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-100">{a.nome}</span>
+                            {a.pronto && <span className="hidden rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:inline">pacote pronto</span>}
+                            <span className={`${chip} ${selA > 0 ? txtAccent : ''}`}>{selA}/{a.qs.length}</span>
+                          </button>
+                        </div>
+                        {abertoA && <div className="px-2 pb-2">{listaPerguntas(chave, a.qs)}</div>}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        );
+  };
+
+  const agrupar = arvore.length >= MIN_PARA_AGRUPAR;
+  const grupos = useMemo(() => {
+    const usados = new Set<string>();
+    const lista = AREAS.map((a) => {
+      const disciplinas = disciplinasVisiveis.filter((d) => a.disciplinas.includes(d.nome));
+      disciplinas.forEach((d) => usados.add(d.nome));
+      return { nome: a.nome, disciplinas, qs: disciplinas.flatMap((d) => d.qs) };
+    });
+    const resto = disciplinasVisiveis.filter((d) => !usados.has(d.nome));
+    if (resto.length) lista.push({ nome: 'Outras', disciplinas: resto, qs: resto.flatMap((d) => d.qs) });
+    return lista.filter((g) => g.disciplinas.length > 0);
+  }, [disciplinasVisiveis]);
+
   return (
     <div className="w-full min-w-0 space-y-3">
       {/* Resumo sempre visível */}
@@ -266,52 +337,33 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
       ) : (
         /* Disciplina > Assunto > Pergunta */
         <div className="max-h-[26rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1" role="tree" aria-label="Disciplinas, assuntos e perguntas">
-          {disciplinasVisiveis.map((d) => {
-            const sel = marcados(d.qs);
-            const aberta = abertasD.has(d.nome) || (soMarcadas && sel > 0);
-            return (
-              <div key={d.nome} role="treeitem" aria-expanded={aberta} className={`overflow-hidden rounded-xl border ${sel > 0 ? rowOn : 'border-slate-800 bg-slate-950/50'}`}>
-                <div className="flex items-center gap-2 px-2.5 py-2">
-                  <Tri checked={sel === d.qs.length && d.qs.length > 0} partial={sel > 0} onChange={() => alternar(d.qs)} label={`Marcar toda a disciplina ${d.nome}`} accentClass={ring} />
-                  <button type="button" onClick={() => toggleSet(abertasD, d.nome, setAbertasD)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                    {aberta ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold text-white">{d.nome}</span>
-                      <span className="block text-[10px] text-slate-400">{d.assuntos.length} assunto(s) · {d.qs.length} perguntas</span>
-                    </span>
-                    <span className={`${chip} ${sel > 0 ? txtAccent : ''}`}>{sel}/{d.qs.length}</span>
-                  </button>
-                </div>
-                <div className="px-2.5 pb-2">{barra(sel, d.qs.length)}</div>
-
-                {aberta && (
-                  <div className="space-y-1.5 border-t border-slate-800 bg-slate-950/40 p-2" role="group">
-                    {d.assuntos
-                      .filter((a) => !soMarcadas || marcados(a.qs) > 0)
-                      .map((a) => {
-                        const chave = `${d.nome}|${a.nome}`;
-                        const selA = marcados(a.qs);
-                        const abertoA = abertosA.has(chave) || (soMarcadas && selA > 0);
-                        return (
-                          <div key={chave} role="treeitem" aria-expanded={abertoA} className={`rounded-lg border ${selA > 0 ? 'border-slate-600' : 'border-slate-800'} bg-slate-900/70`}>
-                            <div className="flex items-center gap-2 px-2 py-1.5">
-                              <Tri checked={selA === a.qs.length && a.qs.length > 0} partial={selA > 0} onChange={() => alternar(a.qs)} label={`Marcar todo o assunto ${a.nome}`} accentClass={ring} />
-                              <button type="button" onClick={() => toggleSet(abertosA, chave, setAbertosA)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                                {abertoA ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />}
-                                <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-100">{a.nome}</span>
-                                {a.pronto && <span className="hidden rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:inline">pacote pronto</span>}
-                                <span className={`${chip} ${selA > 0 ? txtAccent : ''}`}>{selA}/{a.qs.length}</span>
-                              </button>
-                            </div>
-                            {abertoA && <div className="px-2 pb-2">{listaPerguntas(chave, a.qs)}</div>}
-                          </div>
-                        );
-                      })}
+          {agrupar
+            ? grupos.map((g) => {
+                const sel = marcados(g.qs);
+                const aberto = abertasG.has(g.nome) || (soMarcadas && sel > 0);
+                return (
+                  <div key={g.nome} role="treeitem" aria-expanded={aberto} className={`overflow-hidden rounded-2xl border-2 ${sel > 0 ? rowOn : 'border-slate-700 bg-slate-900/40'}`}>
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      <Tri checked={sel === g.qs.length && g.qs.length > 0} partial={sel > 0} onChange={() => alternar(g.qs)} label={`Marcar toda a área ${g.nome}`} accentClass={ring} />
+                      <button type="button" onClick={() => toggleSet(abertasG, g.nome, setAbertasG)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                        {aberto ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-300" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />}
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-black uppercase tracking-wide text-white">{g.nome}</span>
+                          <span className="block text-[10px] text-slate-400">{g.disciplinas.length} disciplina(s) · {g.qs.length} perguntas</span>
+                        </span>
+                        <span className={`${chip} ${sel > 0 ? txtAccent : ''}`}>{sel}/{g.qs.length}</span>
+                      </button>
+                    </div>
+                    <div className="px-3 pb-2">{barra(sel, g.qs.length)}</div>
+                    {aberto && (
+                      <div className="space-y-2 border-t border-slate-800 bg-slate-950/40 p-2" role="group">
+                        {g.disciplinas.map(cartaoDisciplina)}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })
+            : disciplinasVisiveis.map(cartaoDisciplina)}
           {disciplinasVisiveis.length === 0 && (
             <p className="rounded-lg border border-dashed border-slate-700 px-3 py-6 text-center text-xs text-slate-500">
               {soMarcadas ? 'Nenhuma pergunta marcada ainda.' : questions.length === 0 ? 'Nenhuma pergunta disponível.' : 'Nenhuma pergunta ativa. Marque “Incluir inativas” para ver as demais.'}
