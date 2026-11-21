@@ -672,15 +672,15 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
               )}
               <div className="grid grid-cols-3 items-stretch gap-2">
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Palavras (6 a 25)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-400">Palavras (6 a 25)</span>
                   <input type="number" min={6} max={25} value={novaPalavras} onChange={(e) => setNovaPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={`${input} text-center`} />
                 </label>
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dicas de letra (0 a 30)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-400">Dicas de letra (0 a 30)</span>
                   <input type="number" min={0} max={30} value={novaDicas} onChange={(e) => setNovaDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={`${input} text-center`} />
                 </label>
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Revelar palavra (0 a 10)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-400">Revelar palavra (0 a 10)</span>
                   <input type="number" min={0} max={10} value={novaReveals} onChange={(e) => setNovaReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={`${input} text-center`} />
                 </label>
               </div>

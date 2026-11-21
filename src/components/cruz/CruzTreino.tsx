@@ -127,15 +127,15 @@ export const CruzTreino: React.FC<{ onRanking?: () => void }> = ({ onRanking }) 
 
       <div className="grid grid-cols-3 items-stretch gap-2">
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Palavras (6 a 25)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-300">Palavras (6 a 25)</span>
                   <input type="number" min={6} max={25} value={palavras} onChange={(e) => setPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={`${campo} text-center`} />
                 </label>
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Dicas de letra (0 a 30)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-300">Dicas de letra (0 a 30)</span>
                   <input type="number" min={0} max={30} value={dicas} onChange={(e) => setDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={`${campo} text-center`} />
                 </label>
                 <label className="flex flex-col justify-between gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Revelar palavra (0 a 10)</span>
+                  <span className="text-[10px] leading-tight font-bold uppercase tracking-normal text-slate-300">Revelar palavra (0 a 10)</span>
                   <input type="number" min={0} max={10} value={reveals} onChange={(e) => setReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={`${campo} text-center`} />
                 </label>
               </div>
