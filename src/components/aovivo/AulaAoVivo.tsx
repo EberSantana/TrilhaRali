@@ -381,6 +381,15 @@ const SalaDesv: React.FC<{ sala: SalaAberta; onEncerrada: () => void; onAbrirPai
     setEstado({ ...estado, sala: { ...estado.sala, casos: ordem } });
     void prof({ op: 'casos', casos: ordem });
   };
+  /** Marca ou desmarca uma disciplina inteira de uma vez (um só envio ao servidor) */
+  const defineLote = (ids: string[], marcar: boolean) => {
+    if (!estado) return;
+    const atual = new Set(estado.sala.casos);
+    ids.forEach((id) => (marcar ? atual.add(id) : atual.delete(id)));
+    const ordem = DESV_CASOS.map((c) => c.id).filter((c) => atual.has(c));
+    setEstado({ ...estado, sala: { ...estado.sala, casos: ordem } });
+    void prof({ op: 'casos', casos: ordem });
+  };
   const encerrar = async () => {
     if (!window.confirm(`Encerrar a sala "${sala.nome}"? As duplas não poderão mais acusar.`)) return;
     setBusy(true);
@@ -403,7 +412,7 @@ const SalaDesv: React.FC<{ sala: SalaAberta; onEncerrada: () => void; onAbrirPai
         <div className="grid gap-5 xl:grid-cols-2">
           <section className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-4" aria-label="Liberar casos">
             <h2 className="text-sm font-black uppercase tracking-wide text-slate-300">Liberar casos</h2>
-            {estado ? <ListaCasos marcados={new Set(estado.sala.casos)} onAlternar={alterna} resolvidos={estado.resolvidosPorCaso} /> : <Loader2 className="h-5 w-5 animate-spin text-slate-500" />}
+            {estado ? <ListaCasos marcados={new Set(estado.sala.casos)} onAlternar={alterna} onLote={defineLote} resolvidos={estado.resolvidosPorCaso} /> : <Loader2 className="h-5 w-5 animate-spin text-slate-500" />}
           </section>
           <section className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-4" aria-label="Ranking da sala">
             <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-300">

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Code2, Database, KeyRound, Lightbulb, Loader2, LogOut, NotebookPen, RefreshCw, Search, Trophy, Users, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Code2, Database, KeyRound, Lightbulb, Loader2, LogOut, NotebookPen, RefreshCw, Search, Trophy, Users, XCircle } from 'lucide-react';
 import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data/desvCasos';
 import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
@@ -240,15 +240,15 @@ export const DesvModule: React.FC = () => {
           </div>
         ) : (
           <div className="mt-6 space-y-6">
-            {disciplinas.map((d) => (
-              <section key={d} aria-label={d}>
-                <h2 className="text-sm font-black uppercase tracking-wide text-slate-400">{d}</h2>
-                <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                  {liberados.filter((c) => c.disciplina === d).map((c) => (
-                    <CartaoCaso key={c.id} caso={c} feito={estado.resolvidos[c.id]} onAbrir={() => setAberto(c)} />
-                  ))}
-                </div>
-              </section>
+            {disciplinas.map((d, i) => (
+              <SecaoDisciplina
+                key={d}
+                nome={d}
+                casos={liberados.filter((c) => c.disciplina === d)}
+                resolvidos={estado.resolvidos}
+                inicialAberta={disciplinas.length <= 2 || i === 0}
+                onAbrir={setAberto}
+              />
             ))}
           </div>
         )
@@ -257,6 +257,31 @@ export const DesvModule: React.FC = () => {
       )}
       <p className="mt-6 text-center text-xs text-slate-500">Inspirado nos enigmas do perfil @clube.enigma (Clube do Enigma).</p>
     </div>
+  );
+};
+
+/** Uma disciplina da lista do aluno, recolhível, com quantos casos já desvendou */
+const SecaoDisciplina: React.FC<{ nome: string; casos: DesvCaso[]; resolvidos: Record<string, number>; inicialAberta: boolean; onAbrir: (c: DesvCaso) => void }> = ({ nome, casos, resolvidos, inicialAberta, onAbrir }) => {
+  const [aberta, setAberta] = useState(inicialAberta);
+  const feitos = casos.filter((c) => resolvidos[c.id] !== undefined).length;
+  return (
+    <section aria-label={nome}>
+      <button type="button" onClick={() => setAberta((v) => !v)} aria-expanded={aberta} className="flex w-full items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-2.5 text-left outline-none hover:border-slate-600 focus-visible:ring-2 focus-visible:ring-violet-500">
+        {aberta ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
+        <h2 className="min-w-0 flex-1 break-words text-sm font-black uppercase tracking-wide text-slate-200">{nome}</h2>
+        <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-bold ${feitos === casos.length ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 bg-slate-950 text-slate-300'}`}>
+          {feitos === casos.length && <CheckCircle2 className="w-3.5 h-3.5" />}
+          {feitos}/{casos.length} desvendados
+        </span>
+      </button>
+      {aberta && (
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          {casos.map((c) => (
+            <CartaoCaso key={c.id} caso={c} feito={resolvidos[c.id]} onAbrir={() => onAbrir(c)} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 };
 
