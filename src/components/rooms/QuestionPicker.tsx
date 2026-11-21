@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Eye, EyeOff, Search, Shuffle, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Eye, EyeOff, Search, Shuffle, X } from 'lucide-react';
 import { BankQuestion } from '../../types/bank';
 import { pickRandom } from '../../utils/bank';
+import { GrupoSelecao, MIN_PARA_AGRUPAR, agruparPorArea, alternaNoConjunto } from '../common/GrupoSelecao';
 
 interface QuestionPickerProps {
   questions: BankQuestion[];
@@ -14,16 +15,6 @@ const collator = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base'
 const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const PAGE = 25;
 
-/** Áreas para agrupar as disciplinas e a lista não ficar longa. O que não estiver aqui vai para "Outras". */
-const AREAS: { nome: string; disciplinas: string[] }[] = [
-  { nome: 'Dados', disciplinas: ['Banco de Dados'] },
-  { nome: 'Redes e Segurança', disciplinas: ['Redes de Computadores', 'Projeto de Redes', 'Segurança da Informação'] },
-  { nome: 'Desenvolvimento', disciplinas: ['Engenharia de Software', 'Construção de Sites 1', 'Programação 1', 'Programação Web (back-end)'] },
-  { nome: 'Fundamentos', disciplinas: ['Informática Básica', 'Fundamentos para Sistemas de Informação', 'Fundamentos de Sistemas Operacionais', 'Organização de Computadores', 'Lógica', 'Mapas Mentais de TI'] },
-];
-/** Só agrupa quando há disciplinas suficientes para a lista ficar longa */
-const MIN_PARA_AGRUPAR = 5;
-
 interface Assunto {
   nome: string;
   qs: BankQuestion[];
@@ -35,15 +26,6 @@ interface Disciplina {
   assuntos: Assunto[];
   qs: BankQuestion[];
 }
-
-/** Caixa de seleção com o estado "parcial" (alguns itens marcados). */
-const Tri: React.FC<{ checked: boolean; partial: boolean; onChange: () => void; label: string; accentClass: string }> = ({ checked, partial, onChange, label, accentClass }) => {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = partial && !checked;
-  }, [partial, checked]);
-  return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} aria-label={label} className={`h-4 w-4 shrink-0 cursor-pointer ${accentClass}`} />;
-};
 
 /**
  * Seletor de perguntas da sala, igual no CTF Online e no Rali NFC.
@@ -65,7 +47,6 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
   const ring = orange ? 'accent-orange-500' : 'accent-emerald-500';
   const txtAccent = orange ? 'text-orange-300' : 'text-emerald-300';
   const bgAccent = orange ? 'bg-orange-600 hover:bg-orange-500' : 'bg-emerald-600 hover:bg-emerald-500';
-  const barAccent = orange ? 'bg-orange-500' : 'bg-emerald-500';
   const rowOn = orange ? 'border-orange-500/60 bg-orange-500/10' : 'border-emerald-500/60 bg-emerald-500/10';
 
   // Se a seleção trazida de fora já inclui inativas, mostra-as (senão ficariam escondidas)
@@ -126,13 +107,6 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
     else n.add(id);
     onChange(n);
   };
-  const toggleSet = (set: Set<string>, key: string, setter: (s: Set<string>) => void) => {
-    const n = new Set(set);
-    if (n.has(key)) n.delete(key);
-    else n.add(key);
-    setter(n);
-  };
-
   const universoSorteio = useMemo(() => {
     if (buscando) return resultados;
     if (escopo) return arvore.find((d) => d.nome === escopo)?.qs ?? [];
@@ -174,75 +148,59 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
     );
   };
 
-  const barra = (sel: number, total: number) => (
-    <span className="block h-1 w-full overflow-hidden rounded-full bg-slate-800" aria-hidden>
-      <span className={`block h-full rounded-full ${barAccent}`} style={{ width: `${total ? (sel / total) * 100 : 0}%` }} />
-    </span>
-  );
-
   const chip = 'inline-flex items-center rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10px] font-bold text-slate-300';
   const campo = 'rounded-lg bg-slate-950 border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200';
   const disciplinasVisiveis = soMarcadas ? arvore.filter((d) => marcados(d.qs) > 0) : arvore;
 
   const cartaoDisciplina = (d: Disciplina) => {
-        const sel = marcados(d.qs);
-        const aberta = abertasD.has(d.nome) || (soMarcadas && sel > 0);
-        return (
-          <div key={d.nome} role="treeitem" aria-expanded={aberta} className={`overflow-hidden rounded-xl border ${sel > 0 ? rowOn : 'border-slate-800 bg-slate-950/50'}`}>
-            <div className="flex items-center gap-2 px-2.5 py-2">
-              <Tri checked={sel === d.qs.length && d.qs.length > 0} partial={sel > 0} onChange={() => alternar(d.qs)} label={`Marcar toda a disciplina ${d.nome}`} accentClass={ring} />
-              <button type="button" onClick={() => toggleSet(abertasD, d.nome, setAbertasD)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                {aberta ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
-                <span className="min-w-0 flex-1">
-                  <span className="block break-words text-sm font-bold leading-snug text-white">{d.nome}</span>
-                  <span className="block text-[10px] text-slate-400">{d.assuntos.length} assunto(s) · {d.qs.length} perguntas</span>
-                </span>
-                <span className={`${chip} ${sel > 0 ? txtAccent : ''}`}>{sel}/{d.qs.length}</span>
-              </button>
-            </div>
-            <div className="px-2.5 pb-2">{barra(sel, d.qs.length)}</div>
-
-            {aberta && (
-              <div className="space-y-1.5 border-t border-slate-800 bg-slate-950/40 p-2" role="group">
-                {d.assuntos
-                  .filter((a) => !soMarcadas || marcados(a.qs) > 0)
-                  .map((a) => {
-                    const chave = `${d.nome}|${a.nome}`;
-                    const selA = marcados(a.qs);
-                    const abertoA = abertosA.has(chave) || (soMarcadas && selA > 0);
-                    return (
-                      <div key={chave} role="treeitem" aria-expanded={abertoA} className={`rounded-lg border ${selA > 0 ? 'border-slate-600' : 'border-slate-800'} bg-slate-900/70`}>
-                        <div className="flex items-center gap-2 px-2 py-1.5">
-                          <Tri checked={selA === a.qs.length && a.qs.length > 0} partial={selA > 0} onChange={() => alternar(a.qs)} label={`Marcar todo o assunto ${a.nome}`} accentClass={ring} />
-                          <button type="button" onClick={() => toggleSet(abertosA, chave, setAbertosA)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                            {abertoA ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />}
-                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-100">{a.nome}</span>
-                            {a.pronto && <span className="hidden rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:inline">pacote pronto</span>}
-                            <span className={`${chip} ${selA > 0 ? txtAccent : ''}`}>{selA}/{a.qs.length}</span>
-                          </button>
-                        </div>
-                        {abertoA && <div className="px-2 pb-2">{listaPerguntas(chave, a.qs)}</div>}
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-        );
+    const sel = marcados(d.qs);
+    const aberta = abertasD.has(d.nome) || (soMarcadas && sel > 0);
+    return (
+      <GrupoSelecao
+        key={d.nome}
+        nivel="disciplina"
+        cor={orange ? 'orange' : 'emerald'}
+        titulo={d.nome}
+        resumo={`${d.assuntos.length} assunto(s) · ${d.qs.length} perguntas`}
+        marcados={sel}
+        total={d.qs.length}
+        aberto={aberta}
+        onAlternarAberto={() => setAbertasD(alternaNoConjunto(abertasD, d.nome))}
+        onMarcarTudo={() => alternar(d.qs)}
+        rotuloMarcar={`Marcar toda a disciplina ${d.nome}`}
+      >
+        <div className="space-y-1.5">
+          {d.assuntos
+            .filter((a) => !soMarcadas || marcados(a.qs) > 0)
+            .map((a) => {
+              const chave = `${d.nome}|${a.nome}`;
+              const selA = marcados(a.qs);
+              const abertoA = abertosA.has(chave) || (soMarcadas && selA > 0);
+              return (
+                <GrupoSelecao
+                  key={chave}
+                  nivel="assunto"
+                  cor={orange ? 'orange' : 'emerald'}
+                  titulo={a.nome}
+                  marcados={selA}
+                  total={a.qs.length}
+                  aberto={abertoA}
+                  onAlternarAberto={() => setAbertosA(alternaNoConjunto(abertosA, chave))}
+                  onMarcarTudo={() => alternar(a.qs)}
+                  rotuloMarcar={`Marcar todo o assunto ${a.nome}`}
+                  extra={a.pronto ? <span className="hidden rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400 sm:inline">pacote pronto</span> : undefined}
+                >
+                  {listaPerguntas(chave, a.qs)}
+                </GrupoSelecao>
+              );
+            })}
+        </div>
+      </GrupoSelecao>
+    );
   };
 
   const agrupar = arvore.length >= MIN_PARA_AGRUPAR;
-  const grupos = useMemo(() => {
-    const usados = new Set<string>();
-    const lista = AREAS.map((a) => {
-      const disciplinas = disciplinasVisiveis.filter((d) => a.disciplinas.includes(d.nome));
-      disciplinas.forEach((d) => usados.add(d.nome));
-      return { nome: a.nome, disciplinas, qs: disciplinas.flatMap((d) => d.qs) };
-    });
-    const resto = disciplinasVisiveis.filter((d) => !usados.has(d.nome));
-    if (resto.length) lista.push({ nome: 'Outras', disciplinas: resto, qs: resto.flatMap((d) => d.qs) });
-    return lista.filter((g) => g.disciplinas.length > 0);
-  }, [disciplinasVisiveis]);
+  const grupos = useMemo(() => agruparPorArea(disciplinasVisiveis).map((g) => ({ nome: g.nome, disciplinas: g.itens, qs: g.itens.flatMap((d) => d.qs) })), [disciplinasVisiveis]);
 
   return (
     <div className="w-full min-w-0 space-y-3">
@@ -340,27 +298,22 @@ export const QuestionPicker: React.FC<QuestionPickerProps> = ({ questions, selec
           {agrupar
             ? grupos.map((g) => {
                 const sel = marcados(g.qs);
-                const aberto = abertasG.has(g.nome) || (soMarcadas && sel > 0);
                 return (
-                  <div key={g.nome} role="treeitem" aria-expanded={aberto} className={`overflow-hidden rounded-2xl border-2 ${sel > 0 ? rowOn : 'border-slate-700 bg-slate-900/40'}`}>
-                    <div className="flex items-center gap-2 px-3 py-2.5">
-                      <Tri checked={sel === g.qs.length && g.qs.length > 0} partial={sel > 0} onChange={() => alternar(g.qs)} label={`Marcar toda a área ${g.nome}`} accentClass={ring} />
-                      <button type="button" onClick={() => toggleSet(abertasG, g.nome, setAbertasG)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                        {aberto ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-300" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />}
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-black uppercase tracking-wide text-white">{g.nome}</span>
-                          <span className="block text-[10px] text-slate-400">{g.disciplinas.length} disciplina(s) · {g.qs.length} perguntas</span>
-                        </span>
-                        <span className={`${chip} ${sel > 0 ? txtAccent : ''}`}>{sel}/{g.qs.length}</span>
-                      </button>
-                    </div>
-                    <div className="px-3 pb-2">{barra(sel, g.qs.length)}</div>
-                    {aberto && (
-                      <div className="space-y-2 border-t border-slate-800 bg-slate-950/40 p-2" role="group">
-                        {g.disciplinas.map(cartaoDisciplina)}
-                      </div>
-                    )}
-                  </div>
+                  <GrupoSelecao
+                    key={g.nome}
+                    nivel="area"
+                    cor={orange ? 'orange' : 'emerald'}
+                    titulo={g.nome}
+                    resumo={`${g.disciplinas.length} disciplina(s) · ${g.qs.length} perguntas`}
+                    marcados={sel}
+                    total={g.qs.length}
+                    aberto={abertasG.has(g.nome) || (soMarcadas && sel > 0)}
+                    onAlternarAberto={() => setAbertasG(alternaNoConjunto(abertasG, g.nome))}
+                    onMarcarTudo={() => alternar(g.qs)}
+                    rotuloMarcar={`Marcar toda a área ${g.nome}`}
+                  >
+                    {g.disciplinas.map(cartaoDisciplina)}
+                  </GrupoSelecao>
                 );
               })
             : disciplinasVisiveis.map(cartaoDisciplina)}
