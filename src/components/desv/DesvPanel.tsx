@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Lock, Plus, RefreshCw, Search, Trash2, Trophy, Unlock, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckCircle2, ChevronDown, ChevronRight, Copy, Loader2, Lock, Plus, RefreshCw, Search, Trash2, Trophy, Unlock, Users } from 'lucide-react';
 import { DESV_CASOS } from '../../data/desvCasos';
 import { ctfCall, getCtfApiUrl } from '../../utils/ctfApi';
 import { getBancoKey } from '../../utils/bankApi';
@@ -137,6 +137,16 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     void prof({ op: 'casos', casos: ordem });
   };
 
+  /** Marca ou desmarca vários casos de uma vez (uma disciplina inteira): um só envio ao servidor */
+  const defineCasos = (ids: string[], marcar: boolean) => {
+    if (!estado) return;
+    const atual = new Set(estado.sala.casos);
+    ids.forEach((id) => (marcar ? atual.add(id) : atual.delete(id)));
+    const ordem = DESV_CASOS.map((c) => c.id).filter((c) => atual.has(c));
+    setEstado({ ...estado, sala: { ...estado.sala, casos: ordem } });
+    void prof({ op: 'casos', casos: ordem });
+  };
+
   const apagarDeVez = async (sala: { token: string; adminKey: string; nome: string }) => {
     if (!window.confirm(`Apagar “${sala.nome}” de vez?\n\nA sala, as duplas e os pontos dela somem da planilha. Não dá para desfazer.`)) return;
     try {
@@ -161,6 +171,13 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const n = new Set(s);
       if (n.has(id)) n.delete(id);
       else n.add(id);
+      return n;
+    });
+
+  const defineNovos = (ids: string[], marcar: boolean) =>
+    setNovos((s) => {
+      const n = new Set(s);
+      ids.forEach((id) => (marcar ? n.add(id) : n.delete(id)));
       return n;
     });
 
@@ -191,7 +208,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <SeletorPapeis value={papeis} onChange={setPapeis} semPapeis={false} />
           </label>
           <SeletorTurma turmas={turmas} value={turmaId} onChange={setTurmaId} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-violet-500" />
-          <ListaCasos marcados={novos} onAlternar={marcaNovo} />
+          <ListaCasos marcados={novos} onAlternar={marcaNovo} onLote={defineNovos} />
           <Btn variant="primary" className="w-full !bg-violet-600 hover:!bg-violet-500 !border-violet-600" disabled={busy} onClick={() => void criar()} icon={busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}>
             Criar sala {novos.size ? `com ${novos.size} caso(s) liberado(s)` : '(liberar casos depois)'}
           </Btn>
@@ -244,7 +261,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div>
                 <StepTitle n={3} title="Casos liberados" hint="Marque para liberar e desmarque para esconder. As duplas veem a mudança em até 20 segundos." />
                 <div className="mt-3">
-                  <ListaCasos marcados={new Set(estado.sala.casos)} onAlternar={alternaCaso} resolvidos={estado.resolvidosPorCaso} />
+                  <ListaCasos marcados={new Set(estado.sala.casos)} onAlternar={alternaCaso} onLote={defineCasos} resolvidos={estado.resolvidosPorCaso} />
                 </div>
               </div>
 
@@ -284,25 +301,75 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   );
 };
 
-/** Lista dos casos por disciplina, com caixa de marcar (e quantas duplas já resolveram, no ao vivo). */
-export const ListaCasos: React.FC<{ marcados: Set<string>; onAlternar: (id: string) => void; resolvidos?: Record<string, number> }> = ({ marcados, onAlternar, resolvidos }) => (
-  <div className="space-y-3">
-    {DISCIPLINAS.map((d) => (
-      <fieldset key={d} className="space-y-1.5">
-        <legend className="text-xs font-bold uppercase tracking-wider text-slate-400">{d}</legend>
-        {DESV_CASOS.filter((c) => c.disciplina === d).map((c) => (
-          <label key={c.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm transition ${marcados.has(c.id) ? 'border-violet-500/60 bg-violet-500/10' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}`}>
-            <input type="checkbox" checked={marcados.has(c.id)} onChange={() => onAlternar(c.id)} className="h-4 w-4 accent-violet-500" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold text-white">{c.titulo}</span>
-              <span className="text-xs text-slate-400">{c.nivel} · {c.pontos} pts</span>
-            </span>
-            {resolvidos && (resolvidos[c.id] || 0) > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300"><CheckCircle2 className="w-3.5 h-3.5" />{resolvidos[c.id]}</span>
+/** Caixa de marcar com o estado "parcial" (alguns casos da disciplina marcados). */
+const Tri: React.FC<{ checked: boolean; partial: boolean; onChange: () => void; label: string }> = ({ checked, partial, onChange, label }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = partial && !checked;
+  }, [partial, checked]);
+  return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} aria-label={label} className="h-4 w-4 shrink-0 cursor-pointer accent-violet-500" />;
+};
+
+/**
+ * Casos agrupados por disciplina, cada grupo recolhido: a caixa do grupo libera todos os casos dele de uma vez
+ * e o contador mostra quantos estão marcados (e quantas duplas já resolveram, no ao vivo).
+ */
+export const ListaCasos: React.FC<{
+  marcados: Set<string>;
+  onAlternar: (id: string) => void;
+  onLote: (ids: string[], marcar: boolean) => void;
+  resolvidos?: Record<string, number>;
+}> = ({ marcados, onAlternar, onLote, resolvidos }) => {
+  const [abertas, setAbertas] = useState<Set<string>>(new Set());
+  const alternaGrupo = (d: string) =>
+    setAbertas((a) => {
+      const n = new Set(a);
+      if (n.has(d)) n.delete(d);
+      else n.add(d);
+      return n;
+    });
+  return (
+    <div className="space-y-2">
+      {DISCIPLINAS.map((d) => {
+        const casos = DESV_CASOS.filter((c) => c.disciplina === d);
+        const sel = casos.filter((c) => marcados.has(c.id)).length;
+        const feitos = resolvidos ? casos.reduce((n, c) => n + (resolvidos[c.id] || 0), 0) : 0;
+        const aberta = abertas.has(d);
+        return (
+          <div key={d} className={`overflow-hidden rounded-xl border ${sel > 0 ? 'border-violet-500/60 bg-violet-500/10' : 'border-slate-800 bg-slate-950/50'}`}>
+            <div className="flex items-center gap-2 px-3 py-2">
+              <Tri
+                checked={sel === casos.length}
+                partial={sel > 0}
+                onChange={() => onLote(casos.map((c) => c.id), sel !== casos.length)}
+                label={`Liberar todos os casos de ${d}`}
+              />
+              <button type="button" onClick={() => alternaGrupo(d)} aria-expanded={aberta} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                {aberta ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
+                <span className="min-w-0 flex-1 break-words text-xs font-bold uppercase tracking-wider text-slate-200">{d}</span>
+                {feitos > 0 && <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300"><CheckCircle2 className="w-3.5 h-3.5" />{feitos}</span>}
+                <span className="inline-flex items-center rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10px] font-bold text-slate-300">{sel}/{casos.length}</span>
+              </button>
+            </div>
+            {aberta && (
+              <div className="space-y-1.5 border-t border-slate-800 bg-slate-950/40 p-2">
+                {casos.map((c) => (
+                  <label key={c.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm transition ${marcados.has(c.id) ? 'border-violet-500/60 bg-violet-500/10' : 'border-slate-800 bg-slate-950/50 hover:border-slate-600'}`}>
+                    <input type="checkbox" checked={marcados.has(c.id)} onChange={() => onAlternar(c.id)} className="h-4 w-4 accent-violet-500" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-white">{c.titulo}</span>
+                      <span className="text-xs text-slate-400">{c.nivel} · {c.pontos} pts</span>
+                    </span>
+                    {resolvidos && (resolvidos[c.id] || 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300"><CheckCircle2 className="w-3.5 h-3.5" />{resolvidos[c.id]}</span>
+                    )}
+                  </label>
+                ))}
+              </div>
             )}
-          </label>
-        ))}
-      </fieldset>
-    ))}
-  </div>
-);
+          </div>
+        );
+      })}
+    </div>
+  );
+};
