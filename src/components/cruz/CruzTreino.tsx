@@ -125,20 +125,20 @@ export const CruzTreino: React.FC<{ onRanking?: () => void }> = ({ onRanking }) 
         <SelecaoCruz mapa={mapa} valor={selecao} onChange={setSelecao} />
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Palavras (6 a 25)</span>
-          <input type="number" min={6} max={25} value={palavras} onChange={(e) => setPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={campo} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Dicas de letra (0 a 30)</span>
-          <input type="number" min={0} max={30} value={dicas} onChange={(e) => setDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={campo} />
-        </label>
-        <label className="block space-y-1.5 col-span-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Revelar palavra (0 a 10)</span>
-          <input type="number" min={0} max={10} value={reveals} onChange={(e) => setReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={campo} />
-        </label>
-      </div>
+      <div className="space-y-2">
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Palavras (6 a 25)</span>
+                  <input type="number" min={6} max={25} value={palavras} onChange={(e) => setPalavras(Math.max(6, Math.min(25, Math.floor(Number(e.target.value)) || 6)))} className={`${campo} !w-24 text-center`} />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Dicas de letra (0 a 30)</span>
+                  <input type="number" min={0} max={30} value={dicas} onChange={(e) => setDicas(Math.max(0, Math.min(30, Math.floor(Number(e.target.value)) || 0)))} className={`${campo} !w-24 text-center`} />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Revelar palavra (0 a 10)</span>
+                  <input type="number" min={0} max={10} value={reveals} onChange={(e) => setReveals(Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0)))} className={`${campo} !w-24 text-center`} />
+                </label>
+              </div>
 
       {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
 
