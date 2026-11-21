@@ -49,7 +49,7 @@ interface GrupoProps {
 }
 
 const ESTILO = {
-  area: { caixa: 'rounded-2xl border-2', titulo: 'text-sm font-black uppercase tracking-wide text-white', miolo: 'space-y-2 p-2', linha: 'px-3 py-2.5' },
+  area: { caixa: 'rounded-xl border', titulo: 'text-xs font-bold uppercase tracking-wider text-slate-200', miolo: 'space-y-1.5 p-2', linha: 'px-3 py-2' },
   disciplina: { caixa: 'rounded-xl border', titulo: 'text-xs font-bold uppercase tracking-wider text-slate-200', miolo: 'space-y-1.5 p-2', linha: 'px-3 py-2' },
   assunto: { caixa: 'rounded-lg border', titulo: 'text-xs font-semibold text-slate-100', miolo: 'px-2 pb-2', linha: 'px-2 py-1.5' },
 } as const;
@@ -59,14 +59,13 @@ export const GrupoSelecao: React.FC<GrupoProps> = ({ nivel = 'disciplina', titul
   const e = ESTILO[nivel];
   const Seta = aberto ? ChevronDown : ChevronRight;
   return (
-    <div role="treeitem" aria-expanded={aberto} className={`overflow-hidden ${e.caixa} ${marcados > 0 ? c.ativo : nivel === 'area' ? 'border-slate-700 bg-slate-900/40' : 'border-slate-800 bg-slate-950/50'}`}>
+    <div role="treeitem" aria-expanded={aberto} className={`overflow-hidden ${e.caixa} ${marcados > 0 ? c.ativo : 'border-slate-800 bg-slate-950/50'}`}>
       <div className={`flex items-center gap-2 ${e.linha}`}>
         <Tri checked={total > 0 && marcados === total} partial={marcados > 0} onChange={onMarcarTudo} label={rotuloMarcar} cor={cor} />
         <button type="button" onClick={onAlternarAberto} aria-expanded={aberto} className={`flex min-w-0 flex-1 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-2 ${c.foco}`}>
           <Seta className="h-4 w-4 shrink-0 text-slate-400" />
           <span className="min-w-0 flex-1">
-            <span className={`block break-words ${e.titulo}`}>{titulo}</span>
-            {resumo && <span className="block text-[10px] font-normal normal-case tracking-normal text-slate-400">{resumo}</span>}
+            <span className={`block truncate ${e.titulo}`} title={resumo ? `${titulo} · ${resumo}` : titulo}>{titulo}</span>
           </span>
           {extra}
           <Chip destaque={marcados > 0 ? c.texto : ''}>{contador ?? `${marcados}/${total}`}</Chip>
