@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { GrupoSelecao, MIN_PARA_AGRUPAR, agruparPorArea, alternaNoConjunto } from '../common/GrupoSelecao';
 import { ctfCall } from '../../utils/ctfApi';
 
 export interface AssuntoInfo {
@@ -48,33 +48,20 @@ export function rotuloSelecao(mapa: MapaAssuntos | null, sel: Selecao): string {
   return itens.join(' + ');
 }
 
-const COR = {
-  cyan: { caixa: 'accent-cyan-500', ativo: 'border-cyan-500/60 bg-cyan-500/10', foco: 'focus-visible:ring-cyan-500' },
-  emerald: { caixa: 'accent-emerald-500', ativo: 'border-emerald-500/60 bg-emerald-500/10', foco: 'focus-visible:ring-emerald-500' },
-} as const;
-
 interface Props {
   mapa: MapaAssuntos | null;
   valor: Selecao;
   onChange: (v: Selecao) => void;
-  cor?: keyof typeof COR;
+  cor?: 'cyan' | 'emerald';
 }
-
-const Indeterminada: React.FC<{ marcada: boolean; parcial: boolean; onChange: () => void; label: string; classe: string }> = ({ marcada, parcial, onChange, label, classe }) => {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = parcial && !marcada;
-  }, [parcial, marcada]);
-  return <input ref={ref} type="checkbox" checked={marcada} onChange={onChange} aria-label={label} className={`w-5 h-5 shrink-0 ${classe}`} />;
-};
 
 /** Marque disciplinas inteiras ou só alguns assuntos; tudo que estiver marcado entra na grade. */
 export const SelecaoCruz: React.FC<Props> = ({ mapa, valor, onChange, cor = 'cyan' }) => {
-  const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+  const [abertas, setAbertas] = useState<Set<string>>(new Set());
+  const [abertasG, setAbertasG] = useState<Set<string>>(new Set());
   if (!mapa) return <p className="text-xs text-slate-500">Carregando disciplinas…</p>;
   const disciplinas = Object.keys(mapa);
   if (!disciplinas.length) return <p className="text-xs text-slate-400">O Banco ainda não tem perguntas de resposta curta para virar palavras.</p>;
-  const c = COR[cor];
   const total = totalSelecionado(mapa, valor);
 
   const marcar = (d: string, assuntos: string[]) => {
@@ -84,6 +71,55 @@ export const SelecaoCruz: React.FC<Props> = ({ mapa, valor, onChange, cor = 'cya
     onChange(prox);
   };
   const todosDe = (d: string) => mapa[d].map((a) => a.assunto);
+  const palavrasMarcadas = (d: string) => soma(mapa[d].filter((a) => (valor[d] ?? []).includes(a.assunto)));
+  const inteira = (d: string) => (valor[d] ?? []).length === mapa[d].length;
+  /** marca ou desmarca várias disciplinas de uma vez (uma área inteira) */
+  const marcarVarias = (ds: string[]) => {
+    const todas = ds.every(inteira);
+    const prox = { ...valor };
+    ds.forEach((d) => (todas ? delete prox[d] : (prox[d] = todosDe(d))));
+    onChange(prox);
+  };
+
+  const cartaoDisciplina = (d: string) => {
+    const lista = mapa[d];
+    const marcados = valor[d] ?? [];
+    return (
+      <GrupoSelecao
+        key={d}
+        nivel="disciplina"
+        cor={cor}
+        titulo={d}
+        resumo={`${lista.length} assunto(s) · ${soma(lista)} palavras`}
+        marcados={palavrasMarcadas(d)}
+        total={soma(lista)}
+        aberto={abertas.has(d)}
+        onAlternarAberto={() => setAbertas(alternaNoConjunto(abertas, d))}
+        onMarcarTudo={() => marcar(d, inteira(d) ? [] : todosDe(d))}
+        rotuloMarcar={`Marcar a disciplina inteira: ${d}`}
+      >
+        <ul className="space-y-1">
+          {lista.map((a) => (
+            <li key={a.assunto}>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-1 text-sm text-slate-200 hover:bg-slate-800/60">
+                <input
+                  type="checkbox"
+                  checked={marcados.includes(a.assunto)}
+                  onChange={() => marcar(d, marcados.includes(a.assunto) ? marcados.filter((x) => x !== a.assunto) : [...marcados, a.assunto])}
+                  className={`w-4 h-4 shrink-0 ${cor === 'cyan' ? 'accent-cyan-500' : 'accent-emerald-500'}`}
+                />
+                <span className="flex-1 min-w-0 break-words">{a.assunto}</span>
+                <span className="text-[11px] font-mono text-slate-500">{a.n}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </GrupoSelecao>
+    );
+  };
+
+  const agrupar = disciplinas.length >= MIN_PARA_AGRUPAR;
+  const areas = agruparPorArea(disciplinas.map((nome) => ({ nome })));
 
   return (
     <div className="space-y-2">
@@ -94,61 +130,31 @@ export const SelecaoCruz: React.FC<Props> = ({ mapa, valor, onChange, cor = 'cya
         </button>
       </div>
 
-      <div className="max-h-80 space-y-2 overflow-y-auto pr-1" role="group" aria-label="Disciplinas e assuntos da cruzada">
-        {disciplinas.map((d) => {
-          const lista = mapa[d];
-          const marcados = valor[d] ?? [];
-          const inteira = marcados.length === lista.length;
-          const aberta = !!abertas[d];
-          return (
-            <div key={d} className={`rounded-2xl border p-3 ${marcados.length ? c.ativo : 'border-slate-800 bg-slate-950'}`}>
-              <div className="flex items-center gap-3">
-                <Indeterminada
-                  marcada={inteira}
-                  parcial={marcados.length > 0}
-                  onChange={() => marcar(d, inteira ? [] : todosDe(d))}
-                  label={`Marcar a disciplina inteira: ${d}`}
-                  classe={c.caixa}
-                />
-                <button
-                  type="button"
-                  onClick={() => setAbertas({ ...abertas, [d]: !aberta })}
-                  aria-expanded={aberta}
-                  aria-label={`${aberta ? 'Recolher' : 'Abrir'} os assuntos de ${d}`}
-                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left outline-none focus-visible:ring-2 ${c.foco}`}
+      <div className="max-h-80 space-y-2 overflow-y-auto pr-1" role="tree" aria-label="Disciplinas e assuntos da cruzada">
+        {agrupar
+          ? areas.map((g) => {
+              const ds = g.itens.map((i) => i.nome);
+              const palavras = ds.reduce((t, d) => t + soma(mapa[d]), 0);
+              const marcadas = ds.reduce((t, d) => t + palavrasMarcadas(d), 0);
+              return (
+                <GrupoSelecao
+                  key={g.nome}
+                  nivel="area"
+                  cor={cor}
+                  titulo={g.nome}
+                  resumo={`${ds.length} disciplina(s) · ${palavras} palavras`}
+                  marcados={marcadas}
+                  total={palavras}
+                  aberto={abertasG.has(g.nome)}
+                  onAlternarAberto={() => setAbertasG(alternaNoConjunto(abertasG, g.nome))}
+                  onMarcarTudo={() => marcarVarias(ds)}
+                  rotuloMarcar={`Marcar toda a área ${g.nome}`}
                 >
-                  <ChevronRight className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${aberta ? 'rotate-90' : ''}`} />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-black text-white break-words">{d}</span>
-                    <span className="block text-[11px] text-slate-400">{lista.length} assunto(s) · {soma(lista)} palavras</span>
-                  </span>
-                </button>
-                <span className="shrink-0 rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-mono font-bold text-slate-300">
-                  {soma(lista.filter((a) => marcados.includes(a.assunto)))}/{soma(lista)}
-                </span>
-              </div>
-
-              {aberta && (
-                <ul className="mt-2 space-y-1 border-t border-slate-800 pt-2">
-                  {lista.map((a) => (
-                    <li key={a.assunto}>
-                      <label className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-1 text-sm text-slate-200 hover:bg-slate-800/60">
-                        <input
-                          type="checkbox"
-                          checked={marcados.includes(a.assunto)}
-                          onChange={() => marcar(d, marcados.includes(a.assunto) ? marcados.filter((x) => x !== a.assunto) : [...marcados, a.assunto])}
-                          className={`w-4 h-4 shrink-0 ${c.caixa}`}
-                        />
-                        <span className="flex-1 min-w-0 break-words">{a.assunto}</span>
-                        <span className="text-[11px] font-mono text-slate-500">{a.n}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
+                  {ds.map(cartaoDisciplina)}
+                </GrupoSelecao>
+              );
+            })
+          : disciplinas.map(cartaoDisciplina)}
       </div>
 
       <p className={`text-[11px] ${total < 6 ? 'text-rose-300' : 'text-slate-400'}`}>
