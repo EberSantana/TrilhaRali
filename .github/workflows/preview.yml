@@ -3,13 +3,13 @@ name: Build preview do Trilha Rali
 on:
   push:
     branches:
-      - preview/clean-logo3-v3
+      - preview/fiel-referencia-premium
 
 permissions:
   contents: write
 
 concurrency:
-  group: 'pages-preview-trilha-rali-clean-v3'
+  group: 'pages-preview-trilha-rali-premium'
   cancel-in-progress: true
 
 jobs:
@@ -40,5 +40,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./dist
-          destination_dir: previews/clean-logo3-v3
+          destination_dir: previews/fiel-referencia-premium
           keep_files: true
