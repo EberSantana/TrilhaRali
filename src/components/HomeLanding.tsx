@@ -4,7 +4,7 @@ import {
   Lock, Puzzle, Radio, Search, ShieldCheck, Trophy, UserRound,
   FlaskConical, Code2, BrainCircuit, Star, TrendingUp, Compass
 } from 'lucide-react';
-import { TrilhaMarca, TrilhaNome } from './TrilhaMarca';
+import { TrilhaMarca } from './TrilhaMarca';
 import { IfsLogo } from './IfsLogo';
 
 interface HomeLandingProps {
