@@ -367,7 +367,7 @@ export default function App() {
     <div className="min-h-dvh bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
 
       {appModule === 'home' ? (
-        <main className="flex-1 flex flex-col justify-center">
+        <main className="flex-1 flex flex-col">
           <HomeLanding
             isTeacher={isTeacher}
             onOpenRali={() => handleChangeModule('rali')}
@@ -608,16 +608,16 @@ export default function App() {
         targetFeatureName={authTargetFeature}
       />
 
-      {/* Footer Institucional IFS */}
-      <footer className="border-t border-emerald-950/80 bg-slate-950 py-2 text-xs text-slate-400">
+      {/* Footer Institucional IFS: azul-marinho nos dois temas */}
+      <footer className="border-t-2 border-[#00C853]/60 py-2 text-xs" style={{ background: '#0B1F3B' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
           <div className="flex items-center gap-4">
-            <IfsLogo size="xl" className="!gap-0" />
+            <IfsLogo size="lg" className="!gap-0" />
             <div className="flex flex-col text-left leading-tight">
-              <span className="font-bold text-slate-200 text-sm sm:text-base">
+              <span className="font-bold text-[#F1F5F9] text-sm sm:text-base">
                 Instituto Federal de Sergipe (IFS) • Campus Tobias Barreto
               </span>
-              <span className="text-emerald-400 font-medium text-xs sm:text-sm">
+              <span className="text-[#3BE37A] font-medium text-xs sm:text-sm">
                 Desenvolvido e Supervisionado pelo Professor Eber Santana
               </span>
             </div>

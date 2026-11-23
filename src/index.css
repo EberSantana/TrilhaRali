@@ -31,6 +31,7 @@
   --color-red-200: #7f1d1d;     --color-red-300: #991b1b;     --color-red-400: #b42318;
   --color-sky-200: #0c4a6e;     --color-sky-300: #075985;     --color-sky-400: #0369a1;
   --color-indigo-300: #3730a3;  --color-indigo-400: #4338ca;
+  --color-violet-400: #6d28d9;
   --color-purple-300: #6b21a8;  --color-purple-400: #7e22ce;
   --color-violet-200: #4c1d95;  --color-violet-300: #5b21b6;
   --color-fuchsia-200: #701a75; --color-fuchsia-300: #86198f;
@@ -131,3 +132,6 @@
   .flag-card, .flag-card-ouro { animation: none; }
   .flag-mastro, .flag-pano { animation: none; }
 }
+
+/* Marca Trilha Rali: Orbitron só no logo e em títulos curtos */
+.font-marca { font-family: "Orbitron", "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 900; letter-spacing: 0.02em; font-style: italic; }
