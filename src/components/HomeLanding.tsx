@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ArrowRight, Flag, Gamepad2, GraduationCap, HelpCircle, Home,
+  ArrowRight, BookOpen, Flag, Gamepad2, GraduationCap, HelpCircle, Home,
   Lock, Puzzle, Radio, Search, ShieldCheck, Trophy, UserRound,
   FlaskConical, Code2, BrainCircuit, Star, TrendingUp, Compass
 } from 'lucide-react';
@@ -108,7 +108,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           <a href="#ferramentas" className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-slate-100 transition hover:bg-white/10"><Gamepad2 size={16}/> Ferramentas</a>
           <button onClick={onOpenCtf} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-slate-100 transition hover:bg-white/10"><Trophy size={16}/> Ranking</button>
           <a href="#ajuda" className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-slate-100 transition hover:bg-white/10"><HelpCircle size={16}/> Ajuda</a>
-          <a href={URL_ESTUDOS} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-slate-100 transition hover:border-[#B7F52B] hover:text-white"><UserRound size={16}/> Perfil do aluno</a>
+          <a href={URL_ESTUDOS} className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2.5 text-slate-100 transition hover:border-[#B7F52B] hover:text-white"><BookOpen size={16}/> Ambientes de estudo</a>
         </nav>
         <button type="button" onClick={onOpenTeacher} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-extrabold text-[#0B1F3B] shadow-sm transition hover:brightness-110" style={{ background: '#3BE37A' }}>
           {isTeacher ? <ShieldCheck size={16}/> : <Lock size={16}/>} Área do professor
@@ -153,7 +153,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">Aprendizagem gamificada</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <ToolCard title="Jogos" description="Quatro experiências: Rali NFC, CTF, Cruzada e Desvendando." label="Explorar jogos" icon={<Gamepad2 size={30}/>} gradient="linear-gradient(135deg,#123B83,#1769AA 62%,#19A7C9)" onClick={onOpenRali}/>
+          <ToolCard title="Jogos" description="Quatro experiências: Rali NFC, CTF, Cruzada e Desvendando." label="Explorar os quatro modos" icon={<Gamepad2 size={30}/>} gradient="linear-gradient(135deg,#123B83,#1769AA 62%,#19A7C9)" href="#atividades"/>
           <ToolCard title="Desafios" description="Capture bandeiras, resolva etapas e acompanhe sua evolução." label="Abrir CTF" icon={<Flag size={30}/>} gradient="linear-gradient(135deg,#A94713,#E66A18 62%,#F5A623)" onClick={onOpenCtf}/>
           <ToolCard title="Simuladores e Labs" description="Explore laboratórios e experiências práticas do portal de estudos." label="Acessar laboratórios" icon={<FlaskConical size={30}/>} gradient="linear-gradient(135deg,#075985,#087E9B 62%,#22B8B5)" href={URL_ESTUDOS + 'laboratorio-3d/'}/>
           <ToolCard title="Aprendizagem" description="Acesse disciplinas, materiais, atividades e ambientes de estudo." label="Ir para Ambientes de Estudo" icon={<GraduationCap size={30}/>} gradient="linear-gradient(135deg,#12643F,#078A55 62%,#35B86B)" href={URL_ESTUDOS}/>
