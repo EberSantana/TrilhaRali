@@ -1,0 +1,51 @@
+Tag_ID,Pergunta,Resposta_Curta,XP
+tag_01,DDL: Qual comando apaga a estrutura de uma tabela inteira?,drop table,10
+tag_02,DQL: Rode um SELECT COUNT(*) na tabela Funcionarios. Qual o número total?,145,20
+tag_03,DQL: Faça um JOIN entre Vendas e Produtos. Qual o nome do produto mais vendido?,notebook dell,50
+tag_04,DML: Qual cláusula é obrigatória usar com UPDATE para não alterar todas as linhas?,where,10
+tag_05,DQL (Boss): Use subquery para achar o aluno com a maior nota. Digite o nome dele.,juliane,100
+tag_acad_01,"Conceitual: Na relação ALUNO (1,1) contrata PLANO (0,N), qual tabela deve receber a Chave Estrangeira (FK) no modelo lógico?",aluno,10
+tag_acad_02,Lógico: Qual é o nome exato do atributo identificador (Chave Primária) da entidade PLANO?,cod_plano,10
+tag_acad_03,Físico (Tipagem): Qual foi o tipo de dado sugerido no roteiro para armazenar o campo valor_mensal?,decimal,20
+tag_acad_04,Caça ao Bug: Qual comando SQL gerado pelo brModelo precisamos APAGAR porque o SQLite não aceita?,alter table,30
+tag_acad_05,Configuração: Qual comando liga a verificação de Chaves Estrangeiras no SQLite?,pragma foreign_keys = on,40
+tag_acad_06,"Boss: Se a cardinalidade do cenário fosse (0,N) nos dois lados, o que surgiria obrigatoriamente no modelo lógico?",nova tabela,50
+tag_crud_01,"CREATE: Ao inserir um bem sem informar todos os campos, o que o banco insere nas colunas vazias?",null,10
+tag_crud_02,READ: Qual função agregadora usamos junto com GROUP BY para contar os bens?,count,10
+tag_crud_03,READ/SORT: Qual cláusula ordena os bens no SELECT?,order by,20
+tag_crud_04,UPDATE: Qual cláusula é de uso obrigatório no UPDATE para não alterar a tabela inteira?,where,30
+tag_crud_05,"DELETE: Se rodar DELETE FROM bens; sem filtro, o que acontece com os dados?",apaga tudo,50
+tag_bib_01,Chaves: Qual restrição garante que o identificador único não se repita?,primary key,10
+tag_bib_02,Integridade: Erro ao apagar aluno com empréstimo é a defesa de qual chave?,estrangeira,20
+tag_bib_03,INNER JOIN: Que cláusula liga a FK de uma tabela com a PK da outra no JOIN?,on,30
+tag_bib_04,LEFT JOIN: Alunos sem livros aparecerão com qual valor nas colunas de empréstimo?,null,40
+tag_bib_05,"Apelidos: As letras a, e e l logo após o nome da tabela no FROM servem para criar qual recurso?",apelido,20
+tag_sup_01,Teste 01: Apenas JOIN produz o mesmo resultado que INNER JOIN. (Verdadeiro/Falso),verdadeiro,10
+tag_sup_02,Teste 13: A forma correta para testar se está vazio é usar = NULL. (Verdadeiro/Falso),falso,10
+tag_sup_03,Teste 03: CROSS JOIN exige a cláusula ON para funcionar. (Verdadeiro/Falso),falso,20
+tag_sup_04,Teste 27: A Foreign Key nunca pode apontar para uma coluna que não seja PK. (Verdadeiro/Falso),falso,30
+tag_sup_05,Versão: Função usada com SELECT para ver se SQLite suporta RIGHT/FULL JOIN?,sqlite_version,50
+tag_extra_01,DTL: Comando para salvar definitivamente as alterações de uma transação?,commit,20
+tag_extra_02,DTL: Comando para desfazer as alterações de uma transação iniciada com BEGIN?,rollback,20
+tag_extra_03,DCL: Comando para dar permissão de leitura (SELECT) a um usuário?,grant,30
+tag_extra_04,Sintaxe: Forma correta em SQL para testar a ausência de valor (is null ou = null)?,is null,30
+tag_join_01,JOIN: Qual tipo retorna apenas as linhas que possuem correspondência exata em ambas as tabelas?,inner join,20
+tag_join_02,"JOIN: Qual tipo retorna todas as linhas da tabela da esquerda, mesmo sem par na direita?",left join,30
+tag_join_03,JOIN: Qual tipo retorna todas as linhas da tabela da direita e preenche o lado esquerdo com nulos?,right join,30
+tag_join_04,"JOIN: Qual tipo retorna tudo de ambos os lados, combinando as linhas com e sem correspondência?",full join,40
+tag_join_05,"JOIN: Qual tipo combina todas as linhas de uma tabela com todas as da outra, multiplicando o resultado?",cross join,40
+tag_join_06,"JOIN: Se fizermos um CROSS JOIN entre uma tabela de 5 linhas e outra de 4 linhas, qual será o total de linhas?",20,50
+tag_dml_01,UPDATE: Qual cláusula usamos junto com o comando para especificar quais colunas receberão os novos valores?,set,20
+tag_dml_02,"UPDATE: Se executarmos UPDATE sem a cláusula WHERE, quantas linhas da tabela serão alteradas?",todas,30
+tag_dml_03,DELETE: Este comando serve para apagar apenas o conteúdo de uma coluna específica ou a linha inteira? (Responda: coluna ou linha),linha,20
+tag_dml_04,DELETE: O que impede estruturalmente o DELETE de um registro pai que já está sendo usado em outra tabela filha?,chave estrangeira,40
+tag_dml_05,CRUD: Qual comando DML é usado exclusivamente para modificar dados que já existem na tabela?,update,10
+tag_img_01,"Diagrama: TRUNCATE, COMMENT e RENAME pertencem a qual grupo de comandos SQL estruturais?",ddl,20
+tag_img_02,"Diagrama: SELECT, INSERT, UPDATE, DELETE e MERGE pertencem a qual subconjunto do SQL focado em dados?",dml,20
+tag_img_03,Diagrama: GRANT e REVOKE controlam acessos e permissões. A qual grupo (sigla) eles pertencem?,dcl,20
+tag_img_04,"Diagrama: Qual grupo (sigla) engloba os comandos COMMIT, ROLLBACK e SAVEPOINT para transações?",tcl,20
+tag_img_05,Diagrama DDL: Qual comando é usado para limpar/esvaziar todos os registros de uma tabela mais rapidamente que o DELETE?,truncate,40
+tag_img_06,Diagrama TCL: Qual comando cria um ponto de restauração intermediário dentro de uma transação aberta?,savepoint,30
+tag_img_07,Diagrama DCL: Qual comando concede privilégios e permissões específicas a um usuário no banco?,grant,20
+tag_img_08,"Diagrama DML: Além do SELECT, INSERT, UPDATE e DELETE, o diagrama cita o comando para unir/mesclar dados. Qual é?",merge,50
+tag_img_09,Diagrama DCL: Qual comando revoga ou retira uma permissão que foi dada anteriormente a um usuário?,revoke,30
