@@ -1,3 +1,5 @@
+import { AvisoPerfilHub, usePerfilHub } from '../common/PerfilHub';
+import { lerPerfilHub, nomeNaLista } from '../../utils/perfilHub';
 import { useSalaPublica } from '../../utils/turmasApi';
 import { marcarUso, sessaoParada } from '../../utils/sessaoUso';
 import { ConfirmaQuem } from '../common/ConfirmaQuem';
@@ -64,7 +66,8 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const turmaSala = salaInfo?.turma ?? null;
   const papeisSala = modulo === 'ctf' ? salaInfo?.papeis ?? '' : '';
   const [cabine, setCabine] = useState('');
-  const [nome, setNome] = useState('');
+  const perfilHub = usePerfilHub();
+  const [nome, setNome] = useState(() => lerPerfilHub()?.nome ?? '');
   const [state, setState] = useState<CtfState | null>(null);
   const [answer, setAnswer] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,6 +75,13 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [captura, setCaptura] = useState<Captura | null>(null);
   const answerRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!perfilHub) return;
+    if (turmaSala) {
+      const n = nomeNaLista(perfilHub, turmaSala.alunos);
+      setNome((v) => (!v || v === perfilHub.nome ? n : v));
+    } else setNome((v) => v || perfilHub.nome);
+  }, [perfilHub, turmaSala]);
 
   // Link de convite traz a URL do backend: guarda para recarregar a página sem perder
   useEffect(() => {
@@ -244,6 +254,8 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               Este navegador ainda não conhece o servidor. Abra o <strong>link de convite</strong> enviado pelo professor.
             </div>
           )}
+
+          <AvisoPerfilHub perfil={perfilHub} />
 
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">

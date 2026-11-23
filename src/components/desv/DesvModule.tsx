@@ -1,3 +1,5 @@
+import { AvisoPerfilHub, usePerfilHub } from '../common/PerfilHub';
+import { lerPerfilHub, nomeNaLista } from '../../utils/perfilHub';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Code2, Database, KeyRound, Lightbulb, Loader2, LogOut, NotebookPen, RefreshCw, Search, Trophy, Users, XCircle } from 'lucide-react';
 import { DESV_CASOS, DesvCaso, DesvCasoCodigo, DesvCasoLogica } from '../../data/desvCasos';
@@ -314,8 +316,14 @@ const CartaoCaso: React.FC<{ caso: DesvCaso; feito?: number; onAbrir: () => void
 const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: Sessao, e: Estado) => void }> = ({ gid, erroInicial, onEntrou }) => {
   const [token, setToken] = useState(tokenDoLink);
   const [nome, setNome] = useState('');
-  const [integrantes, setIntegrantes] = useState('');
+  const perfilHub = usePerfilHub();
+  const [integrantes, setIntegrantes] = useState(() => lerPerfilHub()?.nome ?? '');
   const turmaSala = useTurmaDaSala(token, gid);
+  useEffect(() => {
+    if (!perfilHub || !turmaSala) return;
+    const n = nomeNaLista(perfilHub, turmaSala.alunos);
+    setIntegrantes((v) => (v === perfilHub.nome ? n : v));
+  }, [perfilHub, turmaSala]);
   const [erro, setErro] = useState(erroInicial);
   const [busy, setBusy] = useState(false);
   const entrar = async (e: React.FormEvent) => {
@@ -343,6 +351,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
           <h2 className="text-2xl font-black text-white">Entrar com a dupla</h2>
           <p className="text-sm text-slate-400">Os casos são liberados pelo professor da sua turma.</p>
         </div>
+        <AvisoPerfilHub perfil={perfilHub} />
         <label className="block space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <KeyRound className="w-3.5 h-3.5 text-violet-300" /> Token da sala
