@@ -1,0 +1,44 @@
+name: Build preview do Trilha Rali
+
+on:
+  push:
+    branches:
+      - preview/clean-logo3-v3
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 'pages-preview-trilha-rali-clean-v3'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript validation
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      - name: Publish isolated preview (does not replace production root)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          destination_dir: previews/clean-logo3-v3
+          keep_files: true
