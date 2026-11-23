@@ -1,8 +1,8 @@
 import React from 'react';
 import {
-  ArrowRight, BarChart3, Bell, BookOpen, BrainCircuit, Code2, Flag,
+  ArrowRight, BarChart3, Bell, BookOpen, BrainCircuit, ChevronDown, Code2, Flag,
   FlaskConical, Gamepad2, GraduationCap, HelpCircle, Home, Lock,
-  Puzzle, Radio, Rocket, Search, ShieldCheck, Star, Trophy, TrendingUp, Users
+  Puzzle, Radio, Rocket, Search, ShieldCheck, Star, Trophy, TrendingUp, UserRound, Users
 } from 'lucide-react';
 import { TrilhaMarca, TrilhaNome } from './TrilhaMarca';
 import { IfsLogo } from './IfsLogo';
@@ -35,11 +35,11 @@ const Shortcut: React.FC<ShortcutProps> = ({ title, subtitle, accent, icon, onCl
   const a = accents[accent];
   return (
     <button type="button" onClick={onClick}
-      className={`group flex min-h-[62px] w-full items-center gap-3 rounded-2xl border border-slate-200 border-l-[5px] ${a.border} bg-white px-3 py-2.5 text-left shadow-[0_3px_10px_rgba(10,35,60,.08)] transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600`}>
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${a.icon}`}>{icon}</span>
+      className={`group flex min-h-[50px] w-full items-center gap-2.5 rounded-xl border border-slate-200 border-l-[5px] ${a.border} bg-white px-3 py-2.5 text-left shadow-[0_3px_10px_rgba(10,35,60,.08)] transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600`}>
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.icon}`}>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-extrabold leading-tight text-slate-900">{title}</span>
-        <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{subtitle}</span>
+        <span className="block text-[12px] font-extrabold leading-tight text-slate-900">{title}</span>
+        <span className="mt-0.5 block text-[10px] font-semibold text-slate-500">{subtitle}</span>
       </span>
       <ArrowRight className={`h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 ${a.arrow}`} />
     </button>
@@ -61,7 +61,7 @@ const ToolCard: React.FC<ToolCardProps> = ({ title, description, label, icon, gr
       <span className="pointer-events-none absolute -bottom-10 -right-8 h-24 w-24 rounded-full border border-white/20 shadow-[0_0_0_12px_rgba(255,255,255,.05),0_0_0_24px_rgba(255,255,255,.04)]"/>
     </>
   );
-  const cls = `relative flex min-h-[132px] flex-col items-center justify-start overflow-hidden rounded-xl px-2 pb-5 pt-3 text-center shadow-[0_5px_12px_rgba(10,35,60,.18)] transition sm:min-h-[146px] ${soon ? 'cursor-default opacity-90' : 'hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300'}`;
+  const cls = `relative flex min-h-[112px] flex-col items-center justify-start overflow-hidden rounded-xl px-1.5 pb-4 pt-2.5 text-center shadow-[0_5px_12px_rgba(10,35,60,.18)] transition sm:min-h-[118px] ${soon ? 'cursor-default opacity-90' : 'hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300'}`;
   if (href) return <a href={href} className={cls} style={{ background: gradient }} aria-label={title}>{inner}</a>;
   if (soon) return <div className={cls} style={{ background: gradient }} aria-label={`${title}: em breve`}>{inner}</div>;
   return <button type="button" onClick={onClick} disabled={!onClick} className={cls} style={{ background: gradient }}>{inner}</button>;
@@ -114,29 +114,30 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
 
     <header className="relative z-20 overflow-hidden bg-[#061B32] text-white shadow-lg">
       <div className="pointer-events-none absolute right-0 top-0 h-full w-40 bg-gradient-to-l from-[#00C853] to-[#B7F52B]" style={{ clipPath: 'polygon(72% 0,100% 0,100% 100%,0 100%)' }}/>
-      <div className="relative mx-auto flex min-h-[74px] max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-[70px] max-w-[1440px] flex-wrap items-center justify-between gap-2 px-3 py-2 sm:flex-nowrap sm:px-5 lg:px-8">
         <a href="#inicio" className="flex shrink-0 items-center gap-2.5" aria-label="Trilha Rali - Início">
-          <TrilhaMarca size={48}/>
+          <TrilhaMarca size={42}/>
           <TrilhaNome className="text-[18px] sm:text-[20px]"/>
           <span className="ml-1 hidden h-10 w-px bg-white/50 sm:block"/>
         </a>
-        <nav aria-label="Menu principal" className="flex flex-1 flex-wrap items-center justify-center gap-1 text-[12px] font-bold sm:gap-2">
+        <nav aria-label="Menu principal" className="order-3 flex w-full flex-wrap items-center justify-center gap-1 text-[10px] font-bold sm:order-none sm:w-auto sm:flex-1 sm:flex-nowrap sm:gap-0.5">
           <a href="#inicio" className="inline-flex items-center gap-1.5 rounded-xl bg-[#B7F52B] px-3 py-2.5 text-[#071B2E] shadow-sm"><Home size={16}/> Início</a>
           <a href="#ferramentas" className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-slate-100 transition hover:bg-white/10"><Gamepad2 size={16}/> Ferramentas</a>
           <button onClick={onOpenCtf} className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-slate-100 transition hover:bg-white/10"><Trophy size={16}/> Desafios</button>
           <button onClick={onOpenCtf} className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-slate-100 transition hover:bg-white/10"><BarChart3 size={16}/> Ranking</button>
           <a href="#ajuda" className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-slate-100 transition hover:bg-white/10"><HelpCircle size={16}/> Ajuda</a>
         </nav>
-        <div className="flex shrink-0 items-center gap-2">
-          <a href={URL_ESTUDOS} aria-label="Ambientes de estudo" title="Ambientes de estudo" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"><BookOpen size={17}/></a>
-          <button type="button" onClick={onOpenTeacher} title={isTeacher ? 'Área do professor' : 'Acesso do professor'} aria-label="Área do professor" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#B7F52B] text-[#071B2E] shadow"><ShieldCheck size={18}/></button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button type="button" aria-label="Notificações" title="Notificações" className="flex h-8 w-8 items-center justify-center rounded-full text-white transition hover:bg-white/10"><Bell size={17}/></button>
+          <button type="button" onClick={onOpenTeacher} title={isTeacher ? 'Área do professor' : 'Acesso do professor'} aria-label="Perfil e área do professor" className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white/80 bg-gradient-to-br from-[#B7F52B] to-[#00A651] text-white shadow"><UserRound size={18}/></button>
+          <button type="button" onClick={onOpenTeacher} aria-label="Abrir opções do perfil" className="flex h-7 w-5 items-center justify-center text-white"><ChevronDown size={14}/></button>
         </div>
       </div>
       <div className="absolute bottom-0 left-0 h-[3px] w-full bg-gradient-to-r from-[#00C853] via-[#B7F52B] to-transparent"/>
     </header>
 
     <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-5 pt-4 sm:px-6 lg:px-8">
-      <section className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,2.15fr)_minmax(260px,1fr)]" aria-label="Boas-vindas e atalhos">
+      <section className="grid items-stretch gap-2.5 sm:grid-cols-[minmax(0,2.15fr)_minmax(145px,1fr)] sm:gap-3" aria-label="Boas-vindas e atalhos">
         <div className="trilha-hero relative isolate flex min-h-[215px] overflow-hidden rounded-[22px] border border-emerald-300/40 px-5 py-5 shadow-[0_7px_18px_rgba(3,25,47,.22)] sm:min-h-[235px] sm:px-7 sm:py-6">
           <div className="relative z-10 flex max-w-[54%] flex-col items-start justify-center">
             <p className="text-[15px] italic text-slate-100 sm:text-lg">Bem-vindo ao</p>
@@ -148,7 +149,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           <div className="pointer-events-none absolute bottom-0 left-0 h-1.5 w-full bg-gradient-to-r from-[#00C853] via-[#B7F52B] to-transparent"/>
         </div>
 
-        <div className="grid content-center gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid content-center gap-2">
           <Shortcut title="Rali NFC" subtitle="Pelo laboratório" accent="green" icon={<Radio size={22}/>} onClick={onOpenRali}/>
           <Shortcut title="CTF Online" subtitle="Individual" accent="orange" icon={<Flag size={22}/>} onClick={onOpenCtf}/>
           <Shortcut title="Cruzada Online" subtitle="Individual" accent="cyan" icon={<Puzzle size={22}/>} onClick={onOpenCruz}/>
@@ -164,7 +165,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           </div>
           <a href="#ferramentas" className="inline-flex items-center gap-1 text-[11px] font-bold text-green-700 hover:text-green-900">Ver todas as ferramentas <ArrowRight size={13}/></a>
         </div>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-2">
           <ToolCard title="Jogos Educativos" description="Acesse Rali NFC, CTF, Cruzada e Desvendando." label="Jogue e aprenda!" icon={<Gamepad2 size={34}/>} gradient="linear-gradient(145deg,#079CFF,#0753C9 70%,#073B91)" href="#atividades"/>
           <ToolCard title="Desafios e Conquistas" description="Capture bandeiras e suba no ranking." label="Supere limites!" icon={<Trophy size={34}/>} gradient="linear-gradient(145deg,#16D92F,#078A35 72%,#045A2A)" onClick={onOpenCtf}/>
           <ToolCard title="Simuladores e Labs" description="Pratique nos laboratórios do portal de estudos." label="Pratique na prática!" icon={<BarChart3 size={34}/>} gradient="linear-gradient(145deg,#00A8F5,#0757D4 70%,#073C9C)" href={URL_ESTUDOS + 'laboratorio-3d/'}/>
