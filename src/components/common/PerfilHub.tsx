@@ -31,15 +31,19 @@ export const AvisoPerfilHub: React.FC<{ perfil: PerfilHub | null }> = ({ perfil 
         <a href={URL_HUB} className="shrink-0 text-xs font-bold text-emerald-400 hover:underline">Trocar</a>
       </div>
     );
-  return (
-    <a
-      href={`${URL_HUB}?volta=${voltar}`}
-      className="flex items-center gap-2.5 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-300 hover:border-emerald-500/60"
-    >
-      <LogIn className="h-4 w-4 shrink-0 text-emerald-400" />
-      <span className="min-w-0 flex-1">
-        <b className="text-white">Entre no HUB</b> para jogar com o seu nome e turma, sem digitar.
-      </span>
-    </a>
-  );
+  return <BotaoEntrarHub voltar={voltar} />;
 };
+
+/** Botão para entrar pelo HUB: o aluno escolhe curso, ano, turma e o próprio nome na lista (com PIN) e volta para cá. */
+export const BotaoEntrarHub: React.FC<{ voltar?: string; texto?: string }> = ({ voltar, texto }) => (
+  <a
+    href={`${URL_HUB}?volta=${voltar ?? encodeURIComponent(window.location.href)}`}
+    className="flex items-center gap-3 rounded-xl border-2 border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-sm text-slate-200 transition hover:bg-emerald-500/20"
+  >
+    <LogIn className="h-5 w-5 shrink-0 text-emerald-400" />
+    <span className="min-w-0 flex-1 leading-snug">
+      <b className="block text-base text-white">{texto ?? 'Entrar com meu curso e nome'}</b>
+      Escolha o curso, o ano, a turma e o seu nome na lista. Depois você volta para cá.
+    </span>
+  </a>
+);
