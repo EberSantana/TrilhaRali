@@ -1,32 +1,25 @@
 import React from 'react';
-import markEscuro from '../assets/trilha-rali-mark.png';
-import logoEscuro from '../assets/trilha-rali-logo.png';
-import markClaro from '../assets/trilha-rali-mark-claro.png';
-import logoClaro from '../assets/trilha-rali-logo-claro.png';
+import { TrilhaMarca, TrilhaNome } from './TrilhaMarca';
 import { useTheme } from '../utils/theme';
 
 interface TrilhaLogoProps {
-  /** 'mark' = só o símbolo (bandeira + estrada); 'full' = logo completa com o nome e o lema */
+  /** 'mark' = só o símbolo; 'full' = símbolo com o nome e o lema */
   variant?: 'mark' | 'full';
-  /** altura em px (ou qualquer valor CSS, ex.: clamp(...)) */
+  /** altura em px */
   height?: number | string;
   className?: string;
 }
 
-/**
- * Logo do portal Trilha Rali. A arte original usa branco nos detalhes (estrada, pino, bandeira, "TRILHA"),
- * que some em fundo claro: no tema claro entra a versão com esses detalhes em azul-ardósia.
- */
+/** Logo da Trilha Rali em SVG (símbolo) + texto (nome), legível nos dois temas. */
 export const TrilhaLogo: React.FC<TrilhaLogoProps> = ({ variant = 'mark', height = 40, className = '' }) => {
   const claro = useTheme() === 'claro';
-  const src = variant === 'full' ? (claro ? logoClaro : logoEscuro) : claro ? markClaro : markEscuro;
+  if (variant === 'mark') return <TrilhaMarca size={height} className={className} title="Trilha Rali" />;
+  const h = typeof height === 'number' ? height : 150;
   return (
-    <img
-      src={src}
-      alt="Trilha Rali — Etapas, Desafios, Conhecimento"
-      style={{ height, width: 'auto' }}
-      className={`shrink-0 object-contain select-none ${className}`}
-      draggable={false}
-    />
+    <div className={`inline-flex flex-col items-center ${className}`} role="img" aria-label="Trilha Rali, HUB de ferramentas gamificadas">
+      <TrilhaMarca size={h * 0.62} />
+      <TrilhaNome tom={claro ? 'sobre-claro' : 'sobre-escuro'} className="items-center" style={{ fontSize: h * 0.17 }} />
+      <span className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">HUB de ferramentas gamificadas</span>
+    </div>
   );
 };
