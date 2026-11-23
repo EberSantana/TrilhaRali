@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-  ArrowRight, BookOpen, Flag, Gamepad2, GraduationCap, HelpCircle, Home,
-  Lock, Puzzle, Radio, Search, ShieldCheck, Sparkles, Trophy, UserRound,
+  ArrowRight, Flag, Gamepad2, GraduationCap, HelpCircle, Home,
+  Lock, Puzzle, Radio, Search, ShieldCheck, Trophy, UserRound,
   FlaskConical, Code2, BrainCircuit, Star, TrendingUp, Compass
 } from 'lucide-react';
 import { TrilhaMarca, TrilhaNome } from './TrilhaMarca';
