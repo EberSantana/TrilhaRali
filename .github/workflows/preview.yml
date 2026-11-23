@@ -40,5 +40,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./dist
-          destination_dir: previews/dashboard-profissional-v2
+          destination_dir: previews/clean-logo3-v3
           keep_files: true
