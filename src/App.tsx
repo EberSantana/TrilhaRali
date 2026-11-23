@@ -25,7 +25,7 @@ import { ModuleShell } from './components/common/ModuleShell';
 import { TRILHAS } from './components/common/trilhas';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
-import { HomeLanding } from './components/HomeLanding';
+import { DashboardHome } from './components/DashboardHome';
 import { TeacherHub } from './components/TeacherHub';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
 import { IfsLogo } from './components/IfsLogo';
@@ -368,7 +368,7 @@ export default function App() {
 
       {appModule === 'home' ? (
         <main className="flex-1 flex flex-col">
-          <HomeLanding
+          <DashboardHome
             isTeacher={isTeacher}
             onOpenRali={() => handleChangeModule('rali')}
             onOpenCtf={() => handleChangeModule('ctf')}
