@@ -1,3 +1,4 @@
+import { lerPerfilHub } from '../../utils/perfilHub';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Eraser, Eye, Lightbulb, Loader2, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -35,7 +36,7 @@ const KEY_NOME = 'rali_cruz_nome_v1';
 function FormRanking({ pontos, salvar, ver }: { pontos: number; salvar: NonNullable<CruzApi['ranking']>; ver?: () => void }) {
   const [nome, setNome] = useState(() => {
     try {
-      return localStorage.getItem(KEY_NOME) || '';
+      return localStorage.getItem(KEY_NOME) || lerPerfilHub()?.nome || '';
     } catch {
       return '';
     }
