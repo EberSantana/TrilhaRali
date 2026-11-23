@@ -1,4 +1,4 @@
-import { AvisoPerfilHub, usePerfilHub } from '../common/PerfilHub';
+import { AvisoPerfilHub, BotaoEntrarHub, usePerfilHub } from '../common/PerfilHub';
 import { lerPerfilHub, nomeNaLista } from '../../utils/perfilHub';
 import { useSalaPublica } from '../../utils/turmasApi';
 import { marcarUso, sessaoParada } from '../../utils/sessaoUso';
@@ -80,7 +80,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
     if (turmaSala) {
       const n = nomeNaLista(perfilHub, turmaSala.alunos);
       setNome((v) => (!v || v === perfilHub.nome ? n : v));
-    } else setNome((v) => v || perfilHub.nome);
+    } else setNome(perfilHub.nome);
   }, [perfilHub, turmaSala]);
 
   // Link de convite traz a URL do backend: guarda para recarregar a página sem perder
@@ -246,7 +246,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
             </div>
             <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada' : 'Entrar no CTF'}</h2>
-            <p className="text-sm text-slate-400">Digite o token da sala e seu nome.</p>
+            <p className="text-sm text-slate-400">Digite o token da sala. Seu nome vem do HUB.</p>
           </div>
 
           {!hasApi && (
@@ -255,7 +255,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             </div>
           )}
 
-          <AvisoPerfilHub perfil={perfilHub} />
+          {perfilHub && <AvisoPerfilHub perfil={perfilHub} />}
 
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
@@ -282,15 +282,10 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
               {turmaSala ? (
                 <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
+              ) : perfilHub ? (
+                <input value={nome} readOnly aria-readonly="true" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white opacity-90 cursor-default outline-none" />
               ) : (
-                <input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  maxLength={40}
-                  autoComplete="name"
-                  placeholder="Nome e sobrenome"
-                  className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white placeholder-slate-500 focus:ring-2 outline-none ${ac.foco}`}
-                />
+                <BotaoEntrarHub />
               )}
             </label>
           )}

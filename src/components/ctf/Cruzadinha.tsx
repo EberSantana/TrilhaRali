@@ -1,3 +1,4 @@
+import { BotaoEntrarHub } from '../common/PerfilHub';
 import { lerPerfilHub } from '../../utils/perfilHub';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Eraser, Eye, Lightbulb, Loader2, Puzzle, ShieldCheck, Trophy } from 'lucide-react';
@@ -36,7 +37,7 @@ const KEY_NOME = 'rali_cruz_nome_v1';
 function FormRanking({ pontos, salvar, ver }: { pontos: number; salvar: NonNullable<CruzApi['ranking']>; ver?: () => void }) {
   const [nome, setNome] = useState(() => {
     try {
-      return localStorage.getItem(KEY_NOME) || lerPerfilHub()?.nome || '';
+      return lerPerfilHub()?.nome || '';
     } catch {
       return '';
     }
@@ -81,13 +82,11 @@ function FormRanking({ pontos, salvar, ver }: { pontos: number; salvar: NonNulla
   return (
     <form onSubmit={enviar} className="mt-3 space-y-2 text-left">
       <label className="block text-[11px] font-black uppercase tracking-wider text-amber-200">Seu nome para o ranking ({pontos} pts)</label>
-      <input
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        maxLength={30}
-        placeholder="Escreva seu nome"
-        className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-amber-400"
-      />
+      {nome ? (
+        <p className="w-full rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 text-sm font-bold text-white">{nome}</p>
+      ) : (
+        <BotaoEntrarHub texto="Entrar com meu nome para o ranking" />
+      )}
       {erro && <p className="text-xs text-rose-300">{erro}</p>}
       <button
         type="submit"

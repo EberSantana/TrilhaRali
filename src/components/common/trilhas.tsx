@@ -22,7 +22,7 @@ export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv', { accent: Accent;
     title: 'CTF Online',
     tagline: 'Individual, fase a fase',
     comoJogar: [
-      { titulo: 'Entre na sala', texto: 'Digite o token da sala e seu nome e sobrenome.' },
+      { titulo: 'Entre na sala', texto: 'Entre com o seu curso e nome (pelo HUB) e digite o token da sala.' },
       { titulo: 'Resolva as fases', texto: 'Leia a pergunta e envie a resposta. Algumas pedem o Console SQL, o terminal Linux ou o laboratório.' },
       { titulo: 'Use as ferramentas', texto: 'Quando a fase citar o console ou o laboratório, abra a ferramenta logo abaixo da pergunta e investigue.' },
       { titulo: 'Suba no ranking', texto: 'Cada acerto dá XP. O Top 5 aparece no telão e o gabarito comentado é liberado pelo professor no fim.' },
