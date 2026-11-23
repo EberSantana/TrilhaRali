@@ -1,113 +1,94 @@
 import React, { useState } from 'react';
-import { ArrowRight, BarChart3, Bell, BookOpen, BrainCircuit, ChevronDown, Code2, Flag, Gamepad2, GraduationCap, HelpCircle, Home, Menu, Puzzle, Radio, Rocket, Search, ShieldCheck, Star, Trophy, TrendingUp, Users, X, LockKeyhole } from 'lucide-react';
-import { LogoClean3 } from './LogoClean3';
+import { ArrowRight, BarChart3, Bell, BookOpen, ChevronDown, Code2, Flag, Gamepad2, GraduationCap, Home, Layers3, Menu, Puzzle, Radio, Search, ShieldCheck, Trophy, X, Medal, Lightbulb, Laptop, Check, TrendingUp, Play, HelpCircle } from 'lucide-react';
 import { IfsLogo } from './IfsLogo';
 
-interface Props {
-  isTeacher: boolean;
-  onOpenRali: () => void;
-  onOpenCtf: () => void;
-  onOpenCruz: () => void;
-  onOpenDesv: () => void;
-  onOpenTeacher: () => void;
-}
+interface Props { isTeacher:boolean; onOpenRali:()=>void; onOpenCtf:()=>void; onOpenCruz:()=>void; onOpenDesv:()=>void; onOpenTeacher:()=>void }
 const studies = 'https://ebersantana.github.io/disciplinas/';
-type Action = {title:string; subtitle:string; icon:React.ReactNode; color:string; onClick:()=>void};
-export const DashboardHome: React.FC<Props> = ({isTeacher,onOpenRali,onOpenCtf,onOpenCruz,onOpenDesv,onOpenTeacher}) => {
-  const [menuOpen,setMenuOpen] = useState(false);
-  const [query,setQuery] = useState('');
-  const [showHelp,setShowHelp] = useState(false);
-  const actions:Action[] = [
-    {title:'Rali NFC',subtitle:'Pelo laboratório',icon:<Radio/>,color:'#008D31',onClick:onOpenRali},
-    {title:'CTF Online',subtitle:'Individual',icon:<Flag/>,color:'#F97316',onClick:onOpenCtf},
-    {title:'Cruzada Online',subtitle:'Individual',icon:<Puzzle/>,color:'#1265E9',onClick:onOpenCruz},
-    {title:'Desvendando',subtitle:'Dupla',icon:<Search/>,color:'#6530DF',onClick:onOpenDesv}
-  ];
-  const cards = [
-    {title:'Jogos Educativos',subtitle:'Jogue e aprenda!',icon:<Gamepad2/>,gradient:'linear-gradient(145deg,#EAF5FF,#D8EAFE)',onClick:onOpenRali},
-    {title:'Desafios e Conquistas',subtitle:'Supere limites!',icon:<Trophy/>,gradient:'linear-gradient(145deg,#FFF9E9,#FFF0CE)',onClick:onOpenCtf},
-    {title:'Simuladores e Labs',subtitle:'Pratique na prática!',icon:<BarChart3/>,gradient:'linear-gradient(145deg,#E9F6FF,#D8EEFC)',href:studies+'laboratorio-3d/'},
-    {title:'Programação',subtitle:'Em breve',icon:<Code2/>,gradient:'linear-gradient(145deg,#EEFAED,#DDF5DB)',soon:true},
-    {title:'IA na Educação',subtitle:'Em breve',icon:<BrainCircuit/>,gradient:'linear-gradient(145deg,#F5EEFF,#EBE0FE)',soon:true},
-    {title:'Aprendizagem',subtitle:'Ambientes de estudo',icon:<GraduationCap/>,gradient:'linear-gradient(145deg,#F0FBEF,#DDF5DA)',href:studies}
-  ];
-  const nav = [
-    {title:'Início',icon:<Home/>,onClick:()=>{window.scrollTo({top:0,behavior:'smooth'});setMenuOpen(false)}},
-    {title:'Ferramentas',icon:<Gamepad2/>,onClick:()=>{document.getElementById('ferramentas')?.scrollIntoView({behavior:'smooth'});setMenuOpen(false)}},
-    {title:'Desafios',icon:<Trophy/>,onClick:onOpenCtf},
-    {title:'Ranking',icon:<BarChart3/>,onClick:onOpenCtf},
-    {title:'Trilhas de Aprendizagem',icon:<BookOpen/>,href:studies},
-    {title:'Conquistas',icon:<Star/>,onClick:()=>{document.getElementById('progresso')?.scrollIntoView({behavior:'smooth'});setMenuOpen(false)}},
-    {title:'Biblioteca',icon:<BookOpen/>,href:studies},
-    {title:'Ajuda e Suporte',icon:<HelpCircle/>,onClick:()=>{setShowHelp(true);setMenuOpen(false)}}
-  ];
-  const filtered = query.trim() ? actions.filter(a=>a.title.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))) : [];
-  return <div className="tr-dashboard min-h-screen bg-[#FFFFFF] text-[#122A32]">
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Orbitron:wght@700;800;900&display=swap');
-      .tr-dashboard{font-family:Montserrat,system-ui,sans-serif}
-      .tr-brand{font-family:Orbitron,system-ui,sans-serif}
-      .tr-side{background:#FFFFFF;color:#142D35;border-right:1px solid #E2EAF0}
-      .tr-hero{background:radial-gradient(circle at 88% 20%,#BCEFD4,transparent 38%),linear-gradient(115deg,#F0FFF5,#DDF8E9)}
-      .tr-hero:after{content:'';position:absolute;right:-9%;bottom:-75%;width:60%;height:140%;border:28px solid #72DDA3;border-radius:50%;transform:rotate(-20deg);opacity:.24;pointer-events:none}
-      .tr-card{transition:transform .2s,box-shadow .2s}
-      .tr-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #102A3B19}
-      .tr-focus:focus-visible{outline:3px solid #00C853;outline-offset:3px}
-      @media(prefers-reduced-motion:reduce){.tr-card{transition:none}}
-    `}</style>
-    <div className="flex min-h-screen">
-      {menuOpen && <button className="fixed inset-0 z-30 bg-[#061B32]/40 lg:hidden" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}/>}
-      <aside className={`tr-side fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col overflow-y-auto px-4 py-5 shadow-sm transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${menuOpen?'translate-x-0':'-translate-x-full'}`}>
-        <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-2"><LogoClean3/></div>
-          <button className="tr-focus lg:hidden" onClick={()=>setMenuOpen(false)} aria-label="Fechar menu"><X/></button>
-        </div>
-        <p className="mb-5 text-center text-xs font-semibold italic text-slate-500">Ferramentas Gamificadas</p>
-        <nav aria-label="Menu principal" className="space-y-1">
-          {nav.map((n,i)=>n.href?<a key={n.title} href={n.href} className="tr-focus flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-[#F1F7F4]">{React.cloneElement(n.icon as React.ReactElement<{size:number}>,{size:19})}{n.title}</a>:<button key={n.title} onClick={n.onClick} className={`tr-focus flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${i===0?'bg-[#008F45] text-white':'hover:bg-[#F1F7F4]'}`}>{React.cloneElement(n.icon as React.ReactElement<{size:number}>,{size:19})}{n.title}</button>)}
-        </nav>
-        <div id="progresso" className="mt-auto space-y-3 pt-7">
-          <div className="rounded-2xl border border-[#E0EAE5] bg-[#F7FAF8] p-4">
-            <p className="text-sm font-extrabold">Meu Progresso</p>
-            <p className="mt-2 text-xs text-slate-600">Seu histórico de conquistas estará disponível quando o acompanhamento individual estiver integrado.</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#008D45]"><LockKeyhole size={13}/> Em preparação</span>
-          </div>
-          <div className="flex items-center gap-3 rounded-2xl border border-white/25 bg-white/5 p-3"><IfsLogo size="md"/><span className="text-xs font-semibold">Instituto Federal de Sergipe<br/>Campus Tobias Barreto</span></div>
-        </div>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex min-h-[70px] items-center gap-3 bg-white px-4 text-[#102B28] shadow-sm border-b border-[#E5ECEF] sm:px-6">
-          <button className="tr-focus rounded-lg p-2 lg:hidden" onClick={()=>setMenuOpen(true)} aria-label="Abrir menu"><Menu/></button>
-          <div className="relative mx-auto w-full max-w-[570px]">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"/>
-            <input value={query} onChange={e=>setQuery(e.target.value)} aria-label="Buscar atividades" placeholder="Buscar ferramentas e desafios..." className="tr-focus w-full rounded-xl border border-[#DDE6EA] bg-[#F8FAFB] py-2.5 pl-10 pr-3 text-sm text-[#102B28] placeholder:text-slate-500"/>
-            {query.trim() && <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white text-[#081F3B] shadow-xl">{filtered.length?filtered.map(a=><button key={a.title} onClick={()=>{setQuery('');a.onClick()}} className="block w-full px-4 py-3 text-left text-sm font-bold hover:bg-slate-100">{a.title}</button>):<p className="p-3 text-sm">Nenhuma atividade encontrada</p>}</div>}
-          </div>
-          <button className="tr-focus hidden rounded-full p-2 sm:block" onClick={()=>setShowHelp(true)} aria-label="Informações e ajuda"><Bell size={20}/></button>
-          <button className="tr-focus flex shrink-0 items-center gap-2" onClick={onOpenTeacher} aria-label="Acessar área do professor"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E6F8EC] text-[#008D45]"><ShieldCheck size={20}/></span><span className="hidden text-left text-xs font-bold sm:block">{isTeacher?'Professor':'Área do professor'}<small className="block font-normal text-slate-500">Acessar painel</small></span><ChevronDown size={14}/></button>
-        </header>
-        <main className="w-full flex-1 space-y-5 p-3 sm:p-5">
-          <section className="grid gap-3 xl:grid-cols-[minmax(0,2.5fr)_minmax(225px,1fr)]">
-            <div className="tr-hero relative isolate flex min-h-[275px] overflow-hidden rounded-[24px] border border-[#D8EBDF] px-6 py-7 shadow-sm sm:px-9">
-              <div className="relative z-10 flex max-w-[67%] flex-col justify-center"><p className="text-xl text-[#325E4C]">Bem-vindo ao</p><h1 className="tr-brand my-2 text-[clamp(29px,4vw,60px)] font-black leading-none text-[#087543]">Trilha Rali!</h1><p className="max-w-[400px] text-sm font-semibold text-[#305348] sm:text-base">Seu HUB de ferramentas gamificadas para aprender, evoluir e conquistar.</p><button onClick={onOpenRali} className="tr-focus mt-5 flex w-fit items-center gap-2 rounded-xl bg-[#D4FF72] px-5 py-3 text-sm font-extrabold text-[#061B32] hover:brightness-110"><Rocket size={18}/> Comece agora <ArrowRight size={17}/></button></div>
-              <div className="pointer-events-none absolute bottom-6 right-4 z-10 flex h-[66%] w-[34%] items-center justify-center opacity-90"><div className="rounded-[30px] border border-[#B9E3CD] bg-white/80 p-5 text-[#008C4D] shadow-xl backdrop-blur-sm"><Gamepad2 size={105} strokeWidth={1.2}/><GraduationCap className="mx-auto -mt-2" size={54} strokeWidth={1.3}/></div></div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">{actions.map(a=><button key={a.title} onClick={a.onClick} className="tr-focus tr-card flex min-h-[62px] items-center gap-3 rounded-2xl border border-[#E1E9EE] bg-white px-4 py-2 text-left shadow-md"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{background:a.color+'18',color:a.color}}>{a.icon}</span><span className="flex-1"><b className="block text-sm">{a.title}</b><small className="text-xs text-slate-600">{a.subtitle}</small></span><ArrowRight size={18}/></button>)}</div>
-          </section>
-          <section id="ferramentas" className="scroll-mt-24">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="border-l-[4px] border-[#00A651] pl-3 text-xl font-black">Nossas Ferramentas</h2><a href={studies} className="tr-focus flex items-center gap-1 text-xs font-bold text-green-800">Ambientes de estudo <ArrowRight size={16}/></a></div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{cards.map(c=>{const inner=<><span className="mb-2 [&>svg]:h-10 [&>svg]:w-10">{c.icon}</span><b className="text-center text-sm leading-tight">{c.title}</b><small className="mt-2 text-center text-xs">{c.subtitle}</small>{!c.soon&&<ArrowRight size={15} className="absolute bottom-2 right-2"/>}</>;const cls="tr-card tr-focus relative flex min-h-[155px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#DCE8E8] px-3 py-4 text-[#102B28] shadow-sm";return c.soon?<div key={c.title} className={cls} style={{background:c.gradient}} aria-label={c.title+' em breve'}>{inner}</div>:c.href?<a key={c.title} href={c.href} className={cls} style={{background:c.gradient}}>{inner}</a>:<button key={c.title} onClick={c.onClick} className={cls} style={{background:c.gradient}}>{inner}</button>})}</div>
-          </section>
-          <section aria-label="Nossa jornada" className="grid grid-cols-2 gap-3 rounded-2xl border border-[#E1E9EE] bg-white p-4 shadow-md md:grid-cols-4">{[{title:'Aprenda',desc:'com jogos e desafios',icon:<Star/>,color:'#008B37'},{title:'Acompanhe',desc:'seu progresso',icon:<TrendingUp/>,color:'#0767D8'},{title:'Conquiste',desc:'novas habilidades',icon:<Trophy/>,color:'#EAB308'},{title:'Faça parte',desc:'desta jornada',icon:<Users/>,color:'#009F3E'}].map(x=><div key={x.title} className="flex items-center justify-center gap-2 border-r border-slate-200 last:border-r-0"><span style={{color:x.color}}>{x.icon}</span><span><b className="block text-sm">{x.title}</b><small className="text-xs text-slate-600">{x.desc}</small></span></div>)}</section>
-          <section className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-2xl border border-[#CFDEED] bg-white p-5 shadow-md"><h3 className="mb-3 flex items-center gap-2 font-extrabold"><BookOpen size={20}/> Atividades</h3><p className="text-sm text-slate-600">Escolha uma das atividades disponíveis para começar sua jornada.</p><button onClick={onOpenRali} className="tr-focus mt-4 inline-flex items-center gap-1 text-sm font-bold text-green-800">Explorar jogos <ArrowRight size={15}/></button></div>
-            <div className="rounded-2xl border border-[#CFDEED] bg-white p-5 shadow-md"><h3 className="mb-3 flex items-center gap-2 font-extrabold"><BarChart3 size={20}/> Ranking da Turma</h3><p className="text-sm text-slate-600">Confira os resultados diretamente no módulo de desafios.</p><button onClick={onOpenCtf} className="tr-focus mt-4 inline-flex items-center gap-1 text-sm font-bold text-green-800">Abrir desafios <ArrowRight size={15}/></button></div>
-            <div className="rounded-2xl bg-gradient-to-br from-[#E8F8EE] to-[#D5F1E0] p-5 text-[#164D34] shadow-md"><h3 className="mb-3 flex items-center gap-2 text-lg font-extrabold"><Trophy className="text-[#078F4A]"/> Desafie-se!</h3><p className="text-sm">Novos conhecimentos, desafios e conquistas.</p><button onClick={onOpenCtf} className="tr-focus mt-4 inline-flex items-center gap-2 rounded-xl bg-[#C8F5D7] px-4 py-2 text-sm font-extrabold text-[#05213D]">Ver desafios <ArrowRight size={16}/></button></div>
-          </section>
-        </main>
-        <footer className="relative overflow-hidden border-t border-[#DDE8E2] bg-white px-5 py-5 text-[#102B28]"><div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><IfsLogo size="md"/><span className="text-xs font-bold">Instituto Federal de Sergipe (IFS) · Campus Tobias Barreto</span></div><span className="text-xs font-semibold italic text-[#008D45]">Desenvolvido e Supervisionado pelo Professor Eber Santana</span></div></footer>
+export const DashboardHome:React.FC<Props> = ({isTeacher,onOpenRali,onOpenCtf,onOpenCruz,onOpenDesv,onOpenTeacher}) => {
+ const [menuOpen,setMenuOpen]=useState(false);
+ const [query,setQuery]=useState('');
+ const [help,setHelp]=useState(false);
+ const games=[
+  {name:'Rali NFC',desc:'Desafios com tecnologia NFC',icon:<Radio/>,tone:'green',open:onOpenRali},
+  {name:'CTF Online',desc:'Capture as bandeiras',icon:<Flag/>,tone:'orange',open:onOpenCtf},
+  {name:'Cruzada Online',desc:'Conhecimento de forma divertida',icon:<Puzzle/>,tone:'blue',open:onOpenCruz},
+  {name:'Desvendando',desc:'Investigue, analise e resolva',icon:<Search/>,tone:'purple',open:onOpenDesv}
+ ];
+ const nav=[
+  {name:'Início',icon:<Home/>,action:()=>window.scrollTo({top:0,behavior:'smooth'})},
+  {name:'Jogos e Desafios',icon:<Gamepad2/>,action:()=>document.getElementById('jogos')?.scrollIntoView({behavior:'smooth'})},
+  {name:'Trilhas de Aprendizagem',icon:<Layers3/>,url:studies},
+  {name:'Ranking',icon:<BarChart3/>,action:onOpenCtf},
+  {name:'Conquistas',icon:<Medal/>,action:()=>document.getElementById('recursos')?.scrollIntoView({behavior:'smooth'})},
+  {name:'Biblioteca',icon:<BookOpen/>,url:studies},
+  {name:'Área do Professor',icon:<GraduationCap/>,action:onOpenTeacher}
+ ];
+ const filtered=games.filter(g=>(g.name+' '+g.desc).toLowerCase().includes(query.toLowerCase()));
+ return <div className="trp min-h-screen bg-[#FCFDFE] text-[#0A1930]">
+ <style>{`
+ .trp{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+ .trp .trp-shadow{box-shadow:0 6px 16px rgba(19,45,61,.10),0 1px 3px rgba(19,45,61,.05)}
+ .trp .trp-card{transition:transform .2s,box-shadow .2s}
+ .trp .trp-card:hover{transform:translateY(-3px);box-shadow:0 12px 24px rgba(19,45,61,.14)}
+ .trp .trp-hero{background:linear-gradient(115deg,#E8F9F1 0%,#F7FFFA 42%,#D4F5E4 71%,#10C33D 100%)}
+ .trp .trp-hero:before{content:"";position:absolute;right:17%;top:-35%;width:21%;height:190%;transform:skewX(-29deg);background:rgba(255,255,255,.42)}
+ .trp .trp-hero:after{content:"";position:absolute;right:-4%;bottom:-65%;width:60%;height:100%;border-radius:40%;background:#0DAE35;transform:rotate(-20deg)}
+ .trp .trp-logo{font-style:italic;letter-spacing:-.085em;font-weight:950}
+ .trp .trp-game.green{background:linear-gradient(125deg,#E9FFF0,#E3F9E9);border-color:#D8F1DF}
+ .trp .trp-game.orange{background:linear-gradient(125deg,#FFF9EC,#FFF0D9);border-color:#FBE6BF}
+ .trp .trp-game.blue{background:linear-gradient(125deg,#EAF7FF,#DDF1FF);border-color:#CBE6FA}
+ .trp .trp-game.purple{background:linear-gradient(125deg,#F6EFFF,#EFE4FF);border-color:#E3D3FB}
+ .trp .trp-game.green .trp-icon{color:#09A72E}.trp .trp-game.orange .trp-icon{color:#FF8A00}
+ .trp .trp-game.blue .trp-icon{color:#087DFA}.trp .trp-game.purple .trp-icon{color:#7225EA}
+ .trp .trp-game svg{width:43px;height:43px;stroke-width:2.8}
+ .trp button:focus-visible,.trp a:focus-visible,.trp input:focus-visible{outline:3px solid #16A34A;outline-offset:3px}
+ @media(prefers-reduced-motion:reduce){.trp .trp-card{transition:none}}
+ `}</style>
+ {menuOpen&&<button className="fixed inset-0 z-40 bg-[#0B1F32]/40 lg:hidden" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}/>}
+ <div className="flex min-h-screen">
+ <aside className={`fixed inset-y-0 left-0 z-50 flex w-[268px] flex-col overflow-y-auto border-r border-[#E6EDF1] bg-white px-4 py-5 shadow-sm transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${menuOpen?'translate-x-0':'-translate-x-full'}`}>
+  <div className="mb-9 flex items-center justify-between px-2">
+   <div className="flex items-center gap-2"><span className="trp-logo text-[45px] leading-none text-[#08B62B]">T<span className="text-[#082C30]">R</span></span><span className="text-[22px] font-black italic leading-[.92] tracking-tight">Trilha Rali <span className="mt-1 block w-fit rounded-md bg-[#00A922] px-2 py-0.5 text-[19px] text-white">HUB</span></span></div>
+   <button className="lg:hidden" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}><X/></button>
+  </div>
+  <nav className="space-y-1.5" aria-label="Navegação principal">{nav.map((item,i)=>{const cls=`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-[14px] font-semibold transition-colors ${i===0?'bg-[#00AB17] text-white shadow-sm':'text-[#10263B] hover:bg-[#EFF8F1]'}`;return item.url?<a key={item.name} href={item.url} className={cls}>{React.cloneElement(item.icon,{size:22})}{item.name}</a>:<button key={item.name} className={cls} onClick={()=>{item.action?.();setMenuOpen(false)}}>{React.cloneElement(item.icon,{size:22})}{item.name}</button>})}</nav>
+  <div className="mt-auto border-t border-[#E3EAF0] pt-6">
+   <div className="flex items-center gap-3 px-2"><IfsLogo size="md"/><div className="text-[12px] leading-snug"><b className="block text-[13px]">INSTITUTO FEDERAL</b>Sergipe<br/>Campus Tobias Barreto</div></div>
+  </div>
+ </aside>
+ <div className="min-w-0 flex-1">
+  <header className="flex flex-wrap items-center gap-4 border-b border-[#F0F3F5] bg-white px-5 py-4 lg:flex-nowrap lg:px-8">
+   <button className="lg:hidden" aria-label="Abrir menu" onClick={()=>setMenuOpen(true)}><Menu/></button>
+   <div className="min-w-[190px] flex-1"><h2 className="text-[24px] font-extrabold tracking-tight lg:text-[28px]">Olá, estudante! 👋</h2><p className="text-[13px] font-medium">Que bom te ver no Trilha Rali HUB.</p></div>
+   <div className="relative order-3 w-full lg:order-none lg:max-w-[460px] lg:flex-1"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B637C]" size={22}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar jogos, trilhas, conteúdos..." aria-label="Buscar jogos" className="trp-shadow w-full rounded-full border border-[#DFE8EE] bg-white py-3 pl-12 pr-5 text-[14px] outline-none"/>{query.trim()&&<div className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-[#E3EAF0] bg-white p-2 shadow-xl">{filtered.length?filtered.map(g=><button key={g.name} className="block w-full rounded-lg px-4 py-2 text-left hover:bg-[#F0F8F3]" onClick={()=>{setQuery('');g.open()}}>{g.name}</button>):<p className="p-2 text-sm">Nenhum jogo encontrado</p>}</div>}</div>
+   <button aria-label="Ajuda" onClick={()=>setHelp(true)} className="relative rounded-full p-2"><Bell size={24}/><span className="absolute right-2 top-1 h-2.5 w-2.5 rounded-full bg-red-500"/></button>
+   <button onClick={onOpenTeacher} aria-label="Área do professor" className="flex items-center gap-2"><span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#00B92C] bg-[#E9F8ED]"><ShieldCheck size={23}/></span><ChevronDown size={17}/></button>
+  </header>
+  <main className="mx-auto max-w-[1530px] space-y-7 p-4 sm:p-6 lg:p-7">
+   <section className="trp-hero trp-shadow relative isolate min-h-[265px] overflow-hidden rounded-[22px] px-6 py-7 sm:px-9">
+    <div className="relative z-10 max-w-[56%]"><h1 className="text-[clamp(30px,4vw,56px)] font-black italic leading-tight tracking-tight text-[#062C33]">Trilha Rali <span className="rounded-lg bg-[#00AE22] px-2 text-white">HUB</span></h1><p className="mt-3 max-w-[430px] text-[clamp(15px,1.5vw,22px)] font-medium leading-snug text-[#173C4B]">Aprenda, pratique e evolua com desafios gamificados de tecnologia.</p><button onClick={()=>document.getElementById('jogos')?.scrollIntoView({behavior:'smooth'})} className="mt-6 inline-flex items-center gap-3 rounded-full bg-[#00A915] px-6 py-3 text-[15px] font-bold text-white shadow-md"><Play size={19} fill="#E7FF33" color="#E7FF33"/>Explorar Jogos</button></div>
+    <div className="pointer-events-none absolute bottom-2 right-[2%] z-10 flex h-[90%] w-[45%] items-center justify-center">
+      <div className="relative flex h-full w-full items-center justify-center">
+       <div className="absolute bottom-[11%] right-[8%] h-[18%] w-[68%] rounded-[50%] bg-[#007F39]/20 blur-lg"/>
+       <div className="relative flex h-[63%] w-[66%] flex-col items-center justify-center rounded-2xl border-[8px] border-[#143A46] bg-[#0A2836] shadow-[12px_15px_0_#1B5C56]"><Code2 className="h-[40%] w-[40%] text-[#15D86A]" strokeWidth={3}/><div className="absolute -bottom-[12%] h-[8%] w-[125%] rounded-full bg-[#36545A]"/></div>
+       <GraduationCap className="absolute right-[15%] top-[1%] h-[35%] w-[45%] text-[#0C2C3B] drop-shadow-xl" fill="#0C2C3B" strokeWidth={1.2}/>
+       <Gamepad2 className="absolute bottom-[1%] left-[0%] h-[43%] w-[42%] -rotate-12 text-white drop-shadow-xl" fill="#E6F0F3" stroke="#244356" strokeWidth={1.5}/>
+       <Lightbulb className="absolute right-[1%] top-[18%] h-[27%] w-[20%] text-[#FFE95B] drop-shadow-lg" strokeWidth={1.8}/>
       </div>
     </div>
-    {showHelp&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03182A]/75 p-4" role="dialog" aria-modal="true" aria-label="Ajuda"><div className="w-full max-w-md rounded-2xl bg-white p-6 text-[#061B32] shadow-xl"><div className="flex items-center justify-between"><h2 className="text-lg font-black">Ajuda e navegação</h2><button onClick={()=>setShowHelp(false)} aria-label="Fechar ajuda"><X/></button></div><p className="mt-3 text-sm">Escolha Rali NFC, CTF, Cruzada ou Desvendando nos atalhos. Para materiais e laboratórios, acesse Ambientes de Estudo. A área do professor exige autenticação.</p><button onClick={()=>setShowHelp(false)} className="mt-5 rounded-lg bg-[#C8F5D7] px-4 py-2 font-bold">Entendi</button></div></div>}
-  </div>;
+   </section>
+   <section id="jogos" className="scroll-mt-24"><div className="mb-4 flex items-center justify-between"><h2 className="flex items-center gap-3 text-[23px] font-extrabold tracking-tight"><Gamepad2 className="text-[#00AF22]" size={29}/>Nossos Jogos e Desafios</h2><button onClick={()=>document.getElementById('jogos')?.scrollIntoView({behavior:'smooth'})} className="hidden items-center gap-1 font-semibold text-[#009B20] sm:flex">Ver todos <ArrowRight size={20}/></button></div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{games.map(g=><button key={g.name} onClick={g.open} className={`trp-game trp-card trp-shadow ${g.tone} flex min-h-[137px] items-center gap-4 rounded-[20px] border p-5 text-left`}><span className="trp-icon shrink-0">{g.icon}</span><span className="min-w-0 flex-1"><b className="block text-[18px] font-extrabold leading-tight">{g.name}</b><span className="mt-2 block text-[14px] leading-snug text-[#233B4A]">{g.desc}</span></span><span className="self-end rounded-full bg-white p-2 shadow-sm"><ArrowRight size={20}/></span></button>)}</div>
+   </section>
+   <section id="recursos" className="grid gap-4 md:grid-cols-3">
+    <div className="trp-card trp-shadow flex min-h-[120px] items-center gap-4 rounded-[20px] border border-[#E0E9F0] bg-white p-5"><Trophy className="h-14 w-14 shrink-0 text-[#F3B000]"/><div><b className="text-[18px] font-extrabold">Conquistas</b><p className="mt-1 text-[14px] leading-snug text-[#385064]">Em breve: badges e evolução individual.</p></div><HelpCircle className="ml-auto shrink-0 text-[#527080]" size={19}/></div>
+    <a href={studies} className="trp-card trp-shadow flex min-h-[120px] items-center gap-4 rounded-[20px] border border-[#E0E9F0] bg-white p-5"><Layers3 className="h-14 w-14 shrink-0 text-[#009B52]"/><div><b className="text-[18px] font-extrabold">Trilhas de Aprendizagem</b><p className="mt-1 text-[14px] leading-snug text-[#385064]">Roteiros de estudo com atividades práticas.</p></div><ArrowRight className="ml-auto shrink-0" size={20}/></a>
+    <a href={studies} className="trp-card trp-shadow flex min-h-[120px] items-center gap-4 rounded-[20px] border border-[#E0E9F0] bg-white p-5"><BookOpen className="h-14 w-14 shrink-0 text-[#009B52]"/><div><b className="text-[18px] font-extrabold">Biblioteca</b><p className="mt-1 text-[14px] leading-snug text-[#385064]">Materiais, guias e referências de apoio.</p></div><ArrowRight className="ml-auto shrink-0" size={20}/></a>
+   </section>
+   <section className="flex flex-wrap items-center justify-between gap-5 rounded-[20px] bg-gradient-to-r from-[#08734D] via-[#064C42] to-[#063642] px-7 py-6 text-white"><div className="flex items-center gap-4"><Laptop className="h-12 w-12 text-[#B4FFE0]"/><h2 className="text-[21px] font-extrabold leading-tight">Desenvolva suas<br/>habilidades em Tecnologia</h2></div><div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px] font-semibold">{['Prática','Desafios','Conhecimento','Evolução'].map(t=><span key={t} className="flex items-center gap-1"><Check className="text-[#8DF348]" size={19}/>{t}</span>)}</div><TrendingUp className="hidden text-[#80EE4D] xl:block" size={48}/></section>
+  </main>
+ </div>
+ </div>
+ {help&&<div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0C2433]/40 p-4" role="dialog" aria-modal="true" aria-label="Ajuda"><div className="max-w-md rounded-2xl bg-white p-6 shadow-xl"><div className="flex justify-between gap-5"><h2 className="text-lg font-extrabold">Como começar?</h2><button onClick={()=>setHelp(false)} aria-label="Fechar"><X/></button></div><p className="mt-3 text-sm">Escolha um dos quatro jogos para começar. As trilhas e a biblioteca levam aos ambientes de estudo. A área do professor exige autenticação.</p><button onClick={()=>setHelp(false)} className="mt-5 rounded-lg bg-[#00A915] px-5 py-2 font-bold text-white">Entendi</button></div></div>}
+ </div>;
 };
