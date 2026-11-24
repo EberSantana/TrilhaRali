@@ -16,6 +16,8 @@ interface HomeLandingProps {
 
 /** Página inicial do Trilha Rali HUB (portal de estudos): esta área de jogos faz parte dele. */
 export const URL_HUB = 'https://ebersantana.github.io/disciplinas/';
+/** Mini portal com os dois ambientes (Estudos e Jogos). */
+export const URL_PORTAL = 'https://ebersantana.github.io/disciplinas/portal.html';
 
 /* Cores fixas (hex) para não sofrer o remapeamento do tema claro. */
 const JOGOS = [
@@ -67,12 +69,12 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
       {/* Barra do HUB: mesma do portal de estudos */}
       <div style={{ background: painel, borderBottom: `1px solid ${borda}` }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
-          <a href={URL_HUB} aria-label="Trilha Rali HUB, página inicial" className="shrink-0">
+          <a href={URL_PORTAL} aria-label="Trilha Rali HUB, página inicial" className="shrink-0">
             <img src={claro ? logoClaro : logoEscuro} alt="Trilha Rali HUB" className="h-12 w-auto sm:h-14" />
           </a>
           <div className="flex items-center gap-2">
             <a
-              href={URL_HUB}
+              href={URL_PORTAL}
               className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition hover:opacity-80"
               style={{ color: claro ? '#007A35' : '#3BE37A', border: `1px solid ${borda}` }}
             >
