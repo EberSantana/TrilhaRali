@@ -283,7 +283,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
               <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} />
             </div>
-          ) : (
+          ) : perfilHub && !turmaSala ? null : (
             <label className="block space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
               {turmaSala ? (

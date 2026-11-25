@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Mesma tipografia do Trilha Rali HUB (Ambiente de Estudos) */
+@theme {
+  --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+html { font-size: 17px; }
+
 /*
  * Tema "Quadro claro" (proposta B). O app é escrito com as classes do tema escuro;
  * aqui a escala neutra é invertida e os tons de destaque usados como texto ficam escuros,
@@ -134,4 +140,9 @@
 }
 
 /* Marca Trilha Rali: Orbitron só no logo e em títulos curtos */
-.font-marca { font-family: "Orbitron", "Plus Jakarta Sans", system-ui, sans-serif; font-weight: 900; letter-spacing: 0.02em; font-style: italic; }
+.font-marca { font-family: "Orbitron", "Source Sans 3", system-ui, sans-serif; font-weight: 900; letter-spacing: 0.02em; font-style: italic; }
+
+/* Faixa de título no estilo do Trilha Rali HUB (verde suave, cantos grandes) */
+.hub-faixa { border-radius: 22px; padding: 18px 24px; background: linear-gradient(115deg,#F2FBF4 0%,#E3F7E8 60%,#BDEFCD 100%); box-shadow: 0 8px 24px rgba(0,120,53,.12); }
+:root[data-theme="escuro"] .hub-faixa { background: linear-gradient(115deg,#0F2A1F 0%,#0E3A27 60%,#145A34 100%); }
+.hub-faixa p { color: var(--color-slate-300); }

@@ -129,13 +129,13 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10 space-y-6">
       <header className="space-y-3">
         <BackPill onClick={onBack}>Painel do professor</BackPill>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="hub-faixa flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl border flex items-center justify-center bg-sky-500/10 border-sky-500/30 text-sky-300">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Turmas e notas</h1>
+              <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight text-white">Turmas e notas</h1>
               <p className="text-sm text-slate-400 max-w-2xl">
                 As turmas vêm do Trilha Rali HUB (a mesma lista do login dos alunos): importe sempre que mudar a planilha. Nas salas ligadas à turma o nome do aluno vem do login, e as notas somam todos os módulos.
               </p>

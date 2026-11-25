@@ -21,6 +21,7 @@ import {
 import { AvisoServidor } from './common/AvisoServidor';
 
 import { ThemePicker } from './common/ThemePicker';
+import { useTheme } from '../utils/theme';
 
 interface TeacherHubProps {
   isTeacher: boolean;
@@ -89,6 +90,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 
 
 export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
+  const claro = useTheme() === 'claro';
   const [showBank, setShowBank] = useState(false);
   if (!p.isTeacher) {
     return (
@@ -119,23 +121,25 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10">
-      <header>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={p.onHome}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 shadow-sm transition hover:bg-slate-800 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Início
-          </button>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Modo professor ativo
-          </span>
+      <header
+        className="flex flex-wrap items-center gap-4 rounded-[22px] px-5 py-5 sm:px-7"
+        style={{ background: claro ? 'linear-gradient(115deg,#F2FBF4 0%,#E3F7E8 60%,#BDEFCD 100%)' : 'linear-gradient(115deg,#0F2A1F 0%,#0E3A27 60%,#145A34 100%)', boxShadow: '0 8px 24px rgba(0,120,53,.12)' }}
+      >
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight" style={{ color: claro ? '#0F172A' : '#F1F5F9' }}>Área do professor · Jogos</h1>
+          <p className="mt-1.5 text-sm sm:text-base font-semibold" style={{ color: claro ? '#334155' : '#CBD5E1' }}>Salas, turmas, banco de perguntas e aula ao vivo da Trilha Rali.</p>
         </div>
-        <h1 className="mt-5 text-2xl sm:text-3xl font-black tracking-tight text-white">Painel do professor</h1>
-        <p className="mt-1 text-sm text-slate-400">Tudo o que você administra na Trilha Rali, em um só lugar.</p>
+        <a
+          href="https://ebersantana.github.io/disciplinas/professor.html"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2 text-sm font-bold text-slate-200 shadow-sm transition hover:bg-slate-800"
+          title="Acompanhamento das turmas e liberação de disciplinas"
+        >
+          Painel de estudos
+        </a>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Modo professor ativo
+        </span>
       </header>
 
       <div className="mt-5">
