@@ -64,6 +64,7 @@ function agendarEnvio(ms = 4000): void {
 /** Envia o resumo dos jogos deste aparelho; devolve true se a planilha confirmou. */
 export async function enviarXpParaHub(keepalive = false): Promise<boolean> {
   if (enviando) return false;
+  if (!lerPerfilHub()) return false;
   let perfil: { id?: string; pin?: string; turma?: string } | null = null;
   try {
     perfil = JSON.parse(localStorage.getItem('perfil:aluno') || 'null');

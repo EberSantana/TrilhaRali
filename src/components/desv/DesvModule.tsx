@@ -360,7 +360,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
           <h2 className="text-2xl font-black text-white">Entrar com a dupla</h2>
           <p className="text-sm text-slate-400">Os casos são liberados pelo professor da sua turma.</p>
         </div>
-        <AvisoPerfilHub perfil={perfilHub} />
+        <AvisoPerfilHub perfil={perfilHub} onNaoSou={() => setIntegrantes('')} />
         <label className="block space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
             <KeyRound className="w-3.5 h-3.5 text-violet-300" /> Token da sala
