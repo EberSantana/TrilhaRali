@@ -80,6 +80,16 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
             >
               <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar ao HUB</span><span className="sm:hidden">HUB</span>
             </a>
+            {isTeacher && (
+              <a
+                href="https://ebersantana.github.io/disciplinas/professor.html"
+                className="hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition hover:opacity-80 sm:inline-flex"
+                style={{ color: claro ? '#0F172A' : '#F1F5F9', border: `1px solid ${borda}` }}
+                title="Acompanhamento das turmas e liberação de conteúdo"
+              >
+                Painel de estudos
+              </a>
+            )}
             <button
               type="button"
               onClick={onOpenTeacher}
