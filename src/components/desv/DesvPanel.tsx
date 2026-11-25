@@ -8,7 +8,7 @@ import { gabaritoDesv } from '../../utils/missionsStore';
 import { BackPill } from '../common/ModuleShell';
 import { SeletorTurma } from '../turmas/SeletorTurma';
 import { SeletorPapeis, type ModoPapeis } from '../turmas/Papeis';
-import { useTurmas } from '../../utils/turmasApi';
+import { useTurmasEstado } from '../../utils/turmasApi';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 
 const K_SALAS = 'rali_desv_salas_prof_v1';
@@ -77,7 +77,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [salas, setSalas] = useState<SalaGuardada[]>(lerSalas);
   const [ativa, setAtiva] = useState<string>(() => lerSalas()[0]?.token || '');
   const [nome, setNome] = useState('');
-  const turmas = useTurmas();
+  const { turmas, erro: erroTurmas } = useTurmasEstado();
   const [turmaId, setTurmaId] = useState('');
   const [papeis, setPapeis] = useState<ModoPapeis>('rodizio');
   const [novos, setNovos] = useState<Set<string>>(new Set());
@@ -250,7 +250,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Ex.: 2º B · Banco de Dados" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-violet-500" />
           <SeletorPapeis value={papeis} onChange={setPapeis} semPapeis={false} />
           </label>
-          <SeletorTurma turmas={turmas} value={turmaId} onChange={setTurmaId} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-violet-500" />
+          <SeletorTurma erro={erroTurmas} turmas={turmas} value={turmaId} onChange={setTurmaId} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-violet-500" />
           <ListaCasos marcados={novos} onAlternar={marcaNovo} onLote={defineNovos} />
           <Btn variant="primary" className="w-full !bg-violet-600 hover:!bg-violet-500 !border-violet-600" disabled={busy} onClick={() => void criar()} icon={busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}>
             Criar sala {novos.size ? `com ${novos.size} caso(s) liberado(s)` : '(liberar casos depois)'}

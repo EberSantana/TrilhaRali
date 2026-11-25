@@ -115,15 +115,34 @@ export function useSalaPublica(token: string, gid?: string) {
 export const useTurmaDaSala = (token: string, gid?: string) => useSalaPublica(token, gid)?.turma ?? null;
 
 /** Turmas do professor para escolher ao criar uma sala (vazio sem a chave do banco). */
-export function useTurmas() {
+/** Turmas cadastradas e, se não deu para carregar, o motivo (chave ausente, chave antiga ou sem rede). */
+export function useTurmasEstado(): { turmas: Turma[]; erro: string } {
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [erro, setErro] = useState('');
   useEffect(() => {
-    if (!getBancoKey()) return;
+    if (!getBancoKey()) {
+      setErro('A chave do banco não está conectada neste navegador. Entre em Professor e informe a chave.');
+      return;
+    }
     let vivo = true;
-    listarTurmas().then((t) => vivo && setTurmas(t)).catch(() => {});
+    listarTurmas()
+      .then((t) => {
+        if (!vivo) return;
+        setTurmas(t);
+        setErro('');
+      })
+      .catch((e: unknown) => {
+        if (!vivo) return;
+        const m = e instanceof Error ? e.message : '';
+        setErro(/chave/i.test(m) ? 'A chave do banco deste navegador está desatualizada. Entre em Professor e informe a chave nova.' : `Não consegui carregar as turmas${m ? `: ${m}` : '.'}`);
+      });
     return () => {
       vivo = false;
     };
   }, []);
-  return turmas;
+  return { turmas, erro };
+}
+
+export function useTurmas() {
+  return useTurmasEstado().turmas;
 }
