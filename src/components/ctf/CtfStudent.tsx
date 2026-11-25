@@ -1,3 +1,4 @@
+import { registrarXpJogo } from '../../utils/xpHub';
 import { AvisoPerfilHub, BotaoEntrarHub, usePerfilHub } from '../common/PerfilHub';
 import { lerPerfilHub, nomeNaLista } from '../../utils/perfilHub';
 import { useSalaPublica } from '../../utils/turmasApi';
@@ -113,6 +114,11 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
 
   // Sessão salva de outro ambiente (ex.: token de CTF aberto na Cruzada): volta para a entrada com o aviso.
   const ordemSala = state?.sala.ordem;
+  // XP desta sala vai para as Conquistas do HUB
+  useEffect(() => {
+    if (!state?.aluno) return;
+    registrarXpJogo(state.sala.token ?? token, { tipo: state.sala.ordem === 'cruzadinha' ? 'cruz' : 'ctf', sala: state.sala.nome, xp: state.aluno.xp, acertos: state.aluno.acertos });
+  }, [state?.aluno?.xp, state?.aluno?.acertos]); // eslint-disable-line react-hooks/exhaustive-deps
   const ambienteErrado = Boolean(ordemSala) && (modulo === 'cruz') !== (ordemSala === 'cruzadinha');
   useEffect(() => {
     if (!ambienteErrado) return;

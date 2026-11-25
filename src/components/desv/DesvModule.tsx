@@ -1,3 +1,4 @@
+import { registrarXpJogo } from '../../utils/xpHub';
 import { AvisoPerfilHub, usePerfilHub } from '../common/PerfilHub';
 import { lerPerfilHub, nomeNaLista } from '../../utils/perfilHub';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -177,6 +178,7 @@ export const DesvModule: React.FC = () => {
 
   const liberados = DESV_CASOS.filter((c) => estado.sala.casos.includes(c.id));
   const total = Object.values(estado.resolvidos).reduce((a, b) => a + b, 0);
+  registrarXpJogo(sessao.token, { tipo: 'desv', sala: estado.sala.nome, xp: total, acertos: Object.keys(estado.resolvidos).length });
   const encerrada = estado.sala.status !== 'aberta';
 
   if (aberto) {
