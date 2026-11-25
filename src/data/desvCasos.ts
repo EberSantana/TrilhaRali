@@ -6,6 +6,7 @@
  */
 
 import { DESV_CASOS_MAIS } from './desvCasosMais';
+import { DESV_CASOS_TEMAS } from './desvCasosTemas';
 
 export interface DesvSuspeito {
   id: number;
@@ -17,7 +18,10 @@ export interface DesvSuspeito {
 
 interface DesvBase {
   id: string;
-  disciplina: 'Lógica' | 'Banco de Dados' | 'Construção de Sites' | 'Informática Básica' | 'Redes de Computadores' | 'Segurança da Informação';
+  disciplina:
+    | 'Lógica' | 'Banco de Dados' | 'Construção de Sites' | 'Informática Básica' | 'Redes de Computadores' | 'Segurança da Informação'
+    | 'Windows 11' | 'MS-DOS' | 'Word' | 'Excel' | 'PowerPoint' | 'Introdução à Informática' | 'Hardware e Software'
+    | 'Introdução à Segurança da Informação' | 'Vírus e Antivírus';
   titulo: string;
   nivel: 'Aquecimento' | 'Intermediário' | 'Detetive' | 'Mestre';
   pontos: number;
@@ -44,7 +48,7 @@ export interface DesvCasoSql extends DesvBase {
 /** Construção de Sites, Informática Básica, Redes e Segurança: cada suspeito tem uma evidência (código, ficha, e-mail, fórmula...); antes: um trecho de HTML ou CSS; as pistas descrevem o efeito na página */
 export interface DesvCasoCodigo extends DesvBase {
   tipo: 'codigo';
-  linguagem: 'HTML' | 'CSS' | 'Ficha técnica' | 'E-mail' | 'Documento' | 'Planilha' | 'Configuração' | 'Log' | 'Regras' | 'Terminal';
+  linguagem: 'HTML' | 'CSS' | 'Ficha técnica' | 'E-mail' | 'Documento' | 'Planilha' | 'Configuração' | 'Log' | 'Regras' | 'Terminal' | 'Apresentação';
   /** código comum a todos os suspeitos (a página onde o trecho entrou) */
   base?: string;
   /** título do bloco base (padrão: "Página onde o trecho entrou") */
@@ -772,4 +776,4 @@ const DESV_CASOS_INICIAIS: DesvCaso[] = [
 ];
 
 /** c1 a c16 aqui; c17 a c60 em desvCasosMais.ts. Total: 10 casos em cada uma das 6 disciplinas. */
-export const DESV_CASOS: DesvCaso[] = [...DESV_CASOS_INICIAIS, ...DESV_CASOS_MAIS];
+export const DESV_CASOS: DesvCaso[] = [...DESV_CASOS_INICIAIS, ...DESV_CASOS_MAIS, ...DESV_CASOS_TEMAS];

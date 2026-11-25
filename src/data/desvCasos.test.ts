@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import initSqlJs from 'sql.js';
 import { DESV_CASOS, DesvCasoCodigo, DesvCasoLogica, DesvCasoSql } from './desvCasos';
+import { EFEITOS_TEMAS } from './desvCasosTemas.test-data';
 import { EFEITOS_MAIS, LOGICA_MAIS, PROVA_MAIS, TABELA_SUSPEITOS_MAIS, PistaLogica } from './desvCasosMais.test-data';
 import { CTF_APPS_SCRIPT } from './ctfAppsScript';
 import { gabaritoAberto } from '../utils/gabaritoTeste';
@@ -140,12 +141,13 @@ const EFEITOS: Record<string, Record<string, boolean[]>> = {
   //        > 10  três notas  decimal   (valores: 8; 17,33; 8; 24; 11; 9; 19; 10)
   c12: { Nina: [false, true, false], Otto: [true, true, true], Pietra: [false, true, false], Quim: [true, true, false], Rosa: [true, false, false], Saulo: [false, false, false], 'Tainá': [true, true, false], Uriel: [false, true, false] },
   ...EFEITOS_MAIS,
+  ...EFEITOS_TEMAS,
   c8: { Vera: [true, false, false], Wagner: [true, true, true], Xavier: [false, true, true], Yasmin: [false, true, false], Zeca: [true, true, false], Alice: [true, true, false], 'Benício': [false, true, true], 'Cecília': [false, true, true] },
 };
 
 test('cada caso de evidências (Sites, Informática, Redes e Segurança) tem um só trecho que satisfaz todas as pistas, igual ao gabarito do servidor', () => {
   const casos = DESV_CASOS.filter((x): x is DesvCasoCodigo => x.tipo === 'codigo');
-  assert.equal(casos.length, 30);
+  assert.equal(casos.length, 120);
   for (const c of casos) {
     const ef = EFEITOS[c.id];
     assert.deepEqual(Object.keys(ef).sort(), c.suspeitos.map((s) => s.nome).sort(), `${c.id}: suspeitos`);
@@ -167,10 +169,10 @@ test('o código público não traz o culpado nem a explicação de nenhum caso',
   assert.doesNotMatch(CTF_APPS_SCRIPT, /DESV_GABARITO|desv:c\d/);
 });
 
-test('são 6 disciplinas com 10 casos cada, ids c1 a c60 sem repetição', () => {
+test('são 15 disciplinas e temas com 10 casos cada, ids c1 a c150 sem repetição', () => {
   const por = new Map<string, number>();
   for (const c of DESV_CASOS) por.set(c.disciplina, (por.get(c.disciplina) ?? 0) + 1);
-  assert.equal(por.size, 6);
+  assert.equal(por.size, 15);
   for (const [d, n] of por) assert.equal(n, 10, `${d}: ${n} casos`);
-  assert.deepEqual(DESV_CASOS.map((c) => c.id).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))), Array.from({ length: 60 }, (_, i) => `c${i + 1}`));
+  assert.deepEqual(DESV_CASOS.map((c) => c.id).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))), Array.from({ length: 150 }, (_, i) => `c${i + 1}`));
 });

@@ -112,6 +112,7 @@ function route(req) {
     case 'desvProf': return desvProf(req);
     case 'desvApagar': return desvApagar(req);
     case 'desvSalasList': return desvSalasList(req);
+    case 'desvGabaritoSet': return desvGabaritoSet(req);
     case 'turmasList': return turmasList(req);
     case 'turmaSalvar': return turmaSalvar(req);
     case 'turmaExcluir': return turmaExcluir(req);
@@ -1462,6 +1463,29 @@ function desvPontos(caso, erros, dicas) {
 function desvRanking(req) {
   var sala = desvSala(req.token);
   return { sala: { nome: String(sala.nome), status: String(sala.status) }, ranking: desvRankingSala(String(sala.token)) };
+}
+
+// Gabarito do Desvendando enviado pelo app do professor (que o abre com a chave do banco): casos novos
+// passam a valer sem colar nada na planilha. Substitui a aba DesvGabarito inteira.
+function desvGabaritoSet(req) {
+  requireBancoKey(req);
+  var linhas = Array.isArray(req.linhas) ? req.linhas : [];
+  var vals = [];
+  linhas.slice(0, 1000).forEach(function (l) {
+    var c = String((l && l.caso) || '').trim();
+    var sus = Number(l && l.suspeito) || 0;
+    if (!/^c\d{1,4}$/.test(c) || sus < 1) return;
+    vals.push([c, String(sus), String(Number(l.pontos) || 0), String(l.explicacao || '').slice(0, 1000)]);
+  });
+  if (!vals.length) fail('Gabarito vazio.');
+  var sh = getSheet('DesvGabarito');
+  var head = SHEET_HEADERS.DesvGabarito;
+  sh.clearContents();
+  sh.getRange(1, 1, 1, head.length).setValues([head]);
+  sh.getRange(2, 1, vals.length, head.length).setNumberFormat('@').setValues(vals);
+  memoLimpa('DesvGabarito');
+  CacheService.getScriptCache().remove('desvGab_v31');
+  return { casos: vals.length };
 }
 
 // Salas do Desvendando guardadas no servidor: com a chave do banco, o professor recupera todas em qualquer aparelho

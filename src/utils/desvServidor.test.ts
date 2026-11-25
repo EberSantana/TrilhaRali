@@ -47,7 +47,7 @@ function salaCom(casos: string[]) {
 }
 
 test('o professor cria a sala só com os casos escolhidos; caso inexistente é ignorado', () => {
-  const s = salaCom(['c3', 'c99', 'c3', 'c1']);
+  const s = salaCom(['c3', 'c999', 'c3', 'c1']);
   assert.deepEqual(s.call('desvProf', { token: s.token, adminKey: s.adminKey }).sala.casos, ['c3', 'c1']);
   assert.throws(() => s.call('desvProf', { token: s.token, adminKey: 'errada' }), /Chave de professor/);
 });
@@ -102,4 +102,13 @@ test('com a chave do banco o professor recupera as salas em outro aparelho (com 
   const l = s.call('desvSalasList', { chave: 'chave-banco' }).salas;
   assert.equal(l.length, 1);
   assert.deepEqual([l[0].token, l[0].adminKey, l[0].casos, l[0].duplas, l[0].status], [s.token, s.adminKey, 1, 1, 'aberta']);
+});
+
+test('casos por tema (c61 a c150) entram na sala e o culpado do gabarito é aceito', () => {
+  const desv = gabaritoAberto().desv!;
+  const s = salaCom(['c61', 'c105', 'c150']);
+  assert.deepEqual(s.call('desvProf', { token: s.token, adminKey: s.adminKey }).sala.casos, ['c61', 'c105', 'c150']);
+  s.call('desvEntrar', { token: s.token, gid: DUPLA_A, nome: 'Dupla Temas' });
+  const r = s.call('desvAcusar', { token: s.token, gid: DUPLA_A, caso: 'c150', suspeito: desv.c150.suspeito, dicas: 0 });
+  assert.deepEqual([r.correto, r.pontos], [true, 120]);
 });
