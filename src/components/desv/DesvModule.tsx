@@ -213,16 +213,14 @@ export const DesvModule: React.FC = () => {
           <LogOut className="w-4 h-4" />
         </button>
       </div>
-      {estado.sala.papeis && (
-        <div className="mb-4">
-          <FaixaCabine
-            nomes={estado.dupla.integrantes.split(',').map((x) => x.trim()).filter(Boolean)}
-            modo={estado.sala.papeis}
-            rodadaAuto={Object.keys(estado.resolvidos).length}
-            chave={`desv_${estado.sala.token}_${gid}`}
-          />
-        </div>
-      )}
+      <div className="mb-4">
+        <FaixaCabine
+          nomes={estado.dupla.integrantes.split(',').map((x) => x.trim()).filter(Boolean)}
+          modo={estado.sala.papeis || 'rodizio'}
+          rodadaAuto={Object.keys(estado.resolvidos).length}
+          chave={`desv_${estado.sala.token}_${gid}`}
+        />
+      </div>
       {encerrada && <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">O professor encerrou esta sala. Os casos ficam só para consulta.</p>}
       <ModuleTabs<'casos' | 'ranking'>
         accent="violet"
