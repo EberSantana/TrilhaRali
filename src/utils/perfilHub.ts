@@ -31,9 +31,44 @@ export function interpretarPerfilHub(bruto: string | null): PerfilHub | null {
   }
 }
 
+const CHAVE_BANCO = 'rali_banco_chave_v1';
+const CHAVE_IGNORADO = 'rali_perfil_hub_ignorado';
+export const EVENTO_PERFIL_HUB = 'rali-perfil-hub';
+
+/** Aparelho do professor: quem tem a chave do banco conectada não herda o login de estudante do HUB. */
+function aparelhoDoProfessor(): boolean {
+  try {
+    return !!localStorage.getItem(CHAVE_BANCO);
+  } catch {
+    return false;
+  }
+}
+
+function idDoPerfilHub(): string {
+  try {
+    return String(JSON.parse(localStorage.getItem(CHAVE_PERFIL_HUB) || 'null')?.id || '');
+  } catch {
+    return '';
+  }
+}
+
+/** "Não sou eu": este perfil do HUB deixa de valer nos jogos até que outra pessoa entre no HUB. */
+export function ignorarPerfilHub(): void {
+  try {
+    localStorage.setItem(CHAVE_IGNORADO, idDoPerfilHub());
+    window.dispatchEvent(new Event(EVENTO_PERFIL_HUB));
+  } catch {
+    /* sem armazenamento */
+  }
+}
+
 export function lerPerfilHub(): PerfilHub | null {
   try {
-    return interpretarPerfilHub(typeof localStorage === 'undefined' ? null : localStorage.getItem(CHAVE_PERFIL_HUB));
+    if (typeof localStorage === 'undefined') return null;
+    if (aparelhoDoProfessor()) return null;
+    const id = idDoPerfilHub();
+    if (id && localStorage.getItem(CHAVE_IGNORADO) === id) return null;
+    return interpretarPerfilHub(localStorage.getItem(CHAVE_PERFIL_HUB));
   } catch {
     return null;
   }

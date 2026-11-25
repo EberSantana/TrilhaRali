@@ -261,7 +261,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             </div>
           )}
 
-          {perfilHub && <AvisoPerfilHub perfil={perfilHub} />}
+          {perfilHub && <AvisoPerfilHub perfil={perfilHub} onNaoSou={() => setNome('')} />}
 
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
