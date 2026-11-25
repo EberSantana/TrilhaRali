@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { pingBanco, saveBancoKey } from './utils/bankApi';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { StudentScanner } from './components/StudentScanner';
@@ -124,6 +125,25 @@ export default function App() {
     setLogs(getLogs());
     setSessionState(getSessionState());
     setIsTeacher(isTeacherAuthenticated());
+  }, []);
+
+  // Área do professor única: quem já entrou na área do professor do HUB (mesma senha) entra direto aqui.
+  useEffect(() => {
+    if (isTeacherAuthenticated()) return;
+    let chaveHub = '';
+    try {
+      chaveHub = sessionStorage.getItem('pt-prof-chave') || '';
+    } catch {
+      chaveHub = '';
+    }
+    if (!chaveHub) return;
+    pingBanco(chaveHub)
+      .then(() => {
+        saveBancoKey(chaveHub);
+        setTeacherAuthenticated(true, false);
+        setIsTeacher(true);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
