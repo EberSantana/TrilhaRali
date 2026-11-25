@@ -7,7 +7,7 @@ import { getBancoKey } from '../../utils/bankApi';
 import { gabaritoDesv } from '../../utils/missionsStore';
 import { BackPill } from '../common/ModuleShell';
 import { SeletorTurma } from '../turmas/SeletorTurma';
-import { type ModoPapeis } from '../turmas/Papeis';
+import { SeletorPapeis, type ModoPapeis } from '../turmas/Papeis';
 import { useTurmas } from '../../utils/turmasApi';
 import { Btn, QrImage, StepTitle } from '../common/ui';
 
@@ -79,7 +79,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [nome, setNome] = useState('');
   const turmas = useTurmas();
   const [turmaId, setTurmaId] = useState('');
-  const [papeis, setPapeis] = useState<ModoPapeis>('');
+  const [papeis, setPapeis] = useState<ModoPapeis>('rodizio');
   const [novos, setNovos] = useState<Set<string>>(new Set());
   const [estado, setEstado] = useState<EstadoProf | null>(null);
   const [erro, setErro] = useState('');
@@ -235,6 +235,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da sala</span>
             <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Ex.: 2º B · Banco de Dados" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-violet-500" />
+          <SeletorPapeis value={papeis} onChange={setPapeis} semPapeis={false} />
           </label>
           <SeletorTurma turmas={turmas} value={turmaId} onChange={setTurmaId} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-violet-500" />
           <ListaCasos marcados={novos} onAlternar={marcaNovo} onLote={defineNovos} />
