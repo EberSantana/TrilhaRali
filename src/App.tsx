@@ -28,6 +28,7 @@ import { TRILHAS } from './components/common/trilhas';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
 import { HubBar } from './components/common/HubBar';
+import { iniciarEnvioXp } from './utils/xpHub';
 import { HomeLanding } from './components/HomeLanding';
 import { TeacherHub } from './components/TeacherHub';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
@@ -136,6 +137,11 @@ export default function App() {
   }, []);
 
   // Turmas únicas: no modo professor, traz as turmas do HUB para os jogos (uma vez por sessão).
+  // XP dos jogos vai para a planilha do HUB (vale em qualquer aparelho em que o aluno entrar)
+  useEffect(() => {
+    iniciarEnvioXp();
+  }, []);
+
   useEffect(() => {
     if (isTeacher) importarTurmasDoHubUmaVez();
   }, [isTeacher]);
