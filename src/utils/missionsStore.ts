@@ -55,6 +55,9 @@ function recalcula() {
   listeners.forEach((l) => l());
 }
 
+/** Gabarito do Desvendando (só com o gabarito aberto pela chave do banco). */
+export const gabaritoDesv = () => gabarito?.desv ?? null;
+
 /** O gabarito das missões prontas está aberto neste aparelho (professor com a chave do banco)? */
 export const gabaritoAberto = () => gabarito !== null;
 

@@ -4,6 +4,7 @@ import { CheckCircle2, Copy, Loader2, Lock, Plus, RefreshCw, Search, Trash2, Tro
 import { DESV_CASOS } from '../../data/desvCasos';
 import { ctfCall, getCtfApiUrl } from '../../utils/ctfApi';
 import { getBancoKey } from '../../utils/bankApi';
+import { gabaritoDesv } from '../../utils/missionsStore';
 import { BackPill } from '../common/ModuleShell';
 import { SeletorTurma } from '../turmas/SeletorTurma';
 import { SeletorPapeis, type ModoPapeis } from '../turmas/Papeis';
@@ -45,6 +46,33 @@ const msgErro = (e: unknown) => {
 const linkAluno = (token: string) => `${window.location.origin}${window.location.pathname}#/desvendando/${token}`;
 
 /** Painel do professor: cria a sala da turma, libera os casos (as duplas só veem o que foi liberado) e acompanha o ranking. */
+/**
+ * Leva o gabarito do Desvendando (aberto neste aparelho com a chave do banco) para a aba DesvGabarito da planilha,
+ * uma vez por sessão: assim os casos novos do app passam a valer sem colar nada na planilha.
+ */
+async function enviarGabaritoDesv(): Promise<void> {
+  const g = gabaritoDesv();
+  const chave = getBancoKey();
+  if (!g || !chave) return;
+  const marca = `desv-gab-enviado:${Object.keys(g).length}`;
+  try {
+    if (sessionStorage.getItem(marca)) return;
+  } catch {
+    /* modo privado */
+  }
+  const linhas = Object.entries(g).map(([caso, x]) => ({ caso, suspeito: x.suspeito, pontos: x.pontos, explicacao: x.explicacao }));
+  try {
+    await ctfCall('desvGabaritoSet', { chave, linhas });
+    try {
+      sessionStorage.setItem(marca, '1');
+    } catch {
+      /* modo privado */
+    }
+  } catch {
+    /* script antigo na planilha: o aviso de atualizar o script já aparece no painel */
+  }
+}
+
 export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [salas, setSalas] = useState<SalaGuardada[]>(lerSalas);
   const [ativa, setAtiva] = useState<string>(() => lerSalas()[0]?.token || '');
@@ -87,6 +115,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   }, []);
   useEffect(() => {
     void sincronizar(true);
+    void enviarGabaritoDesv();
   }, [sincronizar]);
 
   const prof = useCallback(
