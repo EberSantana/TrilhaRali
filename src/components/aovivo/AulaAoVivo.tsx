@@ -79,14 +79,14 @@ export const AulaAoVivo: React.FC<{ onBack: () => void; onAbrirPainel: (modulo: 
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-10 space-y-5">
       <header className="space-y-3">
         <BackPill onClick={onBack}>Painel do professor</BackPill>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="hub-faixa flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3" aria-hidden>
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
             </span>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Aula ao vivo</h1>
+              <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight text-white">Aula ao vivo</h1>
               <p className="text-sm text-slate-400">As salas abertas agora. Escolha uma para acompanhar a turma.</p>
             </div>
           </div>

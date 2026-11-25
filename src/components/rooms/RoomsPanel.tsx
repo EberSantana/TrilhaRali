@@ -549,13 +549,13 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       <header className="space-y-3">
         <BackPill onClick={onBack}>Painel do professor</BackPill>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="hub-faixa flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${nfc ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-orange-500/10 border-orange-500/30 text-orange-300'}`}>
               <Icon className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">{txt.nome} · painel do professor</h1>
+              <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight text-white">{txt.nome} · painel do professor</h1>
               <p className="text-sm text-slate-400 max-w-2xl">{txt.tagline}</p>
             </div>
           </div>

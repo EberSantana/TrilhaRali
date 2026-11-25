@@ -1,8 +1,7 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, Lock, Play, ShieldCheck, Star, TrendingUp, Trophy } from 'lucide-react';
 import { useTheme } from '../utils/theme';
-import logoClaro from '../assets/logo-hub.png';
-import logoEscuro from '../assets/logo-hub-escuro.png';
+import { HubBar } from './common/HubBar';
 import heroImg from '../assets/hub-hero.webp';
 
 interface HomeLandingProps {
@@ -66,42 +65,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
 
   return (
     <div className="flex w-full flex-col">
-      {/* Barra do HUB: mesma do portal de estudos */}
-      <div style={{ background: painel, borderBottom: `1px solid ${borda}` }}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
-          <a href={URL_PORTAL} aria-label="Trilha Rali HUB, página inicial" className="shrink-0">
-            <img src={claro ? logoClaro : logoEscuro} alt="Trilha Rali HUB" className="h-12 w-auto sm:h-14" />
-          </a>
-          <div className="flex items-center gap-2">
-            <a
-              href={URL_PORTAL}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition hover:opacity-80"
-              style={{ color: claro ? '#007A35' : '#3BE37A', border: `1px solid ${borda}` }}
-            >
-              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar ao HUB</span><span className="sm:hidden">HUB</span>
-            </a>
-            {isTeacher && (
-              <a
-                href="https://ebersantana.github.io/disciplinas/professor.html"
-                className="hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition hover:opacity-80 sm:inline-flex"
-                style={{ color: claro ? '#0F172A' : '#F1F5F9', border: `1px solid ${borda}` }}
-                title="Acompanhamento das turmas e liberação de conteúdo"
-              >
-                Painel de estudos
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={onOpenTeacher}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold text-[#FFFFFF] transition hover:brightness-110"
-              style={{ background: 'linear-gradient(90deg,#008A3A,#00A844)' }}
-            >
-              {isTeacher ? <ShieldCheck className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-              <span className="hidden sm:inline">Área do professor</span><span className="sm:hidden">Professor</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <HubBar isTeacher={isTeacher} onOpenTeacher={onOpenTeacher} />
 
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-7">
         {/* Faixa principal */}

@@ -186,12 +186,12 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10 space-y-6">
       <header className="space-y-3">
         <BackPill onClick={onBack}>Painel do professor</BackPill>
-        <div className="flex items-center gap-3">
+        <div className="hub-faixa flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl border flex items-center justify-center bg-violet-500/10 border-violet-500/30 text-violet-300">
             <Search className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Desvendando · painel do professor</h1>
+            <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight text-white">Desvendando · painel do professor</h1>
             <p className="text-sm text-slate-400 max-w-2xl">Crie uma sala por turma e libere os casos na hora da aula. As duplas só veem os casos liberados da própria sala.</p>
           </div>
         </div>

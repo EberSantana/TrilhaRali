@@ -168,9 +168,9 @@ export const BankManager: React.FC<BankManagerProps> = ({ onBack, onOpenCtf }) =
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-10">
       <BackPill onClick={onBack} className="mb-4">Painel do professor</BackPill>
 
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="hub-faixa flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Banco de perguntas</h1>
+          <h1 className="text-3xl sm:text-4xl font-black italic leading-none tracking-tight text-white">Banco de perguntas</h1>
           <p className="mt-1 text-sm text-slate-400">{questions.length} pergunta(s) em {disciplinas.length} disciplina(s) · {ativas} ativa(s) · {questions.length - ativas} inativa(s)</p>
         </div>
         <div className="flex flex-wrap gap-2">

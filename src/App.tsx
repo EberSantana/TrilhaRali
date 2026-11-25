@@ -27,6 +27,7 @@ import { ModuleShell } from './components/common/ModuleShell';
 import { TRILHAS } from './components/common/trilhas';
 import { RaliStudent } from './components/rali/RaliStudent';
 import { RoomsPanel } from './components/rooms/RoomsPanel';
+import { HubBar } from './components/common/HubBar';
 import { HomeLanding } from './components/HomeLanding';
 import { TeacherHub } from './components/TeacherHub';
 import { Team, SubmissionLog, ClassSessionState, RallyRoom } from './types';
@@ -73,6 +74,12 @@ function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/rali') || parseTagFromLocation(hash, search)) return 'rali';
   return null;
 }
+
+const TITULO_MODULO: Partial<Record<AppModule, string>> = {
+  rali: 'Rali NFC', ctf: 'CTF Online', cruz: 'Cruzada Online', desv: 'Desvendando',
+  'prof-rali': 'Professor · Rali NFC', 'prof-ctf': 'Professor · CTF Online', 'prof-cruz': 'Professor · Cruzada', 'prof-desv': 'Professor · Desvendando',
+  'prof-turmas': 'Professor · Turmas', 'prof-aovivo': 'Professor · Aula ao vivo',
+};
 
 export default function App() {
   const [appModule, setAppModule] = useState<AppModule>(() => {
@@ -392,6 +399,14 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
 
+      {appModule !== 'home' && appModule !== 'local' && (
+        <HubBar
+          isTeacher={isTeacher}
+          atual={TITULO_MODULO[appModule] ?? 'Área do professor'}
+          onJogos={() => handleChangeModule('home')}
+          onOpenTeacher={() => handleChangeModule('professor')}
+        />
+      )}
       {appModule === 'home' ? (
         <main className="flex-1 flex flex-col">
           <HomeLanding
