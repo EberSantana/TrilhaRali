@@ -18,11 +18,6 @@ export const SeletorPapeis: React.FC<{ value: ModoPapeis; onChange: (m: ModoPape
   <fieldset className="space-y-1.5">
     <legend className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
       Papéis da {quem}
-      <span className="flex gap-1" aria-hidden>
-        <Capacete papel="piloto" size={40} />
-        <Capacete papel="copiloto" size={40} />
-        <Capacete papel="engenheiro" size={40} />
-      </span>
     </legend>
     <div className="grid gap-1.5 sm:grid-cols-2">
       {OPCOES.filter((o) => semPapeis || o.id !== '').map((o) => {
