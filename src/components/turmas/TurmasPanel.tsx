@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BarChart3, Download, GraduationCap, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { BarChart3, Download, GraduationCap, Loader2, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { importarTurmasDoHub } from '../../utils/turmasHub';
 import { BackPill } from '../common/ModuleShell';
 import { Btn, StepTitle } from '../common/ui';
 import { getBancoKey } from '../../utils/bankApi';
@@ -32,6 +33,23 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [notasBusy, setNotasBusy] = useState('');
   const [analise, setAnalise] = useState<Analise | null>(null);
   const [analiseBusy, setAnaliseBusy] = useState('');
+  const [importando, setImportando] = useState(false);
+  const [aviso, setAviso] = useState('');
+
+  const importar = async () => {
+    setImportando(true);
+    setErro('');
+    setAviso('');
+    try {
+      const r = await importarTurmasDoHub();
+      setAviso(`Turmas do HUB importadas: ${r.criadas} nova(s), ${r.atualizadas} atualizada(s), ${r.iguais} sem mudança.`);
+      await carregar();
+    } catch (e) {
+      setErro(msgErro(e));
+    } finally {
+      setImportando(false);
+    }
+  };
 
   const carregar = useCallback(async () => {
     if (!getBancoKey()) {
@@ -119,17 +137,23 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <div>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Turmas e notas</h1>
               <p className="text-sm text-slate-400 max-w-2xl">
-                Cadastre a lista de alunos uma vez. Nas salas ligadas à turma o aluno escolhe o próprio nome, e as notas somam todos os módulos.
+                As turmas vêm do Trilha Rali HUB (a mesma lista do login dos alunos): importe sempre que mudar a planilha. Nas salas ligadas à turma o nome do aluno vem do login, e as notas somam todos os módulos.
               </p>
             </div>
           </div>
-          <Btn variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setEditando({ nome: '', texto: '' })}>
-            Nova turma
-          </Btn>
+          <div className="flex flex-wrap gap-2">
+            <Btn variant="primary" icon={importando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} onClick={importar} disabled={importando}>
+              Importar turmas do HUB
+            </Btn>
+            <Btn icon={<Plus className="w-4 h-4" />} onClick={() => setEditando({ nome: '', texto: '' })}>
+              Nova turma
+            </Btn>
+          </div>
         </div>
       </header>
 
       {erro && <p className="rounded-xl border border-rose-500/40 bg-rose-950/50 p-3 text-sm text-rose-200">{erro}</p>}
+      {aviso && <p role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">{aviso}</p>}
 
       {editando && (
         <section className="space-y-4 rounded-2xl border border-sky-500/40 bg-slate-900/70 p-5" aria-label="Editar turma">

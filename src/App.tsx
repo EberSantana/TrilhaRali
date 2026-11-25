@@ -4,6 +4,7 @@
  */
 
 import { pingBanco, saveBancoKey } from './utils/bankApi';
+import { importarTurmasDoHubUmaVez } from './utils/turmasHub';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { StudentScanner } from './components/StudentScanner';
@@ -126,6 +127,11 @@ export default function App() {
     setSessionState(getSessionState());
     setIsTeacher(isTeacherAuthenticated());
   }, []);
+
+  // Turmas únicas: no modo professor, traz as turmas do HUB para os jogos (uma vez por sessão).
+  useEffect(() => {
+    if (isTeacher) importarTurmasDoHubUmaVez();
+  }, [isTeacher]);
 
   // Área do professor única: quem já entrou na área do professor do HUB (mesma senha) entra direto aqui.
   useEffect(() => {
