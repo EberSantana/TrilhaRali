@@ -142,13 +142,21 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setBusy(true);
     setErro('');
     try {
-      const r = await ctfCall<{ token: string; adminKey: string }>('createDesvRoom', { nome: nome.trim() || `Desvendando ${new Date().toLocaleDateString('pt-BR')}`, casos: [...novos], papeis, ...(turmaId ? { turma: turmaId } : {}) });
+      const r = await ctfCall<{ token: string; adminKey: string; casos?: string[] }>('createDesvRoom', { nome: nome.trim() || `Desvendando ${new Date().toLocaleDateString('pt-BR')}`, casos: [...novos], papeis, ...(turmaId ? { turma: turmaId } : {}) });
       const nova = { token: r.token, adminKey: r.adminKey, nome: nome.trim() || `Desvendando ${new Date().toLocaleDateString('pt-BR')}`, criada: Date.now() };
       const lista = [nova, ...salas];
       gravarSalas(lista);
       setSalas(lista);
       setAtiva(nova.token);
       setNome('');
+      const pedidos = novos.size;
+      const aceitos = r.casos?.length ?? pedidos;
+      if (aceitos < pedidos) {
+        setErro(
+          `A sala foi criada, mas só ${aceitos} de ${pedidos} caso(s) ficaram liberados: o servidor ainda não tem o gabarito dos outros. ` +
+            'Conecte a chave do banco neste aparelho (Professor → Banco de perguntas), reabra este painel para enviar o gabarito e marque os casos de novo na lista "Casos liberados".'
+        );
+      }
       setNovos(new Set());
     } catch (e) {
       setErro(msgErro(e));
@@ -227,6 +235,11 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </header>
 
       {!getCtfApiUrl() && <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">Configure o servidor (Apps Script) no painel do professor antes de criar salas.</p>}
+      {!getBancoKey() && (
+        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+          Chave do banco não conectada neste aparelho: os casos novos do Desvendando só valem depois que o gabarito for enviado à planilha. Conecte a chave em Professor → Banco de perguntas.
+        </p>
+      )}
       {erro && <p className="rounded-xl border border-rose-500/40 bg-rose-950/50 p-3 text-sm text-rose-200">{erro}</p>}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
