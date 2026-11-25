@@ -39,7 +39,7 @@ export function planoDeImportacao(doHub: { nome: string; alunos: AlunoTurma[] }[
   });
 }
 
-async function urlDoHub(): Promise<string> {
+export async function urlDoHub(): Promise<string> {
   const txt = await fetch(new URL('../disciplinas/config.js', window.location.href).href, { cache: 'no-store' }).then((r) => r.text());
   const m = /RANKING_URL\s*=\s*["']([^"']+)["']/.exec(txt);
   if (!m) throw new Error('Não achei o endereço do HUB (config.js).');
