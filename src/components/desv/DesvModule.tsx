@@ -314,10 +314,17 @@ const CartaoCaso: React.FC<{ caso: DesvCaso; feito?: number; onAbrir: () => void
   </button>
 );
 
-/** Entrada da dupla: token do professor, nome da dupla e integrantes. */
+/** Nome da dupla montado a partir dos integrantes (primeiros nomes): "Ana e Bruno". */
+const nomeDaDupla = (integrantes: string): string => {
+  const p = integrantes.split(/,|\se\s/i).map((x) => x.trim().split(/\s+/)[0]).filter(Boolean);
+  const t = p.length > 1 ? `${p.slice(0, -1).join(', ')} e ${p[p.length - 1]}` : p[0] ?? '';
+  return t.slice(0, 30).trim();
+};
+
+/** Entrada da dupla: token do professor e integrantes (o nome da dupla sai deles). */
 const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: Sessao, e: Estado) => void }> = ({ gid, erroInicial, onEntrou }) => {
   const [token, setToken] = useState(tokenDoLink);
-  const [nome, setNome] = useState('');
+  const nome = '';
   const perfilHub = usePerfilHub();
   const [integrantes, setIntegrantes] = useState(() => lerPerfilHub()?.nome ?? '');
   const turmaSala = useTurmaDaSala(token, gid);
@@ -333,7 +340,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
     setBusy(true);
     setErro('');
     try {
-      const ses = { token: token.trim().toUpperCase(), nome: nome.trim(), integrantes: integrantes.trim() };
+      const ses = { token: token.trim().toUpperCase(), nome: nome.trim() || nomeDaDupla(integrantes), integrantes: integrantes.trim() };
       const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid, ...(turmaSala ? { integrantes: ses.integrantes.split(',').map((x) => x.trim()).filter(Boolean) } : {}) });
       onEntrou({ ...ses, token: est.sala.token }, est);
     } catch (er) {
@@ -360,10 +367,6 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
           </span>
           <input value={token} onChange={(e) => setToken(e.target.value.toUpperCase())} maxLength={8} autoCapitalize="characters" autoComplete="off" placeholder="ABC234" className={`${input} text-xl font-mono font-black tracking-[0.3em] text-center text-violet-200`} />
         </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da dupla</span>
-          <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={30} autoComplete="off" placeholder="Ex.: Detetives do SQL" className={input} />
-        </label>
         {turmaSala ? (
           <div className="space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla <span className="font-normal normal-case text-slate-500">({turmaSala.nome})</span></span>
@@ -378,7 +381,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
         {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
         <button
           type="submit"
-          disabled={busy || token.trim().length < 4 || nome.trim().length < 2 || (!!turmaSala && integrantes.split(',').filter((x) => x.trim()).length < 2)}
+          disabled={busy || token.trim().length < 4 || nomeDaDupla(integrantes).length < 2 || (!!turmaSala && integrantes.split(',').filter((x) => x.trim()).length < 2)}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-base font-black text-white transition hover:bg-violet-500 disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
