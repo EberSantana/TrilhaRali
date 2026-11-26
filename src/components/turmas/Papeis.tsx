@@ -4,23 +4,24 @@ import { Capacete, PAPEIS, type Papel } from './Capacete';
 import { NomeDestaque } from './BuscaNome';
 
 /** Como os papéis funcionam na sala: '' = sem papéis; rodízio = giram a cada acerto; fixos; dupla = os alunos trocam. */
-export type ModoPapeis = '' | 'rodizio' | 'fixos' | 'dupla';
+export type ModoPapeis = '' | 'individual' | 'rodizio' | 'fixos' | 'dupla';
 
 const OPCOES: { id: ModoPapeis; titulo: string; texto: string }[] = [
   { id: '', titulo: 'Sem papéis', texto: 'Cada um joga do seu jeito.' },
+  { id: 'individual', titulo: 'Individual', texto: 'Cada aluno joga sozinho, com o seu capacete.' },
   { id: 'rodizio', titulo: 'Rodízio automático', texto: 'Os papéis trocam a cada acerto. Todos praticam as funções.' },
   { id: 'fixos', titulo: 'Papéis fixos', texto: 'Quem escolheu piloto fica piloto até o fim.' },
   { id: 'dupla', titulo: 'A dupla decide', texto: 'Aparece um botão "Trocar papéis" para eles usarem quando quiserem.' },
 ];
 
 /** Escolha do professor ao criar a sala (Desvendando, Rali NFC e CTF). */
-export const SeletorPapeis: React.FC<{ value: ModoPapeis; onChange: (m: ModoPapeis) => void; semPapeis?: boolean; quem?: string }> = ({ value, onChange, semPapeis = true, quem = 'dupla' }) => (
+export const SeletorPapeis: React.FC<{ value: ModoPapeis; onChange: (m: ModoPapeis) => void; semPapeis?: boolean; individual?: boolean; quem?: string }> = ({ value, onChange, semPapeis = true, individual = false, quem = 'dupla' }) => (
   <fieldset className="space-y-1.5">
     <legend className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
       Papéis da {quem}
     </legend>
     <div className="grid gap-1.5 sm:grid-cols-2">
-      {OPCOES.filter((o) => semPapeis || o.id !== '').map((o) => {
+      {OPCOES.filter((o) => (semPapeis || o.id !== '') && (individual || o.id !== 'individual')).map((o) => {
         const on = value === o.id;
         return (
           <label key={o.id || 'nenhum'} className={`flex cursor-pointer gap-2 rounded-xl border p-2.5 text-sm ${on ? 'border-violet-400 bg-violet-500/10' : 'border-slate-800 bg-slate-950 hover:border-slate-700'}`}>

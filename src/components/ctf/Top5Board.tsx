@@ -71,6 +71,7 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
       key={r.nome}
       pos={i + 1}
       nome={r.nome}
+      avatar={r.avatar}
       xp={r.xp}
       fogos={r.fogos}
       sub={sub(r)}
@@ -113,7 +114,7 @@ export const Top5Board: React.FC<Top5BoardProps> = ({ rows, totalFases, me, mine
         {order.map((i) => {
           const r = top[i];
           if (!r) return <div key={i} />;
-          return <PodiumColumn key={r.nome} idx={i} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={sub(r)} mine={r.nome === me} big={big} change={changes.get(r.nome)} />;
+          return <PodiumColumn key={r.nome} idx={i} nome={r.nome} avatar={r.avatar} xp={r.xp} fogos={r.fogos} sub={sub(r)} mine={r.nome === me} big={big} change={changes.get(r.nome)} />;
         })}
       </div>
       {(top.length > 3 || minePos) && (

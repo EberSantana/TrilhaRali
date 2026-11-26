@@ -1,4 +1,5 @@
 import React from 'react';
+import { AvatarCapacete, avatarPorId } from '../turmas/Avatares';
 import { Crown } from 'lucide-react';
 import type { RankChange } from '../../utils/ctfRank';
 import { Fogo } from './Icones';
@@ -28,13 +29,24 @@ function hue(nome: string): number {
 
 interface AvatarProps {
   nome: string;
+  /** capacete escolhido pelo aluno; sem ele, as iniciais coloridas */
+  avatar?: string;
   className?: string;
   /** anel de medalha (0 = ouro, 1 = prata, 2 = bronze) */
   medal?: number;
 }
 
 /** Avatar com as iniciais; a cor vem do nome, então a mesma pessoa tem sempre a mesma cor. */
-export const Avatar: React.FC<AvatarProps> = ({ nome, className = 'w-9 h-9 text-sm', medal }) => (
+export const Avatar: React.FC<AvatarProps> = ({ nome, avatar, className = 'w-9 h-9 text-sm', medal }) =>
+  avatarPorId(avatar) ? (
+    <span
+      aria-hidden
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-800 select-none ${className}`}
+      style={{ boxShadow: medal !== undefined && medal < 3 ? `0 0 0 3px ${MEDAL[medal].ring}` : undefined }}
+    >
+      <AvatarCapacete id={avatar} size={64} className="h-[85%] w-[85%]" />
+    </span>
+  ) : (
   <span
     aria-hidden
     className={`inline-flex shrink-0 items-center justify-center rounded-xl font-black tracking-tight select-none ${className}`}
@@ -46,7 +58,7 @@ export const Avatar: React.FC<AvatarProps> = ({ nome, className = 'w-9 h-9 text-
   >
     {initials(nome)}
   </span>
-);
+  );
 
 interface BadgeProps {
   pos: number;
@@ -115,17 +127,18 @@ interface RowProps {
   big?: boolean;
   change?: RankChange;
   tone?: 'emerald' | 'orange';
+  avatar?: string;
 }
 
 /** Linha de classificação: posição, avatar, nome, barra de pontos relativa ao líder e XP em destaque. */
-export const LeaderRow: React.FC<RowProps> = ({ pos, nome, xp, fogos, sub, pct, mine, big = false, change, tone = 'emerald' }) => (
+export const LeaderRow: React.FC<RowProps> = ({ pos, nome, avatar, xp, fogos, sub, pct, mine, big = false, change, tone = 'emerald' }) => (
   <li
     className={`flex items-center rounded-2xl border shadow-sm ${big ? 'gap-5 px-5 py-4' : 'gap-3 px-3 py-2.5'} ${
       mine ? 'border-orange-500/60 bg-orange-500/10 ring-1 ring-orange-500/30' : pos === 1 ? 'border-amber-400/50 bg-slate-900' : 'border-slate-800 bg-slate-900'
     }`}
   >
     <RankBadge pos={pos} className={big ? 'w-14 h-14 text-3xl' : 'w-8 h-8 text-sm'} />
-    <Avatar nome={nome} medal={pos <= 3 ? pos - 1 : undefined} className={big ? 'w-14 h-14 text-2xl' : 'w-9 h-9 text-sm'} />
+    <Avatar nome={nome} avatar={avatar} medal={pos <= 3 ? pos - 1 : undefined} className={big ? 'w-14 h-14 text-2xl' : 'w-9 h-9 text-sm'} />
     <div className="min-w-0 flex-1">
       <div className="flex items-center gap-2 min-w-0">
         <span className={`truncate font-bold text-white ${big ? 'text-3xl' : 'text-sm'}`} title={nome}>{nome}</span>
@@ -156,19 +169,20 @@ interface ColProps {
   mine?: boolean;
   big?: boolean;
   change?: RankChange;
+  avatar?: string;
 }
 
 const PEDESTAL = { compact: ['h-20', 'h-14', 'h-10'], big: ['h-40', 'h-28', 'h-20'] };
 
 /** Coluna do pódio: avatar com anel de medalha, nome, XP e um pedestal em degradê. */
-export const PodiumColumn: React.FC<ColProps> = ({ idx, nome, xp, fogos, sub, mine, big = false, change }) => {
+export const PodiumColumn: React.FC<ColProps> = ({ idx, nome, avatar, xp, fogos, sub, mine, big = false, change }) => {
   const m = MEDAL[idx];
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <div className={`flex items-end justify-center ${big ? 'h-10' : 'h-5'}`}>
         {idx === 0 && <Crown className={`${big ? 'h-9 w-9' : 'h-5 w-5'} text-amber-400`} aria-hidden />}
       </div>
-      <Avatar nome={nome} medal={idx} className={big ? 'w-24 h-24 text-4xl' : 'w-12 h-12 text-lg'} />
+      <Avatar nome={nome} avatar={avatar} medal={idx} className={big ? 'w-24 h-24 text-4xl' : 'w-12 h-12 text-lg'} />
       <div className={`mt-2 w-full truncate font-black text-white ${big ? 'text-3xl' : 'text-sm'} ${mine ? 'underline decoration-orange-400 decoration-2 underline-offset-4' : ''}`} title={nome}>
         {nome}
       </div>

@@ -71,7 +71,7 @@ export const FinalPodium: React.FC<FinalPodiumProps> = ({ rows, totalFases, unit
         {order.map((idx) => {
           const r = rows[idx];
           if (!r) return <div key={idx} />;
-          return <PodiumColumn key={r.nome} idx={idx} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={progress(r)} mine={r.nome === me} big={big} />;
+          return <PodiumColumn key={r.nome} idx={idx} nome={r.nome} avatar={r.avatar} xp={r.xp} fogos={r.fogos} sub={progress(r)} mine={r.nome === me} big={big} />;
         })}
       </div>
 
@@ -80,7 +80,7 @@ export const FinalPodium: React.FC<FinalPodiumProps> = ({ rows, totalFases, unit
           <h3 className={`mb-2 font-bold uppercase tracking-wider text-slate-400 ${big ? 'text-base' : 'text-[11px]'}`}>Classificação completa</h3>
           <ol className={`space-y-2 overflow-y-auto p-1 ${big ? 'max-h-[40vh]' : 'max-h-72'}`}>
             {rest.map((r, k) => (
-              <LeaderRow key={`${r.nome}-${k}`} pos={k + 4} nome={r.nome} xp={r.xp} fogos={r.fogos} sub={progress(r)} pct={r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0} mine={r.nome === me} big={big} />
+              <LeaderRow key={`${r.nome}-${k}`} pos={k + 4} nome={r.nome} avatar={r.avatar} xp={r.xp} fogos={r.fogos} sub={progress(r)} pct={r.xp > 0 ? Math.max(4, (r.xp / max) * 100) : 0} mine={r.nome === me} big={big} />
             ))}
           </ol>
         </div>

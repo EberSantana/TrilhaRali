@@ -192,6 +192,26 @@ test('papéis: o professor escolhe o modo; CTF em dupla credita o copiloto nas n
   assert.equal(b.call({ action: 'desvEntrar', token: dd.token, gid: 'aparelho_dupla_z2', nome: 'Dupla Z', integrantes: 'A e B' }).sala.papeis, 'dupla');
 });
 
+test('avatar: capacete escolhido vai para o ranking; só ids conhecidos; Desvendando individual aceita um nome só', () => {
+  const b = comTurma();
+  const ctf = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id, papeis: 'individual' });
+  assert.equal(b.call({ action: 'salaTurma', token: ctf.token }).papeis, '', 'individual só existe no Desvendando');
+  const st = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', avatar: 'rubi' });
+  assert.equal(st.aluno.avatar, 'rubi');
+  b.call({ action: 'join', token: ctf.token, nome: 'Bruno Lima', avatar: '<script>' });
+  const rk = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', chave: st.chave, avatar: 'oceano' }).ranking;
+  assert.equal(rk.find((r: Json) => r.nome === 'Ana Souza').avatar, 'oceano');
+  assert.equal(rk.find((r: Json) => r.nome === 'Bruno Lima').avatar, '');
+
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ['c1', 'x', 10, '']]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'], turma: b.turma.id, papeis: 'individual' });
+  assert.equal(b.call({ action: 'salaTurma', token: ds.token }).papeis, 'individual');
+  assert.match(b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_solo_1', nome: 'X', integrantes: ['Ana Souza', 'Bruno Lima'] }).error, /seu nome/);
+  const e = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_solo_1', nome: 'Ana Souza', integrantes: ['Ana Souza'], avatar: 'sol' });
+  assert.equal(e.dupla.integrantes, 'Ana Souza');
+  assert.equal(e.dupla.avatar, 'sol');
+});
+
 test('análise da turma: participação, perguntas difíceis (com tentativas erradas), assuntos e casos', () => {
   const b = comTurma();
   const miss2 = [...missions, { tag_id: 't2', categoria: 'DDL', pacote: 'Modelagem', pergunta: 'Q2?', resposta: 'pk', alternativas: [], xp: 10 }];

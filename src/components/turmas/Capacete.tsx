@@ -35,17 +35,26 @@ const PINTURA: Record<Papel, { faixa: string; filete: string }> = {
 
 const CASCO = 'M16 56C8 46 8 28 18 18 28 8 46 4 62 6c14 2 24 10 28 20 3 7 4 14 3 22-1 8-4 13-10 16l-25 2c-12 0-28-2-36-6Z';
 
-/**
- * Capacete de Fórmula 1 em vista lateral (desenho próprio): casco com brilho, aerofólio traseiro, viseira com
- * parafuso de pivô, entradas de ar na queixeira, pintura em faixa e número de carro. O engenheiro de pista usa
- * fone de rádio com microfone.
- */
-export const Capacete: React.FC<{ papel: Papel; size?: number; className?: string; title?: string }> = ({ papel, size = 48, className = '', title }) => {
-  const p = PAPEIS[papel];
-  const t = PINTURA[papel];
+export type PadraoCapacete = 'faixa' | 'listra' | 'xadrez' | 'raio';
+
+export interface PinturaCapacete {
+  casco: string;
+  casco2: string;
+  viseira: [string, string];
+  faixa: string;
+  filete: string;
+  numero: string;
+  padrao?: PadraoCapacete;
+  /** fone de rádio com microfone (engenheiro de pista) */
+  fone?: boolean;
+}
+
+/** Desenho do capacete: usado pelos papéis (piloto, copiloto, engenheiro) e pelos avatares dos alunos. */
+export const CapaceteArte: React.FC<{ pintura: PinturaCapacete; size?: number; className?: string; title: string }> = ({ pintura: p, size = 48, className = '', title }) => {
   const id = useId().replace(/:/g, '');
+  const padrao = p.padrao ?? 'faixa';
   return (
-    <svg viewBox="2 2 96 70" width={size} height={size * 0.73} className={className} role="img" aria-label={title ?? p.nome}>
+    <svg viewBox="2 2 96 70" width={size} height={size * 0.73} className={className} role="img" aria-label={title}>
       <defs>
         <linearGradient id={`s${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.casco} />
@@ -66,8 +75,29 @@ export const Capacete: React.FC<{ papel: Papel; size?: number; className?: strin
       </defs>
       <path d={CASCO} fill={`url(#s${id})`} stroke="#0f172a" strokeOpacity=".35" strokeWidth="1" />
       <g clipPath={`url(#k${id})`}>
-        <path d="M4 47c18-7 36-1 52 6 14 6 26 7 40 1v20H4Z" fill={t.faixa} />
-        <path d="M4 51c18-7 36-1 52 6 14 6 26 7 40 1v3c-14 6-27 5-40-1C40 53 22 47 4 55Z" fill={t.filete} />
+        {padrao === 'faixa' && (
+          <>
+            <path d="M4 47c18-7 36-1 52 6 14 6 26 7 40 1v20H4Z" fill={p.faixa} />
+            <path d="M4 51c18-7 36-1 52 6 14 6 26 7 40 1v3c-14 6-27 5-40-1C40 53 22 47 4 55Z" fill={p.filete} />
+          </>
+        )}
+        {padrao === 'listra' && (
+          <>
+            <path d="M10 44C22 22 44 8 74 6" fill="none" stroke={p.filete} strokeWidth="9" strokeLinecap="round" />
+            <path d="M10 44C22 22 44 8 74 6" fill="none" stroke={p.faixa} strokeWidth="4.5" strokeLinecap="round" />
+          </>
+        )}
+        {padrao === 'xadrez' && (
+          <g>
+            {[0, 1].map((r) => Array.from({ length: 17 }, (_, c) => ((r + c) % 2 ? <rect key={`${r}-${c}`} x={2 + c * 6} y={48 + r * 6} width="6" height="6" fill={p.faixa} /> : <rect key={`${r}-${c}`} x={2 + c * 6} y={48 + r * 6} width="6" height="6" fill={p.filete} />)))}
+          </g>
+        )}
+        {padrao === 'raio' && (
+          <>
+            <path d="M18 62L38 44l6 8 18-18 6 8 18-16" fill="none" stroke={p.filete} strokeWidth="9" strokeLinejoin="round" strokeLinecap="round" />
+            <path d="M18 62L38 44l6 8 18-18 6 8 18-16" fill="none" stroke={p.faixa} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
+          </>
+        )}
         <path d="M20 16c10-6 24-8 38-6" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" opacity=".9" />
         <rect width="100" height="80" fill={`url(#h${id})`} />
         <path d="M48 27c13-4 32-3 48 3v14c-14-3-32-3-46 0-4-4-5-12-2-17Z" fill={`url(#v${id})`} stroke="#0f172a" strokeWidth="1.6" strokeLinejoin="round" />
@@ -81,17 +111,28 @@ export const Capacete: React.FC<{ papel: Papel; size?: number; className?: strin
       <text x="28" y="38.4" textAnchor="middle" fontSize="10" fontWeight="900" fontStyle="italic" fontFamily="system-ui, sans-serif" fill="#0f172a">
         {p.numero}
       </text>
-      {papel === 'engenheiro' && (
+      {p.fone && (
         <g>
           <path d="M30 12C42 0 70 0 82 14" fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
           <rect x="78" y="12" width="9" height="14" rx="3" fill="#0f172a" />
-          <rect x="80" y="15" width="5" height="8" rx="2" fill={t.filete} />
+          <rect x="80" y="15" width="5" height="8" rx="2" fill={p.filete} />
           <path d="M84 26c3 10 0 20-8 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" />
           <circle cx="75" cy="50" r="2.6" fill="#0f172a" />
         </g>
       )}
     </svg>
   );
+};
+
+/**
+ * Capacete de Fórmula 1 em vista lateral (desenho próprio): casco com brilho, aerofólio traseiro, viseira com
+ * parafuso de pivô, entradas de ar na queixeira, pintura em faixa e número de carro. O engenheiro de pista usa
+ * fone de rádio com microfone.
+ */
+export const Capacete: React.FC<{ papel: Papel; size?: number; className?: string; title?: string }> = ({ papel, size = 48, className = '', title }) => {
+  const p = PAPEIS[papel];
+  const t = PINTURA[papel];
+  return <CapaceteArte pintura={{ casco: p.casco, casco2: p.casco2, viseira: p.viseira, faixa: t.faixa, filete: t.filete, numero: p.numero, fone: papel === 'engenheiro' }} size={size} className={className} title={title ?? p.nome} />;
 };
 
 /** Papel de cada integrante no caso atual: os papéis giram a cada caso resolvido. */
