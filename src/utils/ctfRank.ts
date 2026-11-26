@@ -3,6 +3,8 @@ export interface RankRow {
   xp: number;
   fase: number;
   fogos: number;
+  /** capacete escolhido pelo aluno (id do catálogo de avatares) */
+  avatar?: string;
 }
 
 export interface RankChange {

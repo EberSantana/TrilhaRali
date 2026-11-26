@@ -248,7 +248,7 @@ export const DesvPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Nome da sala</span>
             <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Ex.: 2º B · Banco de Dados" className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-violet-500" />
-          <SeletorPapeis value={papeis} onChange={setPapeis} semPapeis={false} />
+          <SeletorPapeis value={papeis} onChange={setPapeis} semPapeis={false} individual />
           </label>
           <SeletorTurma erro={erroTurmas} turmas={turmas} value={turmaId} onChange={setTurmaId} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-violet-500" />
           <ListaCasos marcados={novos} onAlternar={marcaNovo} onLote={defineNovos} />

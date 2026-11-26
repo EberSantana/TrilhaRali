@@ -53,6 +53,8 @@ export interface CtfPlayer {
   concluido: boolean;
   /** CTF em dupla: copiloto e engenheiro (o piloto é o nome). */
   integrantes?: string[];
+  /** capacete escolhido na entrada */
+  avatar?: string;
 }
 
 export interface CtfMission {
@@ -72,6 +74,7 @@ export interface CtfRankingRow {
   fase: number;
   xp: number;
   fogos: number;
+  avatar?: string;
 }
 
 export interface CtfAward {

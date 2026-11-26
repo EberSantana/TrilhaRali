@@ -7,6 +7,7 @@ import { ConfirmaQuem } from '../common/ConfirmaQuem';
 import { CabineDupla } from '../turmas/CabineDupla';
 import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
+import { AvatarCapacete, SeletorAvatar, useAvatar } from '../turmas/Avatares';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
@@ -67,6 +68,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const turmaSala = salaInfo?.turma ?? null;
   const papeisSala = modulo === 'ctf' ? salaInfo?.papeis ?? '' : '';
   const [cabine, setCabine] = useState('');
+  const [avatar, setAvatar] = useAvatar();
   const perfilHub = usePerfilHub();
   const [nome, setNome] = useState(() => lerPerfilHub()?.nome ?? '');
   const [state, setState] = useState<CtfState | null>(null);
@@ -147,7 +149,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
     try {
       const dupla = cabine.split(',').map((x) => x.trim()).filter(Boolean);
       const quem = papeisSala ? dupla[0] ?? '' : nome;
-      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
+      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(avatar ? { avatar } : {}), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
       if ((modulo === 'cruz') !== (s.sala.ordem === 'cruzadinha')) {
         throw new Error(modulo === 'cruz'
           ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
@@ -283,17 +285,25 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
               <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} />
             </div>
-          ) : perfilHub && !turmaSala ? null : (
-            <label className="block space-y-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">{turmaSala ? `Seu nome · ${turmaSala.nome}` : 'Seu nome'}</span>
-              {turmaSala ? (
-                <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
-              ) : perfilHub ? (
-                <input value={nome} readOnly aria-readonly="true" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-base text-white opacity-90 cursor-default outline-none" />
-              ) : (
-                <BotaoEntrarHub />
-              )}
-            </label>
+          ) : (
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine do piloto{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
+              <div className={`flex items-center gap-3 rounded-xl border p-3 ${nome.trim().length >= 2 ? 'border-amber-400/50 bg-amber-400/5' : 'border-slate-800 bg-slate-950'}`}>
+                <AvatarCapacete id={avatar} size={88} />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-amber-300">Piloto</p>
+                  {turmaSala ? (
+                    <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
+                  ) : perfilHub ? (
+                    <input value={nome} readOnly aria-readonly="true" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base text-white opacity-90 cursor-default outline-none" />
+                  ) : (
+                    <BotaoEntrarHub />
+                  )}
+                </div>
+              </div>
+              <span className="block text-xs text-slate-400">Escolha o seu capacete</span>
+              <SeletorAvatar value={avatar} onChange={setAvatar} foco={ac.foco} />
+            </div>
           )}
 
           {error && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{error}</p>}
@@ -360,6 +370,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
       module={sala.ordem === 'cruzadinha' ? 'cruz' : 'ctf'}
       context={sala.nome}
       name={aluno.nome}
+      avatar={aluno.avatar}
     >
       <TimerDisplay timer={timer} seconds={seconds} phase={phase} size="chip" />
       <XpChip xp={aluno.xp} />

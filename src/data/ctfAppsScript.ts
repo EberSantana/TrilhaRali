@@ -16,7 +16,7 @@ const SCRIPT_BASE = String.raw`// ==============================================
 var SHEET_HEADERS = {
   CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals', 'turma', 'papeis'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
-  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz'],
+  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz', 'avatar'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp', 'grade', 'palavra_id'],
   CtfCruzDicas: ['token', 'grade', 'nome_key', 'tipo', 'palavra_id', 'indice', 'timestamp'],
@@ -26,7 +26,7 @@ var SHEET_HEADERS = {
   DesvRanking: ['quando', 'nome', 'gid', 'caso', 'pontos', 'erros', 'dicas', 'token'],
   DesvSalas: ['token', 'nome', 'admin_key', 'status', 'casos', 'criada_em', 'turma', 'papeis'],
   Turmas: ['id', 'nome', 'alunos', 'atualizado_em'],
-  DesvDuplas: ['token', 'gid', 'nome', 'integrantes', 'entrou_em'],
+  DesvDuplas: ['token', 'gid', 'nome', 'integrantes', 'entrou_em', 'avatar'],
   DesvGabarito: ['caso', 'suspeito', 'pontos', 'explicacao'],
   CtfResumo: ['token', 'sala', 'tipo', 'criada_em', 'encerrada_em', 'duracao_min', 'perguntas', 'participantes', 'acertos', 'erros', 'taxa_acerto', 'xp_total', 'xp_medio'],
   CtfAnalise: ['token', 'sala', 'fase', 'tag_id', 'pacote', 'pergunta', 'acertos', 'participantes', 'taxa_acerto'],
@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 31, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 32, revisao: '__REVISAO__' });
 }
 
 function doPost(e) {
@@ -291,9 +291,17 @@ function roomInfo(room) {
 
 // Papeis da dupla/equipe (piloto, copiloto, engenheiro): '' = sem papeis, rodizio = giram a cada acerto,
 // fixos = nao mudam, dupla = os alunos trocam quando quiserem.
-function papeisModo(v, padrao) {
+function papeisModo(v, padrao, aceitaIndividual) {
   var m = String(v === undefined ? padrao : v || '');
+  if (m === 'individual') return aceitaIndividual ? m : '';
   return m === 'rodizio' || m === 'fixos' || m === 'dupla' ? m : '';
+}
+
+// Capacete escolhido pelo aluno (avatar): so ids conhecidos, para nao gravar texto livre na planilha.
+var AVATARES_OK = { rubi: 1, oceano: 1, floresta: 1, sol: 1, laranja: 1, violeta: 1, rosa: 1, noturno: 1, gelo: 1, turquesa: 1, lima: 1, vinho: 1 };
+function avatarId(v) {
+  var a = String(v || '').toLowerCase();
+  return AVATARES_OK[a] ? a : '';
 }
 
 function cleanName(nome) {
@@ -362,11 +370,11 @@ function buildState(room, nomeKey) {
     aluno: {
       nome: me.nome, fase: fase, xp: Number(me.xp), acertos: Number(me.acertos),
       erros: Number(me.erros), fogos: Number(me.fogos), posicao: pos, concluido: concluido,
-      integrantes: parseList(me.integrantes)
+      integrantes: parseList(me.integrantes), avatar: String(me.avatar || '')
     },
     missao: missao,
     ranking: ranked.slice(0, 15).map(function (a) {
-      return { nome: a.nome, fase: cruz ? Number(a.acertos) || 0 : Number(a.fase_atual), xp: Number(a.xp), fogos: Number(a.fogos) };
+      return { nome: a.nome, fase: cruz ? Number(a.acertos) || 0 : Number(a.fase_atual), xp: Number(a.xp), fogos: Number(a.fogos), avatar: String(a.avatar || '') };
     }),
     total_alunos: ranked.length
   };
@@ -442,7 +450,7 @@ function createRoom(req) {
     modo: modo, criada_em: new Date().toISOString(), total_fases: missions.length,
     banco_liberado: req.bancoLiberado === true,
     timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
-    papeis: tipo === 'rali' || tipo === 'ctf' ? papeisModo(req.papeis, '') : '',
+    papeis: tipo === 'rali' || tipo === 'ctf' ? papeisModo(req.papeis, '', false) : '',
     tipo: tipo,
     ordem: ordem,
     turma: turmaIdValido(req.turma)
@@ -486,6 +494,8 @@ function join(req) {
       if (jaNaSala[norm(n)]) fail(n + ' já está na equipe ' + jaNaSala[norm(n)] + '.');
     });
   }
+  var avatar = avatarId(req.avatar);
+  if (found && avatar && String(found.avatar || '') !== avatar) updateRow('CtfAlunos', found._row, { avatar: avatar });
   if (found && !found.chave) {
     // linha criada antes da v9: ganha a chave do primeiro aparelho que voltar a entrar
     chave = Utilities.getUuid();
@@ -498,7 +508,8 @@ function join(req) {
       chave: chave,
       token: room.token, nome: nome, nome_key: key, fase_atual: 1, xp: 0, acertos: 0,
       erros: 0, fogos: 0, entrou_em: Date.now(),
-      integrantes: comEquipe ? JSON.stringify(cleanMembers(req.integrantes)) : ''
+      integrantes: comEquipe ? JSON.stringify(cleanMembers(req.integrantes)) : '',
+      avatar: avatar
     });
   }
   var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
@@ -620,7 +631,7 @@ function raliBuildState(room, key) {
     },
     missoes: missoes,
     ranking: ranked.slice(0, 15).map(function (a) {
-      return { nome: a.nome, fase: Number(a.acertos), xp: Number(a.xp), fogos: Number(a.fogos) };
+      return { nome: a.nome, fase: Number(a.acertos), xp: Number(a.xp), fogos: Number(a.fogos), avatar: String(a.avatar || '') };
     }),
     total_equipes: ranked.length,
     total_alunos: ranked.length
@@ -1343,7 +1354,7 @@ function createDesvRoom(req) {
   var adminKey = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 24);
   appendObj('DesvSalas', {
     token: token, nome: safeText(String(req.nome || 'Desvendando').substring(0, 80)), admin_key: adminKey,
-    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString(), turma: turmaIdValido(req.turma), papeis: papeisModo(req.papeis, 'rodizio')
+    status: 'aberta', casos: JSON.stringify(casos), criada_em: new Date().toISOString(), turma: turmaIdValido(req.turma), papeis: papeisModo(req.papeis, 'rodizio', true)
   });
   return { token: token, adminKey: adminKey, casos: casos };
 }
@@ -1358,10 +1369,12 @@ function desvEntrar(req) {
   var gid = desvGid(req.gid);
   var nome = cruzRankingNome(req.nome);
   var integrantes = String(req.integrantes || '').replace(/\s+/g, ' ').trim().substring(0, 120);
+  var individual = String(sala.papeis) === 'individual';
+  var avatar = avatarId(req.avatar);
   if (sala.turma) {
     var lista = Array.isArray(req.integrantes) ? req.integrantes : String(req.integrantes || '').split(',');
     lista = lista.map(function (n) { return String(n).trim(); }).filter(function (n) { return n; });
-    if (!lista.length || lista.length > 3) fail('Escolha o piloto, o copiloto e, se for trio, o engenheiro.');
+    if (individual ? lista.length !== 1 : !lista.length || lista.length > 3) fail(individual ? 'Escolha o seu nome na lista.' : 'Escolha o piloto, o copiloto e, se for trio, o engenheiro.');
     lista = lista.map(function (n) { return nomeDaTurma(sala.turma, n); });
     var vistos = {};
     lista.forEach(function (n) { if (vistos[norm(n)]) fail(n + ' foi escolhido duas vezes.'); vistos[norm(n)] = 1; });
@@ -1377,7 +1390,7 @@ function desvEntrar(req) {
     var mesma = duplasSala.filter(function (d) { return chaveDe(d.integrantes) === minha; })[0];
     if (mesma) {
       var antigo = String(mesma.gid);
-      updateRow('DesvDuplas', mesma._row, { gid: gid, nome: safeText(nome), integrantes: safeText(integrantes) });
+      updateRow('DesvDuplas', mesma._row, { gid: gid, nome: safeText(nome), integrantes: safeText(integrantes), avatar: avatar || String(mesma.avatar || '') });
       readRows('DesvRanking').forEach(function (r) { if (String(r.token) === token && String(r.gid) === antigo) updateRow('DesvRanking', r._row, { gid: gid }); });
       memoLimpa('DesvDuplas'); memoLimpa('DesvRanking');
       return desvEstado({ token: token, gid: gid });
@@ -1388,8 +1401,8 @@ function desvEntrar(req) {
       });
     });
   }
-  if (ja) updateRow('DesvDuplas', ja._row, { nome: safeText(nome), integrantes: safeText(integrantes) });
-  else appendObj('DesvDuplas', { token: token, gid: gid, nome: safeText(nome), integrantes: safeText(integrantes), entrou_em: new Date().toISOString() });
+  if (ja) updateRow('DesvDuplas', ja._row, { nome: safeText(nome), integrantes: safeText(integrantes), avatar: avatar || String(ja.avatar || '') });
+  else appendObj('DesvDuplas', { token: token, gid: gid, nome: safeText(nome), integrantes: safeText(integrantes), entrou_em: new Date().toISOString(), avatar: avatar });
   return desvEstado({ token: token, gid: gid });
 }
 
@@ -1404,10 +1417,11 @@ function desvRankingSala(token) {
     if (String(r.quando) > e.quando) e.quando = String(r.quando);
   });
   var nomes = {};
-  readRows('DesvDuplas').forEach(function (d) { if (String(d.token) === token) nomes[String(d.gid)] = String(d.nome); });
-  var lista = Object.keys(por).map(function (g) { var e = por[g]; e.nome = nomes[g] || e.nome; return e; });
+  var avatares = {};
+  readRows('DesvDuplas').forEach(function (d) { if (String(d.token) === token) { nomes[String(d.gid)] = String(d.nome); avatares[String(d.gid)] = String(d.avatar || ''); } });
+  var lista = Object.keys(por).map(function (g) { var e = por[g]; e.nome = nomes[g] || e.nome; e.avatar = avatares[g] || ''; return e; });
   lista.sort(function (a, b) { return b.pontos - a.pontos || (a.quando < b.quando ? -1 : 1); });
-  return lista.map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, casos: x.casos }; });
+  return lista.map(function (x, i) { return { pos: i + 1, nome: x.nome, pontos: x.pontos, casos: x.casos, avatar: x.avatar }; });
 }
 
 function desvEstado(req) {
@@ -1420,7 +1434,7 @@ function desvEstado(req) {
   readRows('DesvRanking').forEach(function (r) { if (String(r.token) === token && String(r.gid) === gid) resolvidos[String(r.caso)] = Number(r.pontos) || 0; });
   return {
     sala: { token: token, nome: String(sala.nome), status: String(sala.status), casos: sala.casosLista, papeis: String(sala.papeis || '') },
-    dupla: { nome: String(dupla.nome), integrantes: String(dupla.integrantes || '') },
+    dupla: { nome: String(dupla.nome), integrantes: String(dupla.integrantes || ''), avatar: String(dupla.avatar || '') },
     resolvidos: resolvidos,
     ranking: desvRankingSala(token).slice(0, 50)
   };
@@ -2453,5 +2467,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 31;
+export const VERSAO_SCRIPT = 32;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);
