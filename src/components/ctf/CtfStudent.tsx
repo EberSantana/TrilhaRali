@@ -254,7 +254,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
               {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
             </div>
             <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada' : 'Entrar no CTF'}</h2>
-            <p className="text-sm text-slate-400">Digite o token da sala. Seu nome vem do HUB.</p>
+            <p className="text-sm text-slate-400">Digite o token da sala e escolha o seu nome na lista da turma.</p>
           </div>
 
           {!hasApi && (
@@ -294,10 +294,21 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
                   <p className="text-[11px] font-black uppercase tracking-wider text-amber-300">Piloto</p>
                   {turmaSala ? (
                     <BuscaNome alunos={turmaSala.alunos} ocupados={turmaSala.ocupados.filter((n) => !getChave(token, n))} value={nome} onChange={setNome} foco={ac.foco} />
-                  ) : perfilHub ? (
-                    <input value={nome} readOnly aria-readonly="true" className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base text-white opacity-90 cursor-default outline-none" />
+                  ) : token.trim().length < 6 ? (
+                    <p className="text-sm text-slate-400">Digite o token da sala para aparecer a lista da sua turma.</p>
                   ) : (
-                    <BotaoEntrarHub />
+                    <>
+                      {!salaInfo && <p className="text-xs text-slate-500">Procurando a turma da sala…</p>}
+                      <input
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        readOnly={!!perfilHub && !!salaInfo}
+                        maxLength={60}
+                        autoComplete="off"
+                        placeholder="Digite o seu nome"
+                        className={`w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-base text-white placeholder-slate-500 outline-none focus:ring-2 ${ac.foco}`}
+                      />
+                    </>
                   )}
                 </div>
               </div>
