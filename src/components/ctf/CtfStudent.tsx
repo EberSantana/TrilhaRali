@@ -284,6 +284,8 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
               <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} />
+              <span className="block pt-1 text-xs text-slate-400">Escolha o capacete do piloto</span>
+              <SeletorAvatar value={avatar} onChange={setAvatar} foco={ac.foco} />
             </div>
           ) : (
             <div className="space-y-2">

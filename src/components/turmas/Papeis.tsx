@@ -7,7 +7,7 @@ import { NomeDestaque } from './BuscaNome';
 export type ModoPapeis = '' | 'individual' | 'rodizio' | 'fixos' | 'dupla';
 
 const OPCOES: { id: ModoPapeis; titulo: string; texto: string }[] = [
-  { id: '', titulo: 'Sem papéis', texto: 'Cada um joga do seu jeito.' },
+  { id: '', titulo: 'Sem papéis (individual)', texto: 'Cada aluno joga sozinho, escolhendo o nome e o capacete.' },
   { id: 'individual', titulo: 'Individual', texto: 'Cada aluno joga sozinho, com o seu capacete.' },
   { id: 'rodizio', titulo: 'Rodízio automático', texto: 'Os papéis trocam a cada acerto. Todos praticam as funções.' },
   { id: 'fixos', titulo: 'Papéis fixos', texto: 'Quem escolheu piloto fica piloto até o fim.' },
