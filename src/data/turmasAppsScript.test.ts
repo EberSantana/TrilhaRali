@@ -141,7 +141,7 @@ test('nomes já usados: aparecem ocupados, outro celular é recusado e o profess
   const sala = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id });
   b.call({ action: 'join', token: sala.token, nome: 'Ana Souza' });
   assert.deepEqual(b.call({ action: 'salaTurma', token: sala.token }).turma.ocupados, ['Ana Souza']);
-  assert.match(b.call({ action: 'join', token: sala.token, nome: 'Ana Souza', chave: 'outro-celular' }).error, /liberar/);
+  assert.match(b.call({ action: 'join', token: sala.token, nome: 'Ana Souza', chave: 'outro-celular' }).error, /retomar/);
   assert.match(b.call({ action: 'liberarNome', token: sala.token, adminKey: 'errada', nome: 'Ana Souza' }).error, /inválida/);
   assert.ok(b.call({ action: 'liberarNome', token: sala.token, adminKey: sala.adminKey, nome: 'Ana Souza' }).ok);
   const novo = b.call({ action: 'join', token: sala.token, nome: 'Ana Souza', chave: 'outro-celular' });
@@ -210,6 +210,21 @@ test('avatar: capacete escolhido vai para o ranking; só ids conhecidos; Desvend
   const e = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_solo_1', nome: 'Ana Souza', integrantes: ['Ana Souza'], avatar: 'sol' });
   assert.equal(e.dupla.integrantes, 'Ana Souza');
   assert.equal(e.dupla.avatar, 'sol');
+});
+
+test('retomar: aluno que perdeu o navegador volta ao mesmo progresso com "retomar"; sem isso continua bloqueado', () => {
+  const b = comTurma();
+  const ctf = b.call({ action: 'createRoom', nome: 'CTF', missions, modo: 'fixed', turma: b.turma.id });
+  const a = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', avatar: 'rubi' });
+  b.call({ action: 'submit', token: ctf.token, nome: 'Ana Souza', resposta: '8' });
+  const rec = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', chave: 'outro-navegador' }); assert.match(rec.error, /Sou eu, retomar/);
+  const volta = b.call({ action: 'join', token: ctf.token, nome: 'Ana Souza', retomar: true });
+  assert.ok(!volta.error, volta.error);
+  assert.equal(volta.chave, a.chave, 'o aparelho antigo continua valendo');
+  assert.equal(volta.aluno.xp, 10);
+  const livre = b.call({ action: 'createRoom', nome: 'CTF livre', missions, modo: 'fixed' });
+  b.call({ action: 'join', token: livre.token, nome: 'Zé Silva' });
+  assert.match(b.call({ action: 'join', token: livre.token, nome: 'Zé Silva', chave: 'outro', retomar: true }).error, /outro|Já existe/, 'sem turma não retoma por nome');
 });
 
 test('análise da turma: participação, perguntas difíceis (com tentativas erradas), assuntos e casos', () => {

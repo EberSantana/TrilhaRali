@@ -90,6 +90,7 @@ export const DesvModule: React.FC = () => {
   const [gid, setGid] = useState(gidDoAparelho);
   const [sessao, setSessao] = useState<Sessao | null>(lerSessao);
   const [conferir, setConferir] = useState(() => !!lerSessao() && sessaoParada('desv'));
+  const [avatarLocal] = useAvatar();
   const [estado, setEstado] = useState<Estado | null>(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState<'casos' | 'ranking'>('casos');
@@ -219,6 +220,7 @@ export const DesvModule: React.FC = () => {
         <FaixaCabine
           nomes={estado.dupla.integrantes.split(',').map((x) => x.trim()).filter(Boolean)}
           modo={estado.sala.papeis || 'rodizio'}
+          avatar={estado.dupla.avatar || avatarLocal}
           rodadaAuto={Object.keys(estado.resolvidos).length}
           chave={`desv_${estado.sala.token}_${gid}`}
         />
@@ -392,12 +394,16 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
         ) : turmaSala ? (
           <div className="space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla <span className="font-normal normal-case text-slate-500">({turmaSala.nome})</span></span>
-            <CabineDupla alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} />
+            <CabineDupla alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} avatar={avatar} />
+            <span className="block pt-1 text-xs text-slate-400">Escolha o capacete de vocês</span>
+            <SeletorAvatar value={avatar} onChange={setAvatar} foco="focus:ring-violet-500" />
           </div>
         ) : (
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes</span>
             <input value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} maxLength={120} autoComplete="off" placeholder="Ana Souza e Bruno Lima" className={input} />
+            <span className="block pt-1 text-xs text-slate-400">Escolha o capacete de vocês</span>
+            <SeletorAvatar value={avatar} onChange={setAvatar} foco="focus:ring-violet-500" />
           </label>
         )}
         {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}

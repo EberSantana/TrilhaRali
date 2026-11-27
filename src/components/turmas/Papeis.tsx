@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Repeat } from 'lucide-react';
-import { Capacete, PAPEIS, type Papel } from './Capacete';
+import { PAPEIS, type Papel } from './Capacete';
+import { CapaceteDaVez } from './Avatares';
 import { NomeDestaque } from './BuscaNome';
 
 /** Como os papéis funcionam na sala: '' = sem papéis; rodízio = giram a cada acerto; fixos; dupla = os alunos trocam. */
@@ -57,7 +58,7 @@ const lerTroca = (k: string) => {
  * Faixa "Cabine" na tela do jogo: quem pilota agora. rodadaAuto = acertos/casos resolvidos (usado no rodízio).
  * No modo "dupla decide", o botão Trocar papéis gira os papéis e a escolha fica salva neste aparelho.
  */
-export const FaixaCabine: React.FC<{ nomes: string[]; modo: ModoPapeis; rodadaAuto: number; chave: string; rotulo?: string }> = ({ nomes, modo, rodadaAuto, chave, rotulo = 'Cabine' }) => {
+export const FaixaCabine: React.FC<{ nomes: string[]; modo: ModoPapeis; rodadaAuto: number; chave: string; rotulo?: string; avatar?: string }> = ({ nomes, modo, rodadaAuto, chave, rotulo = 'Cabine', avatar }) => {
   const k = `rali_papeis_troca_${chave}`;
   const [troca, setTroca] = useState(() => lerTroca(k));
   useEffect(() => setTroca(lerTroca(k)), [k]);
@@ -91,7 +92,7 @@ export const FaixaCabine: React.FC<{ nomes: string[]; modo: ModoPapeis; rodadaAu
       <ul className={`grid gap-2 ${comPapel.length > 2 ? 'sm:grid-cols-3' : 'grid-cols-2'}`}>
         {comPapel.map(({ nome, papel }) => (
           <li key={papel} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`} title={PAPEIS[papel].funcao}>
-            <Capacete papel={papel} size={64} />
+            <CapaceteDaVez papel={papel} avatar={avatar} size={64} />
             <div className="min-w-0">
               <p className={`text-xs font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</p>
               <p className="truncate text-base">

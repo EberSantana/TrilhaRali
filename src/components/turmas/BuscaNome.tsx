@@ -31,7 +31,9 @@ export const ListaBusca: React.FC<{
   onEscolher: (nome: string) => void;
   placeholder?: string;
   foco?: string;
-}> = ({ alunos, ocupados = [], escolhidos = [], onEscolher, placeholder = 'Digite parte do seu nome', foco = 'focus:ring-emerald-500' }) => {
+  /** nome já usado em outro aparelho: o aluno pode tocar para retomar de onde parou */
+  onRetomar?: (nome: string) => void;
+}> = ({ alunos, ocupados = [], escolhidos = [], onEscolher, placeholder = 'Digite parte do seu nome', foco = 'focus:ring-emerald-500', onRetomar }) => {
   const [busca, setBusca] = useState('');
   const ocup = useMemo(() => new Set(ocupados.map(normNome)), [ocupados]);
   const esc = useMemo(() => new Set(escolhidos.map(normNome)), [escolhidos]);
@@ -65,17 +67,17 @@ export const ListaBusca: React.FC<{
                 type="button"
                 role="option"
                 aria-selected={marcado}
-                disabled={bloqueado || marcado}
-                onClick={() => onEscolher(n)}
+                disabled={(bloqueado && !onRetomar) || marcado}
+                onClick={() => (bloqueado ? onRetomar?.(n) : onEscolher(n))}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${
-                  bloqueado ? 'cursor-not-allowed opacity-45' : marcado ? 'bg-slate-800' : 'hover:bg-slate-800/80'
+                  bloqueado ? (onRetomar ? 'opacity-80 hover:bg-slate-800/80' : 'cursor-not-allowed opacity-45') : marcado ? 'bg-slate-800' : 'hover:bg-slate-800/80'
                 }`}
               >
                 <NomeDestaque nome={n} />
                 <span className="ml-auto shrink-0 text-[11px] font-bold uppercase tracking-wide text-slate-500">
                   {bloqueado ? (
                     <span className="inline-flex items-center gap-1">
-                      <Lock className="h-3 w-3" /> já está na sala
+                      <Lock className="h-3 w-3" /> {onRetomar ? 'já entrou · sou eu' : 'já está na sala'}
                     </span>
                   ) : marcado ? (
                     <Check className="h-4 w-4 text-emerald-400" />
@@ -92,13 +94,13 @@ export const ListaBusca: React.FC<{
 };
 
 /** Aluno escolhe o próprio nome (CTF e Cruzada): busca e confirmação "Você é ...?". */
-export const BuscaNome: React.FC<{ alunos: string[]; ocupados: string[]; value: string; onChange: (n: string) => void; foco?: string }> = ({ alunos, ocupados, value, onChange, foco }) => {
+export const BuscaNome: React.FC<{ alunos: string[]; ocupados: string[]; value: string; onChange: (n: string) => void; foco?: string; onRetomar?: (n: string) => void; retomando?: boolean }> = ({ alunos, ocupados, value, onChange, foco, onRetomar, retomando }) => {
   if (value) {
     return (
       <div className="flex items-center gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
         <Check className="h-5 w-5 shrink-0 text-emerald-400" aria-hidden />
         <p className="min-w-0 flex-1 text-sm text-slate-300">
-          Você é <NomeDestaque nome={value} />?
+          Você é <NomeDestaque nome={value} />?{retomando && <span className="block text-xs text-emerald-300">Vai continuar de onde parou.</span>}
         </p>
         <button type="button" onClick={() => onChange('')} className="shrink-0 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-800">
           Não sou eu
@@ -106,5 +108,5 @@ export const BuscaNome: React.FC<{ alunos: string[]; ocupados: string[]; value: 
       </div>
     );
   }
-  return <ListaBusca alunos={alunos} ocupados={ocupados} onEscolher={onChange} foco={foco} />;
+  return <ListaBusca alunos={alunos} ocupados={ocupados} onEscolher={onChange} foco={foco} onRetomar={onRetomar} />;
 };

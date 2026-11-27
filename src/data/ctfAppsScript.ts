@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 32, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 33, revisao: '__REVISAO__' });
 }
 
 function doPost(e) {
@@ -479,8 +479,10 @@ function join(req) {
   var found = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
   var chave = String(req.chave || '');
   if (found && found.chave && String(found.chave) !== chave) {
-    if (room.turma) fail('Este nome já entrou na sala em outro celular. Se você trocou de aparelho, peça ao professor para liberar o seu nome.');
-    fail('Já existe alguém com este nome nesta sala. Use outro nome (ex.: nome e sobrenome).');
+    // O aluno perdeu o aparelho/navegador e confirmou "sou eu": volta com a chave que ja existe (o outro aparelho continua valendo).
+    if (room.turma && req.retomar) chave = String(found.chave);
+    else if (room.turma) fail('Este nome já entrou na sala em outro celular. Se você trocou de aparelho ou de navegador, toque no seu nome na lista e escolha "Sou eu, retomar".');
+    else fail('Já existe alguém com este nome nesta sala. Use outro nome (ex.: nome e sobrenome).');
   }
   if (comEquipe && room.turma && !found) {
     var jaNaSala = {};
@@ -2467,5 +2469,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 32;
+export const VERSAO_SCRIPT = 33;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);
