@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CapaceteArte, type PinturaCapacete } from './Capacete';
+import { Capacete, CapaceteArte, type Papel, type PinturaCapacete } from './Capacete';
 
 export interface AvatarCapacete {
   id: string;
@@ -67,6 +67,10 @@ export const AvatarCapacete: React.FC<{ id?: string | null; size?: number; class
   const pintura: PinturaCapacete = a?.pintura ?? { casco: '#64748b', casco2: '#334155', viseira: V_ESCURA, faixa: '#cbd5e1', filete: '#94a3b8', numero: '?', padrao: 'faixa' };
   return <CapaceteArte pintura={pintura} size={size} className={className} title={a ? `Capacete ${a.nome}` : 'Capacete'} />;
 };
+
+/** Capacete da vez: o que o aluno escolheu; sem escolha, o capacete colorido do papel. */
+export const CapaceteDaVez: React.FC<{ papel: Papel; avatar?: string | null; size?: number; className?: string }> = ({ papel, avatar, size = 48, className = '' }) =>
+  avatarPorId(avatar) ? <AvatarCapacete id={avatar} size={size} className={className} /> : <Capacete papel={papel} size={size} className={className} />;
 
 /** Grade para o aluno escolher o capacete. */
 export const SeletorAvatar: React.FC<{ value: string; onChange: (id: string) => void; foco?: string }> = ({ value, onChange, foco = 'focus-visible:ring-violet-500' }) => (
