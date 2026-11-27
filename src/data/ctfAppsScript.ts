@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 33, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 34, revisao: '__REVISAO__' });
 }
 
 function doPost(e) {
@@ -300,8 +300,10 @@ function papeisModo(v, padrao, aceitaIndividual) {
 // Capacete escolhido pelo aluno (avatar): so ids conhecidos, para nao gravar texto livre na planilha.
 var AVATARES_OK = { rubi: 1, oceano: 1, floresta: 1, sol: 1, laranja: 1, violeta: 1, rosa: 1, noturno: 1, gelo: 1, turquesa: 1, lima: 1, vinho: 1 };
 function avatarId(v) {
-  var a = String(v || '').toLowerCase();
-  return AVATARES_OK[a] ? a : '';
+  // um capacete por integrante da dupla/trio, na ordem da cabine: "rubi,oceano,sol" (posicao sem escolha fica vazia)
+  var partes = String(v || '').toLowerCase().split(',').slice(0, 3).map(function (x) { x = x.trim(); return AVATARES_OK[x] ? x : ''; });
+  while (partes.length && !partes[partes.length - 1]) partes.pop();
+  return partes.join(',');
 }
 
 function cleanName(nome) {
@@ -2469,5 +2471,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 33;
+export const VERSAO_SCRIPT = 34;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);

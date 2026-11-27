@@ -68,23 +68,74 @@ export const AvatarCapacete: React.FC<{ id?: string | null; size?: number; class
   return <CapaceteArte pintura={pintura} size={size} className={className} title={a ? `Capacete ${a.nome}` : 'Capacete'} />;
 };
 
+const CHAVE_DUPLA = 'rali_avatares_dupla_v1';
+const EVENTO_DUPLA = 'rali-avatares-dupla';
+
+/** Um capacete por integrante da dupla/trio (na ordem da cabine); guardado neste aparelho. */
+export function useAvataresDupla(): [string[], (i: number, id: string) => void] {
+  const ler = (): string[] => {
+    try {
+      const v = JSON.parse(localStorage.getItem(CHAVE_DUPLA) || '[]');
+      return Array.isArray(v) ? v.map((x) => (avatarPorId(String(x)) ? String(x) : '')).slice(0, 3) : [];
+    } catch {
+      return [];
+    }
+  };
+  const [lista, setLista] = useState<string[]>(ler);
+  useEffect(() => {
+    const at = () => setLista(ler());
+    window.addEventListener(EVENTO_DUPLA, at);
+    return () => window.removeEventListener(EVENTO_DUPLA, at);
+  }, []);
+  const muda = (i: number, id: string) => {
+    const novo = [0, 1, 2].map((j) => (j === i ? id : lista[j] ?? ''));
+    try {
+      localStorage.setItem(CHAVE_DUPLA, JSON.stringify(novo));
+    } catch {
+      /* modo privado */
+    }
+    setLista(novo);
+    window.dispatchEvent(new Event(EVENTO_DUPLA));
+  };
+  return [lista, muda];
+}
+
+/** "rubi,oceano" (um por integrante, na ordem da cabine) -> lista com vazios onde não escolheu. */
+export const listaAvatares = (v?: string | null): string[] => String(v ?? '').split(',').map((x) => x.trim());
+
+/** Capacetes de toda a dupla lado a lado (ou o capacete único). */
+export const AvataresJuntos: React.FC<{ value?: string | null; size?: number; className?: string }> = ({ value, size = 36, className = '' }) => {
+  const ids = listaAvatares(value).filter((x) => avatarPorId(x)).slice(0, 3);
+  if (!ids.length) return null;
+  return (
+    <span className={`inline-flex shrink-0 items-center ${className}`}>
+      {ids.map((id, i) => (
+        <AvatarCapacete key={`${id}-${i}`} id={id} size={size} className={i ? '-ml-3' : ''} />
+      ))}
+    </span>
+  );
+};
+
 /** Capacete da vez: o que o aluno escolheu; sem escolha, o capacete colorido do papel. */
 export const CapaceteDaVez: React.FC<{ papel: Papel; avatar?: string | null; size?: number; className?: string }> = ({ papel, avatar, size = 48, className = '' }) =>
   avatarPorId(avatar) ? <AvatarCapacete id={avatar} size={size} className={className} /> : <Capacete papel={papel} size={size} className={className} />;
 
 /** Grade para o aluno escolher o capacete. */
-export const SeletorAvatar: React.FC<{ value: string; onChange: (id: string) => void; foco?: string }> = ({ value, onChange, foco = 'focus-visible:ring-violet-500' }) => (
+export const SeletorAvatar: React.FC<{ value: string; onChange: (id: string) => void; foco?: string; bloqueados?: string[] }> = ({ value, onChange, foco = 'focus-visible:ring-violet-500', bloqueados = [] }) => (
   <div role="radiogroup" aria-label="Escolha o seu capacete" className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
     {AVATARES.map((a) => {
       const on = value === a.id;
+      const ocupado = !on && bloqueados.includes(a.id);
       return (
         <button
           key={a.id}
           type="button"
           role="radio"
           aria-checked={on}
+          disabled={ocupado}
+          title={ocupado ? 'Já escolhido por outro da dupla' : undefined}
           onClick={() => onChange(a.id)}
-          className={`flex flex-col items-center gap-0.5 rounded-xl border px-1 py-1.5 outline-none focus-visible:ring-2 ${foco} ${on ? 'border-amber-400 bg-amber-400/10' : 'border-slate-800 bg-slate-950 hover:border-slate-600'}`}
+          className={`flex flex-col items-center gap-0.5 rounded-xl border px-1 py-1.5 outline-none focus-visible:ring-2 ${foco} ${on ? 'border-amber-400 bg-amber-400/10' : ocupado ? 'cursor-not-allowed border-slate-800 bg-slate-950 opacity-30' : 'border-slate-800 bg-slate-950 hover:border-slate-600'}`}
         >
           <AvatarCapacete id={a.id} size={48} />
           <span className={`text-[10px] font-bold ${on ? 'text-amber-300' : 'text-slate-400'}`}>{a.nome}</span>
@@ -93,3 +144,42 @@ export const SeletorAvatar: React.FC<{ value: string; onChange: (id: string) => 
     })}
   </div>
 );
+
+/** Cada integrante da dupla escolhe o próprio capacete: toque no integrante e depois no capacete. */
+export const EscolhaCapacetes: React.FC<{ papeis: Papel[]; nomes: string[]; avatares: string[]; onChange: (i: number, id: string) => void; foco?: string }> = ({ papeis, nomes, avatares, onChange, foco }) => {
+  const [vez, setVez] = useState(0);
+  const atual = Math.min(vez, papeis.length - 1);
+  const outros = avatares.filter((_, j) => j !== atual && j < papeis.length).filter(Boolean);
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1.5" role="tablist" aria-label="Quem está escolhendo o capacete">
+        {papeis.map((p, i) => (
+          <button
+            key={p}
+            type="button"
+            role="tab"
+            aria-selected={i === atual}
+            onClick={() => setVez(i)}
+            className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl border px-2 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${i === atual ? 'border-amber-400 bg-amber-400/10' : 'border-slate-800 bg-slate-950 hover:border-slate-600'}`}
+          >
+            <CapaceteDaVez papel={p} avatar={avatares[i]} size={36} />
+            <span className="min-w-0">
+              <span className="block truncate text-[11px] font-black uppercase tracking-wide text-slate-300">{p === 'piloto' ? 'Piloto' : p === 'copiloto' ? 'Copiloto' : 'Engenheiro'}</span>
+              <span className="block truncate text-[11px] text-slate-400">{nomes[i]?.split(' ')[0] || (avatares[i] ? 'capacete escolhido' : 'escolher capacete')}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <SeletorAvatar
+        value={avatares[atual] ?? ''}
+        onChange={(id) => {
+          onChange(atual, id);
+          const prox = papeis.findIndex((_, j) => j !== atual && !avatares[j]);
+          if (prox > atual) setVez(prox);
+        }}
+        bloqueados={outros}
+        foco={foco}
+      />
+    </div>
+  );
+};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AvatarCapacete, avatarPorId } from '../turmas/Avatares';
+import { AvatarCapacete, AvataresJuntos, avatarPorId, listaAvatares } from '../turmas/Avatares';
 import { Crown } from 'lucide-react';
 import type { RankChange } from '../../utils/ctfRank';
 import { Fogo } from './Icones';
@@ -38,13 +38,15 @@ interface AvatarProps {
 
 /** Avatar com as iniciais; a cor vem do nome, então a mesma pessoa tem sempre a mesma cor. */
 export const Avatar: React.FC<AvatarProps> = ({ nome, avatar, className = 'w-9 h-9 text-sm', medal }) =>
-  avatarPorId(avatar) ? (
+  listaAvatares(avatar).filter((x) => avatarPorId(x)).length > 1 ? (
+    <AvataresJuntos value={avatar} size={32} />
+  ) : avatarPorId(listaAvatares(avatar)[0]) ? (
     <span
       aria-hidden
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-800 select-none ${className}`}
       style={{ boxShadow: medal !== undefined && medal < 3 ? `0 0 0 3px ${MEDAL[medal].ring}` : undefined }}
     >
-      <AvatarCapacete id={avatar} size={64} className="h-[85%] w-[85%]" />
+      <AvatarCapacete id={listaAvatares(avatar)[0]} size={64} className="h-[85%] w-[85%]" />
     </span>
   ) : (
   <span

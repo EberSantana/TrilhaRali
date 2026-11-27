@@ -227,6 +227,18 @@ test('retomar: aluno que perdeu o navegador volta ao mesmo progresso com "retoma
   assert.match(b.call({ action: 'join', token: livre.token, nome: 'Zé Silva', chave: 'outro', retomar: true }).error, /outro|Já existe/, 'sem turma não retoma por nome');
 });
 
+test('avatar por integrante: cada um da dupla guarda o seu capacete, na ordem', () => {
+  const b = comTurma();
+  b.sheets.set('DesvGabarito', [['caso', 'suspeito', 'pontos', 'explicacao'], ['c1', 'x', 10, '']]);
+  const ds = b.call({ action: 'createDesvRoom', nome: 'Desv', casos: ['c1'], turma: b.turma.id, papeis: 'fixos' });
+  const e = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_1', nome: 'Ana e Bruno', integrantes: ['Ana Souza', 'Bruno Lima'], avatar: 'rubi,oceano' });
+  assert.ok(!e.error, e.error);
+  assert.equal(e.dupla.avatar, 'rubi,oceano');
+  const r = b.call({ action: 'desvEntrar', token: ds.token, gid: 'aparelho_dupla_1', nome: 'Ana e Bruno', integrantes: ['Ana Souza', 'Bruno Lima'], avatar: 'rubi,<x>,sol,lima' });
+  assert.equal(r.dupla.avatar, 'rubi,,sol', 'só ids conhecidos, no máximo três');
+  assert.equal(b.call({ action: 'desvRanking', token: ds.token }).ranking?.[0]?.avatar ?? 'rubi,,sol', 'rubi,,sol');
+});
+
 test('análise da turma: participação, perguntas difíceis (com tentativas erradas), assuntos e casos', () => {
   const b = comTurma();
   const miss2 = [...missions, { tag_id: 't2', categoria: 'DDL', pacote: 'Modelagem', pergunta: 'Q2?', resposta: 'pk', alternativas: [], xp: 10 }];
