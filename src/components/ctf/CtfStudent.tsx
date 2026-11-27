@@ -7,7 +7,7 @@ import { ConfirmaQuem } from '../common/ConfirmaQuem';
 import { CabineDupla } from '../turmas/CabineDupla';
 import { FaixaCabine } from '../turmas/Papeis';
 import { BuscaNome } from '../turmas/BuscaNome';
-import { AvatarCapacete, SeletorAvatar, useAvatar } from '../turmas/Avatares';
+import { AvatarCapacete, SeletorAvatar, listaAvatares, useAvatar, useAvataresDupla } from '../turmas/Avatares';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
@@ -70,6 +70,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   const [cabine, setCabine] = useState('');
   const [retomando, setRetomando] = useState(false);
   const [avatar, setAvatar] = useAvatar();
+  const [avatares, setAvatarDupla] = useAvataresDupla();
   const perfilHub = usePerfilHub();
   const [nome, setNome] = useState(() => lerPerfilHub()?.nome ?? '');
   const [state, setState] = useState<CtfState | null>(null);
@@ -150,7 +151,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
     try {
       const dupla = cabine.split(',').map((x) => x.trim()).filter(Boolean);
       const quem = papeisSala ? dupla[0] ?? '' : nome;
-      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(avatar ? { avatar } : {}), ...(retomando && !papeisSala ? { retomar: true } : {}), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
+      const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(papeisSala ? (dupla.length && avatares.slice(0, dupla.length).some(Boolean) ? { avatar: avatares.slice(0, dupla.length).join(',') } : {}) : avatar ? { avatar } : {}), ...(retomando && !papeisSala ? { retomar: true } : {}), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
       if ((modulo === 'cruz') !== (s.sala.ordem === 'cruzadinha')) {
         throw new Error(modulo === 'cruz'
           ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
@@ -284,9 +285,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           {papeisSala ? (
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla{turmaSala ? ` · ${turmaSala.nome}` : ''}</span>
-              <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} avatar={avatar} />
-              <span className="block pt-1 text-xs text-slate-400">Escolha o capacete do piloto</span>
-              <SeletorAvatar value={avatar} onChange={setAvatar} foco={ac.foco} />
+              <CabineDupla alunos={turmaSala?.alunos ?? null} ocupados={turmaSala?.ocupados.filter((n) => !getChave(token, n)) ?? []} value={cabine} onChange={setCabine} avatares={avatares} onAvatar={setAvatarDupla} />
             </div>
           ) : (
             <div className="space-y-2">
@@ -406,7 +405,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
           modo={sala.papeis}
           rodadaAuto={aluno.acertos}
           chave={`ctf_${sala.token}_${aluno.nome}`}
-          avatar={aluno.avatar || avatar}
+          avatares={listaAvatares(aluno.avatar || avatares.join(','))}
         />
       )}
       {closed && <StatusBanner>A sala foi encerrada pelo professor. Veja o ranking final abaixo.</StatusBanner>}

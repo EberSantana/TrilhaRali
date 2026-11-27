@@ -8,7 +8,7 @@ import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 import { ModuleTabs } from '../common/ModuleShell';
 import { useSalaPublica } from '../../utils/turmasApi';
-import { AvatarCapacete, SeletorAvatar, useAvatar } from '../turmas/Avatares';
+import { AvatarCapacete, AvataresJuntos, EscolhaCapacetes, SeletorAvatar, listaAvatares, useAvatar, useAvataresDupla } from '../turmas/Avatares';
 import { BuscaNome } from '../turmas/BuscaNome';
 import { CabineDupla } from '../turmas/CabineDupla';
 import { FaixaCabine } from '../turmas/Papeis';
@@ -91,6 +91,7 @@ export const DesvModule: React.FC = () => {
   const [sessao, setSessao] = useState<Sessao | null>(lerSessao);
   const [conferir, setConferir] = useState(() => !!lerSessao() && sessaoParada('desv'));
   const [avatarLocal] = useAvatar();
+  const [avataresLocal] = useAvataresDupla();
   const [estado, setEstado] = useState<Estado | null>(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState<'casos' | 'ranking'>('casos');
@@ -205,7 +206,7 @@ export const DesvModule: React.FC = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 truncate text-sm font-black text-white">{estado.dupla.avatar && <AvatarCapacete id={estado.dupla.avatar} size={36} className="shrink-0" />}{estado.dupla.nome}</p>
+          <p className="flex items-center gap-2 truncate text-sm font-black text-white"><AvataresJuntos value={estado.dupla.avatar} size={32} />{estado.dupla.nome}</p>
           <p className="truncate text-xs text-slate-400">
             Sala {estado.sala.nome} · token {estado.sala.token}
             {estado.dupla.integrantes ? ` · ${estado.dupla.integrantes}` : ''}
@@ -220,7 +221,7 @@ export const DesvModule: React.FC = () => {
         <FaixaCabine
           nomes={estado.dupla.integrantes.split(',').map((x) => x.trim()).filter(Boolean)}
           modo={estado.sala.papeis || 'rodizio'}
-          avatar={estado.dupla.avatar || avatarLocal}
+          avatares={listaAvatares(estado.dupla.avatar || (estado.sala.papeis === 'individual' ? avatarLocal : avataresLocal.join(',')))}
           rodadaAuto={Object.keys(estado.resolvidos).length}
           chave={`desv_${estado.sala.token}_${gid}`}
         />
@@ -335,6 +336,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
   const turmaSala = sala?.turma ?? null;
   const individual = sala?.papeis === 'individual';
   const [avatar, setAvatar] = useAvatar();
+  const [avatares, setAvatarDupla] = useAvataresDupla();
   useEffect(() => {
     if (!perfilHub || !turmaSala) return;
     const n = nomeNaLista(perfilHub, turmaSala.alunos);
@@ -348,7 +350,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
     setErro('');
     try {
       const ses = { token: token.trim().toUpperCase(), nome: nome.trim() || nomeDaDupla(integrantes), integrantes: integrantes.trim() };
-      const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid, ...(avatar ? { avatar } : {}), ...(turmaSala ? { integrantes: ses.integrantes.split(',').map((x) => x.trim()).filter(Boolean) } : {}) });
+      const est = await ctfCall<Estado>('desvEntrar', { ...ses, gid, ...(individual ? (avatar ? { avatar } : {}) : avatares.some(Boolean) ? { avatar: avatares.slice(0, ses.integrantes.split(/,|\se\s/i).filter((x) => x.trim()).length || 2).join(',') } : {}), ...(turmaSala ? { integrantes: ses.integrantes.split(',').map((x) => x.trim()).filter(Boolean) } : {}) });
       onEntrou({ ...ses, token: est.sala.token }, est);
     } catch (er) {
       setErro(msgErro(er));
@@ -394,16 +396,15 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
         ) : turmaSala ? (
           <div className="space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Cabine da dupla <span className="font-normal normal-case text-slate-500">({turmaSala.nome})</span></span>
-            <CabineDupla alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} avatar={avatar} />
-            <span className="block pt-1 text-xs text-slate-400">Escolha o capacete de vocês</span>
-            <SeletorAvatar value={avatar} onChange={setAvatar} foco="focus:ring-violet-500" />
+            <CabineDupla alunos={turmaSala.alunos} ocupados={turmaSala.ocupados} value={integrantes} onChange={setIntegrantes} avatares={avatares} onAvatar={setAvatarDupla} />
           </div>
         ) : (
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Integrantes</span>
             <input value={integrantes} onChange={(e) => setIntegrantes(e.target.value)} maxLength={120} autoComplete="off" placeholder="Ana Souza e Bruno Lima" className={input} />
-            <span className="block pt-1 text-xs text-slate-400">Escolha o capacete de vocês</span>
-            <SeletorAvatar value={avatar} onChange={setAvatar} foco="focus:ring-violet-500" />
+            <div className="pt-2">
+              <EscolhaCapacetes papeis={['piloto', 'copiloto']} nomes={integrantes.split(/,|\se\s/i).map((x) => x.trim())} avatares={avatares} onChange={setAvatarDupla} foco="focus:ring-violet-500" />
+            </div>
           </label>
         )}
         {erro && <p className="text-sm text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">{erro}</p>}
@@ -437,7 +438,7 @@ const RankingSala: React.FC<{ linhas: Estado['ranking']; minha: string; onAtuali
         {linhas.map((l) => (
           <li key={l.pos} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${l.nome === minha ? 'bg-violet-500/15 border border-violet-500/40' : 'bg-slate-950/60'}`}>
             <span className="w-6 text-right font-black text-slate-400">{l.pos}</span>
-            {l.avatar && <AvatarCapacete id={l.avatar} size={32} className="shrink-0" />}
+            <AvataresJuntos value={l.avatar} size={28} />
             <span className="flex-1 font-semibold text-white truncate">{l.nome}</span>
             <span className="text-xs text-slate-400">{l.casos} {l.casos === 1 ? 'caso' : 'casos'}</span>
             <span className="w-16 text-right font-black text-amber-300">{l.pontos}</span>
