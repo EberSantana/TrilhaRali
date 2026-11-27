@@ -30,7 +30,7 @@ const CabineLista: React.FC<{ alunos: string[]; ocupados: string[]; value: strin
             <div key={papel} className={`relative flex flex-col items-center gap-1 rounded-xl border p-3 text-center ${nome ? `${p.borda} ${p.fundo}` : ativo ? 'border-violet-400 bg-slate-900 ring-2 ring-violet-500/40' : 'border-slate-800 bg-slate-950'}`}>
               <CapaceteDaVez papel={papel} avatar={avatares[i]} size={72} className={nome || ativo ? '' : 'opacity-40 grayscale'} />
               <div className="w-full min-w-0">
-                <p className={`text-[11px] font-black uppercase tracking-wider leading-tight ${p.texto}`}>{p.nome}</p>
+                <p className={`text-[11px] font-black uppercase tracking-wider leading-tight ${p.texto}`}><span aria-hidden>{p.forma} </span>{p.nome}</p>
                 {nome ? (
                   <p className="break-words text-sm leading-tight"><NomeDestaque nome={nome} /></p>
                 ) : (

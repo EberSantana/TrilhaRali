@@ -61,30 +61,56 @@ export function saveCtfApiUrl(url: string) {
   localStorage.setItem(KEY_API, url.trim());
 }
 
+/** Erros em que o servidor nem chegou a executar a ação (fila do Apps Script cheia): vale tentar de novo. */
+export const ehServidorOcupado = (msg: string) =>
+  /lock|too many|muitas vezes|temporariamente|servidor ocupado|try again|tente novamente em instantes/i.test(msg);
+
+/** Ações que podem ser repetidas sem efeito colateral mesmo se a primeira tentativa tiver chegado ao servidor. */
+const REPETIVEL = /^(ping|state|cruzState|teacherRoom|cruzBancoResumo|cruzAssuntos|join|desvEntrar|turmaPublica|salaPublica)/;
+
+const ESPERAS_MS = [1200, 2500, 5000, 8000];
+let esperaTeste = (ms: number) => new Promise<void>((r) => setTimeout(r, ms + Math.random() * 600));
+/** Só para testes: troca a espera entre tentativas. */
+export function _setEsperaCtf(fn: (ms: number) => Promise<void>) { esperaTeste = fn; }
+
 export async function ctfCall<T>(action: string, payload: Record<string, unknown> = {}, apiUrl: string = getCtfApiUrl()): Promise<T> {
   if (!apiUrl) {
     throw new Error('O backend do CTF ainda não foi configurado. Peça o link de convite ao professor.');
   }
-  let res: Response;
-  try {
-    // text/plain evita o preflight CORS, que o Apps Script não responde
-    res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, ...payload }),
-      redirect: 'follow',
-    });
-  } catch {
-    throw new Error('Sem conexão com o servidor do CTF. Verifique a internet e tente de novo.');
+  let ultimo: Error = new Error('Falha ao falar com o servidor.');
+  for (let tentativa = 0; tentativa <= ESPERAS_MS.length; tentativa++) {
+    if (tentativa > 0) await esperaTeste(ESPERAS_MS[tentativa - 1]);
+    let res: Response;
+    try {
+      // text/plain evita o preflight CORS, que o Apps Script não responde
+      res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, ...payload }),
+        redirect: 'follow',
+      });
+    } catch {
+      ultimo = new Error('Sem conexão com o servidor do CTF. Verifique a internet e tente de novo.');
+      if (REPETIVEL.test(action)) continue;
+      throw ultimo;
+    }
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error('Resposta inesperada do servidor. Confira se o Web App está publicado para "Qualquer pessoa".');
+    }
+    if (data && data.error) {
+      const msg = String(data.error);
+      if (ehServidorOcupado(msg)) {
+        ultimo = new Error('O servidor está cheio no momento. Tente de novo em alguns segundos.');
+        continue;
+      }
+      throw new Error(acentua(msg));
+    }
+    return data as T;
   }
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error('Resposta inesperada do servidor. Confira se o Web App está publicado para "Qualquer pessoa".');
-  }
-  if (data && data.error) throw new Error(acentua(String(data.error)));
-  return data as T;
+  throw ultimo;
 }
 
 /** Corrige acentos das mensagens do servidor (o Apps Script publicado manda sem acento). */
