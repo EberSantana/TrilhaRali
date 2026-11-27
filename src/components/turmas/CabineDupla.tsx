@@ -27,18 +27,18 @@ const CabineLista: React.FC<{ alunos: string[]; ocupados: string[]; value: strin
           const nome = nomes[i];
           const ativo = proxima === papel;
           return (
-            <div key={papel} className={`flex items-center gap-3 rounded-xl border p-3 ${nome ? `${p.borda} ${p.fundo}` : ativo ? 'border-violet-400 bg-slate-900 ring-2 ring-violet-500/40' : 'border-slate-800 bg-slate-950'}`}>
-              <CapaceteDaVez papel={papel} avatar={avatares[i]} size={80} className={nome || ativo ? '' : 'opacity-40 grayscale'} />
-              <div className="min-w-0 flex-1">
-                <p className={`text-[11px] font-black uppercase tracking-wider ${p.texto}`}>{p.nome}</p>
+            <div key={papel} className={`relative flex flex-col items-center gap-1 rounded-xl border p-3 text-center ${nome ? `${p.borda} ${p.fundo}` : ativo ? 'border-violet-400 bg-slate-900 ring-2 ring-violet-500/40' : 'border-slate-800 bg-slate-950'}`}>
+              <CapaceteDaVez papel={papel} avatar={avatares[i]} size={72} className={nome || ativo ? '' : 'opacity-40 grayscale'} />
+              <div className="w-full min-w-0">
+                <p className={`text-[11px] font-black uppercase tracking-wider leading-tight ${p.texto}`}>{p.nome}</p>
                 {nome ? (
-                  <p className="truncate text-sm"><NomeDestaque nome={nome} /></p>
+                  <p className="break-words text-sm leading-tight"><NomeDestaque nome={nome} /></p>
                 ) : (
                   <p className="text-xs text-slate-500">{ativo ? 'Escolha o nome abaixo' : 'Aguardando'}</p>
                 )}
               </div>
               {nome && (
-                <button type="button" onClick={() => tira(i)} className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label={`Trocar ${p.nome}`}>
+                <button type="button" onClick={() => tira(i)} className="absolute right-1 top-1 rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label={`Trocar ${p.nome}`}>
                   <X className="h-4 w-4" />
                 </button>
               )}
