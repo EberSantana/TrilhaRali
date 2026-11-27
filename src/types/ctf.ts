@@ -104,6 +104,9 @@ export interface CtfTeacherStudent {
   erros: number;
   fogos: number;
   ultimo_acerto: number | '';
+  /** Painel ao vivo (servidor v35+) */
+  ultimo_erro?: number | '';
+  entrou_em?: number | '';
   /** Rali NFC: nomes dos integrantes da equipe (opcional) */
   integrantes?: string[];
 }
@@ -111,6 +114,8 @@ export interface CtfTeacherStudent {
 export interface CtfTeacherView {
   sala: CtfRoomInfo;
   alunos: CtfTeacherStudent[];
+  /** Hora do servidor (v35+), para medir inatividade sem depender do relógio do professor */
+  agora?: number;
 }
 
 export interface CtfMissionPayload {

@@ -52,7 +52,29 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 34, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 35, revisao: '__REVISAO__' });
+}
+
+// ===== BACKUP SEMANAL =====
+// Rode UMA vez a funcao instalarBackup() no editor (menu Executar) para agendar a copia automatica.
+// Toda segunda-feira, de madrugada, o script copia esta planilha para o Drive e guarda as 8 copias mais recentes.
+function backupSemanal() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var fuso = Session.getScriptTimeZone();
+  var nome = 'Backup Trilha Rali ' + Utilities.formatDate(new Date(), fuso, 'yyyy-MM-dd HH-mm');
+  DriveApp.getFileById(ss.getId()).makeCopy(nome);
+  var it = DriveApp.searchFiles("title contains 'Backup Trilha Rali ' and trashed = false and mimeType = 'application/vnd.google-apps.spreadsheet'");
+  var lista = [];
+  while (it.hasNext()) { var f = it.next(); lista.push({ f: f, t: f.getDateCreated().getTime() }); }
+  lista.sort(function (a, b) { return b.t - a.t; });
+  for (var i = 8; i < lista.length; i++) lista[i].f.setTrashed(true);
+  return nome;
+}
+
+function instalarBackup() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'backupSemanal') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('backupSemanal').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(3).create();
+  return backupSemanal();
 }
 
 function doPost(e) {
@@ -753,11 +775,13 @@ function teacherRoom(req) {
     return {
       nome: a.nome, fase_atual: Number(a.fase_atual), xp: Number(a.xp), acertos: Number(a.acertos),
       erros: Number(a.erros), fogos: Number(a.fogos), ultimo_acerto: a.ultimo_acerto === '' ? '' : Number(a.ultimo_acerto),
+      ultimo_erro: a.ultimo_erro === '' || a.ultimo_erro === undefined ? '' : Number(a.ultimo_erro),
+      entrou_em: a.entrou_em === '' || a.entrou_em === undefined ? '' : Number(a.entrou_em),
       integrantes: parseList(a.integrantes)
     };
   });
   var sala = roomInfo(room);
-  return { sala: sala, alunos: alunos };
+  return { sala: sala, alunos: alunos, agora: Date.now() };
 }
 
 // Apaga de vez uma sala ENCERRADA e tudo o que ela gerou (alunos, capturas, dicas, resumo e analise).
@@ -2471,5 +2495,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 34;
+export const VERSAO_SCRIPT = 35;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);

@@ -1,3 +1,4 @@
+import { resumoPainel, minutosParado, PARADO_MIN } from '../../utils/painelAoVivo';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, KeyRound, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users, Target } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
@@ -941,6 +942,26 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                 <div className="flex items-center gap-2 text-sm font-bold text-white">
                   <Users className={`w-4 h-4 ${nfc ? 'text-emerald-400' : 'text-orange-400'}`} /> {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? txt.singular : txt.plural} · {view?.sala.total ?? '…'} {unidade}
                 </div>
+                {view && (() => {
+                  const r = resumoPainel(view);
+                  if (!r.disponivel || view.alunos.length === 0) return null;
+                  return (
+                    <div className="grid gap-2 sm:grid-cols-3 text-xs" aria-label="Painel ao vivo">
+                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5">
+                        <p className="font-black uppercase tracking-wider text-emerald-300">● Ativos agora</p>
+                        <p className="mt-0.5 text-lg font-black text-white">{r.ativos} <span className="text-xs font-normal text-slate-400">de {view.alunos.length}</span></p>
+                      </div>
+                      <div className={`rounded-xl border p-2.5 ${r.parados.length ? 'border-amber-500/40 bg-amber-500/10' : 'border-slate-800 bg-slate-950'}`}>
+                        <p className="font-black uppercase tracking-wider text-amber-300">⏸ Parados há {PARADO_MIN}+ min</p>
+                        <p className="mt-0.5 text-slate-200">{r.parados.length ? r.parados.slice(0, 4).map((p) => `${p.nome} (${p.minutos} min)`).join(' · ') + (r.parados.length > 4 ? ` · +${r.parados.length - 4}` : '') : 'Ninguém parado'}</p>
+                      </div>
+                      <div className={`rounded-xl border p-2.5 ${r.maisErros.length ? 'border-rose-500/30 bg-rose-500/10' : 'border-slate-800 bg-slate-950'}`}>
+                        <p className="font-black uppercase tracking-wider text-rose-300">✖ Mais erros</p>
+                        <p className="mt-0.5 text-slate-200">{r.maisErros.length ? r.maisErros.map((e) => `${e.nome} (${e.erros})`).join(' · ') : 'Sem erros ainda'}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-950 text-[11px] uppercase tracking-wider text-slate-400">
@@ -963,6 +984,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                             <td className="px-3 py-2">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-semibold text-slate-100">{a.nome}</span>
+                                {(() => { const m = minutosParado(a, view!.agora || Date.now()); return m !== null && m >= PARADO_MIN ? <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300" title="Sem atividade">⏸ {m} min</span> : null; })()}
                                 <button
                                   type="button"
                                   onClick={() => void liberar(a.nome)}
