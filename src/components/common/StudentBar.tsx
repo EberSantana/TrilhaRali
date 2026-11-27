@@ -1,5 +1,5 @@
 import React from 'react';
-import { AvatarCapacete, avatarPorId } from '../turmas/Avatares';
+import { AvataresJuntos } from '../turmas/Avatares';
 import { ModuleId } from './ProjectorHeader';
 
 const TONE: Record<ModuleId, string> = { nfc: 'text-emerald-400', ctf: 'text-orange-400', cruz: 'text-cyan-400' };
@@ -20,7 +20,7 @@ export const StudentBar: React.FC<{
   <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4" aria-label="Seu desempenho">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        {avatarPorId(avatar) && <AvatarCapacete id={avatar} size={56} className="shrink-0" />}
+        <AvataresJuntos value={avatar} size={52} />
         <div className="min-w-0">
         <div className={`text-[11px] font-bold uppercase tracking-wider ${TONE[module]}`}>{module === 'nfc' ? 'Rali NFC' : module === 'cruz' ? 'Cruzada Online' : 'CTF Online'} • {context}</div>
         <div className="text-lg font-black text-white truncate flex items-center gap-2">{name}</div>
