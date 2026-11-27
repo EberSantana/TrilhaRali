@@ -94,7 +94,7 @@ export const FaixaCabine: React.FC<{ nomes: string[]; modo: ModoPapeis; rodadaAu
           <li key={papel} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${PAPEIS[papel].borda} ${PAPEIS[papel].fundo}`} title={PAPEIS[papel].funcao}>
             <CapaceteDaVez papel={papel} avatar={avatares[nomes.indexOf(nome)]} size={64} />
             <div className="min-w-0">
-              <p className={`text-xs font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}>{PAPEIS[papel].nome}</p>
+              <p className={`text-xs font-black uppercase tracking-wider ${PAPEIS[papel].texto}`}><span aria-hidden>{PAPEIS[papel].forma} </span>{PAPEIS[papel].nome}</p>
               <p className="truncate text-base">
                 <NomeDestaque nome={nome} />
               </p>

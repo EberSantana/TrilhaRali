@@ -2,23 +2,23 @@ import React, { useId } from 'react';
 
 export type Papel = 'piloto' | 'copiloto' | 'engenheiro';
 
-export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string; casco2: string; viseira: [string, string]; faixa: string; numero: string; texto: string; borda: string; fundo: string }> = {
+export const PAPEIS: Record<Papel, { nome: string; funcao: string; casco: string; casco2: string; viseira: [string, string]; faixa: string; numero: string; forma: string; texto: string; borda: string; fundo: string }> = {
   piloto: {
     nome: 'Piloto',
     funcao: 'Fica com o celular ou o teclado e envia a resposta.',
-    casco: '#ef4444', casco2: '#991b1b', viseira: ['#0b1220', '#475569'], faixa: '#fbbf24', numero: '1',
+    casco: '#ef4444', casco2: '#991b1b', viseira: ['#0b1220', '#475569'], faixa: '#fbbf24', numero: '1', forma: '▲',
     texto: 'text-red-300', borda: 'border-red-500/50', fundo: 'bg-red-500/10',
   },
   copiloto: {
     nome: 'Copiloto',
     funcao: 'Lê as pistas, anota no caderno e orienta a próxima jogada.',
-    casco: '#22c55e', casco2: '#15803d', viseira: ['#7c2d12', '#fbbf24'], faixa: '#f8fafc', numero: '2',
+    casco: '#22c55e', casco2: '#15803d', viseira: ['#7c2d12', '#fbbf24'], faixa: '#f8fafc', numero: '2', forma: '●',
     texto: 'text-emerald-300', borda: 'border-emerald-500/50', fundo: 'bg-emerald-500/10',
   },
   engenheiro: {
     nome: 'Engenheiro de pista',
     funcao: 'Confere a resposta antes de enviar.',
-    casco: '#3b82f6', casco2: '#1e3a8a', viseira: ['#0b1220', '#475569'], faixa: '#f8fafc', numero: '3',
+    casco: '#3b82f6', casco2: '#1e3a8a', viseira: ['#0b1220', '#475569'], faixa: '#f8fafc', numero: '3', forma: '■',
     texto: 'text-sky-300', borda: 'border-sky-500/50', fundo: 'bg-sky-500/10',
   },
 };
