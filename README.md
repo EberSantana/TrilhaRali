@@ -121,7 +121,7 @@ Todas aparecem no seletor de perguntas da sala, organizadas por disciplina e ass
 
 | Disciplina | Assuntos | Missões | Ambiente | Verificação automática |
 |---|---|---:|---|---|
-| Banco de Dados (Rali SQL) | 9 pacotes: DDL, JOINs, DML, transações, subconjuntos SQL… | 50 | Etiquetas NFC | Gabarito revisado |
+| Banco de Dados (SQL) | 9 pacotes: DDL, JOINs, DML, transações, subconjuntos SQL… | 50 | Etiquetas NFC | Gabarito revisado |
 | Banco de Dados | Fácil, Médio, Difícil (CRUD, cardinalidade, DDL/DML/DQL/DTL/DCL, INNER/LEFT/RIGHT/FULL OUTER JOIN) | 60 | Console SQL | Cada solução é executada no SQLite |
 | Fundamentos de Sistemas Operacionais | Navegação, arquivos e texto, permissões, sistema e processos | 51 | Terminal Linux | Testes do shell simulado |
 | Informática Básica | Fácil, Média, Difícil (hardware e software, Internet e e-mail, texto, planilha, slides) | 60 | Laboratório de Informática | Respostas recalculadas a partir dos arquivos |
@@ -476,7 +476,7 @@ TrilhaRali/
 │   │   ├── bank/                  Banco de perguntas e importação
 │   │   └── common/                Relógio, cabeçalhos, avisos, pódio e temas
 │   ├── data/
-│   │   ├── missions.ts            50 missões do Rali SQL (NFC)
+│   │   ├── missions.ts            50 missões de SQL (Rali NFC)
 │   │   ├── bdMissions.ts          60 missões de Banco de Dados
 │   │   ├── linuxMissions.ts       51 missões de Linux
 │   │   ├── infoMissions.ts        60 missões de Informática Básica

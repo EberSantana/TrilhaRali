@@ -7,7 +7,7 @@
  * validação (e o avanço de fase) acontece no servidor.
  */
 const SCRIPT_BASE = String.raw`// ==========================================================
-// RALI IFSTB - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
+// TRILHA RALI - MODULO CTF (IFS CAMPUS TOBIAS BARRETO)
 // Cole em: Extensoes > Apps Script de uma planilha NOVA.
 // Implantar > Nova implantacao > Aplicativo da Web
 //   Executar como: Eu  |  Quem pode acessar: Qualquer pessoa
