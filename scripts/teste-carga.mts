@@ -14,7 +14,7 @@ async function entrar(i: number) {
     try {
       const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'join', token, nome }), redirect: 'follow' });
       const d: any = await r.json();
-      if (d.error && /lock|too many|muitas vezes/i.test(String(d.error)) && tentativas < 5) { await new Promise((ok) => setTimeout(ok, 1200 * tentativas + Math.random() * 600)); continue; }
+      if (d.error && /lock|bloqueio|tempo limite|too many|muitas vezes/i.test(String(d.error)) && tentativas < 5) { await new Promise((ok) => setTimeout(ok, 1200 * tentativas + Math.random() * 600)); continue; }
       return { nome, ok: !d.error, erro: d.error as string | undefined, ms: Date.now() - t0, tentativas };
     } catch (e) {
       return { nome, ok: false, erro: String(e), ms: Date.now() - t0, tentativas };

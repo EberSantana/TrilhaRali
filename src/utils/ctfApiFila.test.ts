@@ -36,3 +36,11 @@ test('desiste depois de várias tentativas com mensagem amigável', async () => 
   (globalThis as any).fetch = async () => resp({ error: 'Erro no servidor: Exception: Lock timeout' });
   await assert.rejects(() => ctfCall('submit', {}, 'https://x/exec'), /servidor está cheio/);
 });
+
+test('reconhece a mensagem de bloqueio em português do Apps Script', async () => {
+  _setEsperaCtf(async () => {});
+  let n = 0;
+  (globalThis as any).fetch = async () => resp(++n < 2 ? { error: 'Erro no servidor: Exception: Tempo limite do bloqueio: outro processo manteve o bloqueio por muito tempo.' } : { ok: true });
+  assert.deepEqual(await ctfCall('join', {}, 'https://x/exec'), { ok: true });
+  assert.equal(n, 2);
+});

@@ -63,7 +63,7 @@ export function saveCtfApiUrl(url: string) {
 
 /** Erros em que o servidor nem chegou a executar a ação (fila do Apps Script cheia): vale tentar de novo. */
 export const ehServidorOcupado = (msg: string) =>
-  /lock|too many|muitas vezes|temporariamente|servidor ocupado|try again|tente novamente em instantes/i.test(msg);
+  /lock|bloqueio|tempo limite|timed? ?out|too many|muitas vezes|temporariamente|servidor ocupado|try again|tente novamente em instantes/i.test(msg);
 
 /** Ações que podem ser repetidas sem efeito colateral mesmo se a primeira tentativa tiver chegado ao servidor. */
 const REPETIVEL = /^(ping|state|cruzState|teacherRoom|cruzBancoResumo|cruzAssuntos|join|desvEntrar|turmaPublica|salaPublica)/;
