@@ -119,7 +119,8 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
   const avisoT = useRef<number | undefined>(undefined);
   const entrada = useRef<HTMLInputElement>(null);
   const gradeRef = useRef<HTMLDivElement>(null);
-  // A grade se ajusta à largura disponível (sem barra de rolagem): o lado da casa sai da largura da caixa
+  // A grade se ajusta à largura disponível: o lado da casa sai da largura da caixa, mas nunca menor que LADO_MIN
+  // (alvo de toque confortável no celular); se não couber, a caixa rola na horizontal e acompanha a casa selecionada
   const [caixa, setCaixa] = useState<HTMLDivElement | null>(null);
   const [largura, setLargura] = useState(0);
   useEffect(() => {
@@ -134,6 +135,17 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
       window.removeEventListener('resize', medir);
     };
   }, [caixa]);
+  // Em tela estreita a grade pode ser mais larga que a caixa: mantém a casa selecionada à vista
+  useEffect(() => {
+    if (!caixa || !sel) return;
+    const b = caixa.querySelector<HTMLElement>(`[data-cel="${k(sel.r, sel.c)}"]`);
+    if (!b) return;
+    const cr = caixa.getBoundingClientRect();
+    const br = b.getBoundingClientRect();
+    if (br.left < cr.left + 8 || br.right > cr.right - 8) {
+      caixa.scrollTo({ left: caixa.scrollLeft + (br.left + br.width / 2) - (cr.left + cr.width / 2), behavior: 'smooth' });
+    }
+  }, [sel, caixa]);
   const tentadas = useRef<Record<number, string>>({});
 
   const dizer = useCallback((t: string) => {
@@ -460,8 +472,9 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
 
   const { h, w } = est.grade;
   const GAP = 2;
+  const LADO_MIN = 30;
   const disponivel = Math.max(0, (largura || 320) - 16);
-  const lado = Math.max(9, Math.min(44, Math.floor((disponivel - (w - 1) * GAP) / w)));
+  const lado = Math.max(LADO_MIN, Math.min(44, Math.floor((disponivel - (w - 1) * GAP) / w)));
   const lista = (dir: Dir) => palavras.filter((p) => p.dir === dir).sort((a, b) => a.n - b.n);
   const semFoco = (e: React.MouseEvent) => e.preventDefault();
   const btn = 'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition disabled:opacity-45 disabled:cursor-not-allowed';
@@ -497,7 +510,7 @@ export function Cruzadinha({ token, nome, versao, bloqueada = false, api, treino
             <div className="text-sm sm:text-base font-bold text-white">{atual.dica}</div>
           </div>
 
-          <div ref={setCaixa} className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-2 overflow-hidden">
+          <div ref={setCaixa} className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-2 overflow-x-auto overflow-y-hidden">
             <div
               ref={gradeRef}
               role="grid"
