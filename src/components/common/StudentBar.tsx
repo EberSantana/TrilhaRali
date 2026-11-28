@@ -1,8 +1,6 @@
 import React from 'react';
 import { AvataresJuntos } from '../turmas/Avatares';
-import { ModuleId } from './ProjectorHeader';
-
-const TONE: Record<ModuleId, string> = { nfc: 'text-emerald-400', ctf: 'text-orange-400', cruz: 'text-cyan-400' };
+import { MODULE, ModuleId } from './ProjectorHeader';
 
 /** Cabeçalho do aluno (celular): o mesmo desenho no Rali NFC e no CTF Online. */
 export const StudentBar: React.FC<{
@@ -22,7 +20,7 @@ export const StudentBar: React.FC<{
       <div className="flex min-w-0 items-center gap-3">
         <AvataresJuntos value={avatar} size={52} />
         <div className="min-w-0">
-        <div className={`text-[11px] font-bold uppercase tracking-wider ${TONE[module]}`}>{module === 'nfc' ? 'Rali NFC' : module === 'cruz' ? 'Cruzada Online' : 'CTF Online'} • {context}</div>
+        <div className={`text-[11px] font-bold uppercase tracking-wider ${MODULE[module].tone}`}>{MODULE[module].label} • {context}</div>
         <div className="text-lg font-black text-white truncate flex items-center gap-2">{name}</div>
         </div>
       </div>

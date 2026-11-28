@@ -8,6 +8,7 @@ import { SqlConsole } from '../ctf/SqlConsole';
 import { ctfCall } from '../../utils/ctfApi';
 import { ModuleTabs } from '../common/ModuleShell';
 import { useSalaPublica } from '../../utils/turmasApi';
+import { StudentBar } from '../common/StudentBar';
 import { AvatarCapacete, AvataresJuntos, EscolhaCapacetes, SeletorAvatar, listaAvatares, useAvatar, useAvataresDupla } from '../turmas/Avatares';
 import { BuscaNome } from '../turmas/BuscaNome';
 import { CabineDupla } from '../turmas/CabineDupla';
@@ -204,18 +205,19 @@ export const DesvModule: React.FC = () => {
   const disciplinas = DISCIPLINAS.filter((d) => liberados.some((c) => c.disciplina === d));
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 truncate text-sm font-black text-white"><AvataresJuntos value={estado.dupla.avatar} size={32} />{estado.dupla.nome}</p>
-          <p className="truncate text-xs text-slate-400">
-            Sala {estado.sala.nome} · token {estado.sala.token}
-            {estado.dupla.integrantes ? ` · ${estado.dupla.integrantes}` : ''}
-          </p>
-        </div>
-        <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-sm font-black text-amber-300">{total} pts</span>
-        <button type="button" onClick={sair} className="rounded-lg border border-slate-800 p-2 text-slate-400 hover:bg-slate-800 hover:text-white" title="Sair da sala" aria-label="Sair da sala">
-          <LogOut className="w-4 h-4" />
-        </button>
+      <div className="mb-4">
+        <StudentBar
+          module="desv"
+          context={`Sala ${estado.sala.nome} · ${estado.sala.token}`}
+          name={estado.dupla.nome}
+          avatar={estado.dupla.avatar}
+          footer={estado.dupla.integrantes ? <p className="truncate text-xs text-slate-400">{estado.dupla.integrantes}</p> : undefined}
+        >
+          <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 font-black text-amber-300">{total} pts</span>
+          <button type="button" onClick={sair} className="rounded-lg border border-slate-800 p-2 text-slate-400 hover:bg-slate-800 hover:text-white" title="Sair da sala" aria-label="Sair da sala">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </StudentBar>
       </div>
       <div className="mb-4">
         <FaixaCabine
