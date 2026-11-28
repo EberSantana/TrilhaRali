@@ -17,6 +17,7 @@ import {
   Users,
   Search,
   GraduationCap,
+  HelpCircle,
 } from 'lucide-react';
 import { AvisoServidor } from './common/AvisoServidor';
 
@@ -36,6 +37,7 @@ interface TeacherHubProps {
   onOpenCtfRooms: () => void;
   onOpenCruzRooms: () => void;
   onOpenDesvRooms: () => void;
+  onOpenQuemRooms: () => void;
   onOpenTurmas: () => void;
   onOpenAoVivo: () => void;
   onOpenAccount: () => void;
@@ -183,6 +185,7 @@ export const TeacherHub: React.FC<TeacherHubProps> = (p) => {
         <Tool title="CTF Online" description="Fases individuais ou em dupla, com Console SQL, cronômetro e telão." icon={<Flag className="w-5 h-5" />} onClick={p.onOpenCtfRooms} />
         <Tool title="Cruzada Online" description="Palavras cruzadas por assunto; sem sala, a turma usa o Treino livre." icon={<Puzzle className="w-5 h-5" />} onClick={p.onOpenCruzRooms} />
         <Tool title="Desvendando" description="Casos de mistério em dupla, liberados por você durante a aula." icon={<Search className="w-5 h-5" />} onClick={p.onOpenDesvRooms} />
+        <Tool title="Quem sou eu?" description="O aluno adivinha o conceito pelas dicas: fácil, média ou difícil, XP fixo ou corrida." icon={<HelpCircle className="w-5 h-5" />} onClick={p.onOpenQuemRooms} />
       </Section>
 
       <Section title="Ferramentas">

@@ -21,6 +21,7 @@ import { CtfModule } from './components/ctf/CtfModule';
 import { CruzModule } from './components/cruz/CruzModule';
 import { DesvModule } from './components/desv/DesvModule';
 import { DesvPanel } from './components/desv/DesvPanel';
+import { QuemModule } from './components/quem/QuemModule';
 import { TurmasPanel } from './components/turmas/TurmasPanel';
 import { AulaAoVivo } from './components/aovivo/AulaAoVivo';
 import { ModuleShell } from './components/common/ModuleShell';
@@ -65,6 +66,7 @@ function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/professor/ctf')) return 'prof-ctf';
   if (hash.startsWith('#/professor/cruz')) return 'prof-cruz';
   if (hash.startsWith('#/professor/desvendando')) return 'prof-desv';
+  if (hash.startsWith('#/professor/quem-sou-eu')) return 'prof-quem';
   if (hash.startsWith('#/professor/turmas')) return 'prof-turmas';
   if (hash.startsWith('#/professor/ao-vivo')) return 'prof-aovivo';
   if (hash.startsWith('#/professor/local')) return 'local';
@@ -72,13 +74,14 @@ function moduleFromLocation(hash: string, search: string): AppModule | null {
   if (hash.startsWith('#/ctf')) return 'ctf';
   if (hash.startsWith('#/cruzada')) return 'cruz';
   if (hash.startsWith('#/desvendando')) return 'desv';
+  if (hash.startsWith('#/quem-sou-eu')) return 'quem';
   if (hash.startsWith('#/rali') || parseTagFromLocation(hash, search)) return 'rali';
   return null;
 }
 
 const TITULO_MODULO: Partial<Record<AppModule, string>> = {
-  rali: 'Rali NFC', ctf: 'CTF Online', cruz: 'Cruzada Online', desv: 'Desvendando',
-  'prof-rali': 'Professor · Rali NFC', 'prof-ctf': 'Professor · CTF Online', 'prof-cruz': 'Professor · Cruzada', 'prof-desv': 'Professor · Desvendando',
+  rali: 'Rali NFC', ctf: 'CTF Online', cruz: 'Cruzada Online', desv: 'Desvendando', quem: 'Quem sou eu?',
+  'prof-rali': 'Professor · Rali NFC', 'prof-ctf': 'Professor · CTF Online', 'prof-cruz': 'Professor · Cruzada', 'prof-desv': 'Professor · Desvendando', 'prof-quem': 'Professor · Quem sou eu?',
   'prof-turmas': 'Professor · Turmas', 'prof-aovivo': 'Professor · Aula ao vivo',
 };
 
@@ -231,8 +234,8 @@ export default function App() {
 
   // Troca de módulo mantém o endereço compartilhável (#/ctf)
   const MODULE_HASH: Record<AppModule, string> = {
-    home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', desv: '#/desvendando', professor: '#/professor',
-    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', 'prof-desv': '#/professor/desvendando', 'prof-turmas': '#/professor/turmas', 'prof-aovivo': '#/professor/ao-vivo', local: '#/professor/local',
+    home: '', rali: '#/rali', ctf: '#/ctf', cruz: '#/cruzada', desv: '#/desvendando', quem: '#/quem-sou-eu', professor: '#/professor',
+    'prof-rali': '#/professor/rali', 'prof-ctf': '#/professor/ctf', 'prof-cruz': '#/professor/cruz', 'prof-desv': '#/professor/desvendando', 'prof-quem': '#/professor/quem-sou-eu', 'prof-turmas': '#/professor/turmas', 'prof-aovivo': '#/professor/ao-vivo', local: '#/professor/local',
   };
   const handleChangeModule = (next: AppModule) => {
     setAppModule(next);
@@ -421,6 +424,7 @@ export default function App() {
             onOpenCtf={() => handleChangeModule('ctf')}
             onOpenCruz={() => handleChangeModule('cruz')}
             onOpenDesv={() => handleChangeModule('desv')}
+            onOpenQuem={() => handleChangeModule('quem')}
             onOpenTeacher={() => handleChangeModule('professor')}
           />
         </main>
@@ -458,6 +462,12 @@ export default function App() {
             <DesvModule />
           </ModuleShell>
         </main>
+      ) : appModule === 'quem' ? (
+        <main className="flex-1 pb-16">
+          <ModuleShell id="quem" {...TRILHAS.quem} onHome={() => handleChangeModule('home')}>
+            <QuemModule />
+          </ModuleShell>
+        </main>
       ) : appModule === 'prof-rali' && isTeacher ? (
         <main className="flex-1 pb-16">
           <RoomsPanel
@@ -482,6 +492,10 @@ export default function App() {
         <main className="flex-1 pb-16">
           <RoomsPanel tipo="cruz" onBack={() => handleChangeModule('professor')} />
         </main>
+      ) : appModule === 'prof-quem' && isTeacher ? (
+        <main className="flex-1 pb-16">
+          <RoomsPanel tipo="quem" onBack={() => handleChangeModule('professor')} />
+        </main>
       ) : appModule === 'prof-aovivo' && isTeacher ? (
         <main className="flex-1 pb-16">
           <AulaAoVivo onBack={() => handleChangeModule('professor')} onAbrirPainel={(m) => handleChangeModule(m as AppModule)} />
@@ -494,7 +508,7 @@ export default function App() {
         <main className="flex-1 pb-16">
           <DesvPanel onBack={() => handleChangeModule('professor')} />
         </main>
-      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' || appModule === 'prof-cruz' || appModule === 'prof-desv' || appModule === 'prof-turmas' || appModule === 'prof-aovivo' ? (
+      ) : appModule === 'professor' || appModule === 'prof-rali' || appModule === 'prof-ctf' || appModule === 'prof-cruz' || appModule === 'prof-desv' || appModule === 'prof-quem' || appModule === 'prof-turmas' || appModule === 'prof-aovivo' ? (
         <main className="flex-1 pb-16">
           <TeacherHub
             isTeacher={isTeacher}
@@ -509,6 +523,7 @@ export default function App() {
             onOpenCtfRooms={() => handleChangeModule('prof-ctf')}
             onOpenCruzRooms={() => handleChangeModule('prof-cruz')}
             onOpenDesvRooms={() => handleChangeModule('prof-desv')}
+            onOpenQuemRooms={() => handleChangeModule('prof-quem')}
             onOpenTurmas={() => handleChangeModule('prof-turmas')}
             onOpenAoVivo={() => handleChangeModule('prof-aovivo')}
             onOpenAccount={() => handleOpenTeacherAuth('Chave e sessão')}

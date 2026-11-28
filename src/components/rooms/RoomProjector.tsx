@@ -110,10 +110,10 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950 text-white overflow-y-auto" role="dialog" aria-label={nfc ? 'Telão do Rali NFC' : tipo === 'cruz' ? 'Telão da Cruzada Online' : 'Telão do CTF Online'}>
+    <div className="fixed inset-0 z-50 bg-slate-950 text-white overflow-y-auto" role="dialog" aria-label={nfc ? 'Telão do Rali NFC' : tipo === 'cruz' ? 'Telão da Cruzada Online' : tipo === 'quem' ? 'Telão do Quem sou eu?' : 'Telão do CTF Online'}>
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         <ProjectorHeader
-          module={nfc ? 'nfc' : tipo === 'cruz' ? 'cruz' : 'ctf'}
+          module={nfc ? 'nfc' : tipo === 'cruz' ? 'cruz' : tipo === 'quem' ? 'quem' : 'ctf'}
           title={<><Trophy className="w-9 h-9 text-amber-500" /> {finished ? 'Resultado final' : 'Ranking ao vivo'}</>}
           subtitle={<>{room.nome} • {view ? view.alunos.length : '…'} {view?.alunos.length === 1 ? entity.replace(/s$/, '') : entity}</>}
           actions={
@@ -138,7 +138,7 @@ export const RoomProjector: React.FC<RoomProjectorProps> = ({ room, tipo, invite
           <span className="text-sm font-bold uppercase tracking-[0.16em] text-slate-300">Token da sala</span>
           <span className={`font-mono font-black tracking-[0.3em] text-4xl sm:text-5xl select-all ${nfc ? 'text-emerald-400' : 'text-orange-400'}`}>{room.token}</span>
           <span className="text-sm text-slate-400">
-            {nfc ? 'Entre no Rali NFC com o token e o nome da equipe' : tipo === 'cruz' ? 'Entre na Cruzada com o token e o seu nome' : 'Entre no CTF com o token e o seu nome'} • {inviteLink.split('#')[0]}
+            {nfc ? 'Entre no Rali NFC com o token e o nome da equipe' : tipo === 'cruz' ? 'Entre na Cruzada com o token e o seu nome' : tipo === 'quem' ? 'Entre no Quem sou eu? com o token e o seu nome' : 'Entre no CTF com o token e o seu nome'} • {inviteLink.split('#')[0]}
           </span>
         </div>
 

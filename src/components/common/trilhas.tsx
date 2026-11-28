@@ -1,9 +1,9 @@
 import React from 'react';
-import { Flag, Puzzle, Radio, Search } from 'lucide-react';
+import { Flag, HelpCircle, Puzzle, Radio, Search } from 'lucide-react';
 import type { Accent, PassoComoJogar } from './ModuleShell';
 
 /** Identidade de cada trilha (a mesma da entrada do portal) e o seu "como jogar". */
-export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv', { accent: Accent; icon: React.ReactNode; title: string; tagline: string; comoJogar: PassoComoJogar[] }> = {
+export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv' | 'quem', { accent: Accent; icon: React.ReactNode; title: string; tagline: string; comoJogar: PassoComoJogar[] }> = {
   rali: {
     accent: 'emerald',
     icon: <Radio className="w-5 h-5" />,
@@ -50,6 +50,18 @@ export const TRILHAS: Record<'rali' | 'ctf' | 'cruz' | 'desv', { accent: Accent;
       { titulo: 'Espere os casos', texto: 'Só aparecem os casos que o professor liberou para a sua turma. Novos casos surgem sozinhos na lista.' },
       { titulo: 'Investigue juntos', texto: 'Leiam a história e as pistas e usem a grade, o banco de dados do caso ou as evidências. Só uma resposta pode ser provada.' },
       { titulo: 'Acusem com certeza', texto: 'Cada acusação errada tira 15 pontos e cada dica tira 10. Ao acertar, vem a explicação e os pontos vão para o ranking da sala.' },
+    ],
+  },
+  quem: {
+    accent: 'rose',
+    icon: <HelpCircle className="w-5 h-5" />,
+    title: 'Quem sou eu?',
+    tagline: 'Adivinhe o conceito pelas dicas',
+    comoJogar: [
+      { titulo: 'Entre na sala', texto: 'Entre com o seu curso e nome (pelo HUB) e digite o token que o professor mostrou.' },
+      { titulo: 'Leia a dica', texto: 'Cada rodada é um conceito da disciplina falando de si mesmo. Você começa com uma dica só.' },
+      { titulo: 'Arrisque ou peça mais', texto: 'Acertou com a primeira dica? XP cheio. Cada dica a mais tira 20% do XP da rodada.' },
+      { titulo: 'Suba no ranking', texto: 'Ao acertar, aparece a explicação. Se travar, abra todas as dicas e pule: a rodada passa sem XP.' },
     ],
   },
 };

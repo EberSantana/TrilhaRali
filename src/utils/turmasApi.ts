@@ -19,6 +19,8 @@ export interface NotaAluno extends AlunoTurma {
   cruz: number;
   rali: number;
   desv: number;
+  /** Quem sou eu? (servidor v37+; ausente nos anteriores) */
+  quem?: number;
   total: number;
 }
 
@@ -58,9 +60,9 @@ export function lerListaAlunos(texto: string): AlunoTurma[] {
 
 /** CSV para planilha/SUAP: separado por ponto e vírgula e com BOM, para o Excel abrir com acentos. */
 export function notasCsv(turma: string, alunos: NotaAluno[]): string {
-  const cab = ['Matrícula', 'Aluno', 'CTF', 'Cruzada', 'Rali NFC', 'Desvendando', 'Total'];
+  const cab = ['Matrícula', 'Aluno', 'CTF', 'Cruzada', 'Rali NFC', 'Desvendando', 'Quem sou eu?', 'Total'];
   const esc = (v: string | number) => (/[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
-  const linhas = alunos.map((a) => [a.m, a.n, a.ctf, a.cruz, a.rali, a.desv, a.total].map(esc).join(';'));
+  const linhas = alunos.map((a) => [a.m, a.n, a.ctf, a.cruz, a.rali, a.desv, a.quem ?? 0, a.total].map(esc).join(';'));
   return '﻿' + [`Turma;${esc(turma)}`, cab.join(';'), ...linhas].join('\n') + '\n';
 }
 

@@ -10,6 +10,7 @@ interface HomeLandingProps {
   onOpenCtf: () => void;
   onOpenCruz: () => void;
   onOpenDesv: () => void;
+  onOpenQuem: () => void;
   onOpenTeacher: () => void;
 }
 
@@ -24,6 +25,7 @@ const JOGOS = [
   { id: 'ctf', titulo: 'CTF Online', sub: 'Capture as bandeiras', claro: { c: '#E8590C', f: '#FFF1E2' }, escuro: { c: '#FB923C' } },
   { id: 'cruz', titulo: 'Cruzada Online', sub: 'Conhecimento de forma divertida', claro: { c: '#1D6FE0', f: '#E4F0FF' }, escuro: { c: '#60A5FA' } },
   { id: 'desv', titulo: 'Desvendando', sub: 'Investigue, analise e resolva', claro: { c: '#7C3AED', f: '#F1EAFF' }, escuro: { c: '#A78BFA' } },
+  { id: 'quem', titulo: 'Quem sou eu?', sub: 'Adivinhe o conceito pelas dicas', claro: { c: '#E11D48', f: '#FFE4EA' }, escuro: { c: '#FB7185' } },
 ] as const;
 
 const Icone: React.FC<{ id: string }> = ({ id }) => {
@@ -47,6 +49,14 @@ const Icone: React.FC<{ id: string }> = ({ id }) => {
         <path fill="currentColor" d="M9 2.5a2.5 2.5 0 0 1 2.5 2.5v1H15a1.5 1.5 0 0 1 1.5 1.5V11h1a2.5 2.5 0 1 1 0 5h-1v3.5A1.5 1.5 0 0 1 15 21h-3.5v-1a2.5 2.5 0 1 0-5 0v1H3a1.5 1.5 0 0 1-1.5-1.5V16H3a2.5 2.5 0 1 0 0-5H1.5V7.5A1.5 1.5 0 0 1 3 6h3.5V5A2.5 2.5 0 0 1 9 2.5z" />
       </svg>
     );
+  if (id === 'quem')
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12 shrink-0" aria-hidden>
+        <circle cx="12" cy="12" r="9.5" />
+        <path d="M9.2 9.3a2.9 2.9 0 0 1 5.6 1c0 1.9-2.8 2.4-2.8 4" />
+        <circle cx="12" cy="17.6" r="0.6" fill="currentColor" />
+      </svg>
+    );
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="h-12 w-12 shrink-0" aria-hidden>
       <circle cx="10" cy="10" r="6.5" />
@@ -55,9 +65,9 @@ const Icone: React.FC<{ id: string }> = ({ id }) => {
   );
 };
 
-export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenCruz, onOpenDesv, onOpenTeacher }) => {
+export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali, onOpenCtf, onOpenCruz, onOpenDesv, onOpenQuem, onOpenTeacher }) => {
   const claro = useTheme() === 'claro';
-  const abrir: Record<string, () => void> = { rali: onOpenRali, ctf: onOpenCtf, cruz: onOpenCruz, desv: onOpenDesv };
+  const abrir: Record<string, () => void> = { rali: onOpenRali, ctf: onOpenCtf, cruz: onOpenCruz, desv: onOpenDesv, quem: onOpenQuem };
   const tinta = claro ? '#0F172A' : '#F1F5F9';
   const tinta2 = claro ? '#334155' : '#CBD5E1';
   const painel = claro ? '#FFFFFF' : '#0F1E36';
@@ -83,7 +93,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
               Jogos e Desafios
             </h1>
             <p className="mb-5 mt-3 max-w-md text-base leading-snug sm:text-lg" style={{ color: claro ? '#1E293B' : '#E2E8F0' }}>
-              Fixe o que estudou jogando: capture bandeiras, resolva cruzadas e desvende casos com a turma.
+              Fixe o que estudou jogando: capture bandeiras, resolva cruzadas, desvende casos e descubra quem é quem com a turma.
             </p>
             <a
               href="#jogos"
@@ -100,7 +110,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
           <span className="h-7 w-1.5 rounded-full" style={{ background: '#00A844' }} />
           <h2 className="text-xl font-extrabold sm:text-2xl" style={{ color: tinta }}>Escolha o jogo</h2>
         </div>
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Jogos">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" aria-label="Jogos">
           {JOGOS.map((j) => {
             const cor = claro ? j.claro.c : j.escuro.c;
             return (
@@ -108,7 +118,7 @@ export const HomeLanding: React.FC<HomeLandingProps> = ({ isTeacher, onOpenRali,
                 key={j.id}
                 type="button"
                 onClick={abrir[j.id]}
-                className="group relative flex min-h-[92px] items-start sm:min-h-[128px] gap-3.5 rounded-[18px] p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2"
+                className="group relative flex min-h-[92px] items-start sm:min-h-[128px] gap-3.5 xl:flex-col xl:gap-2 rounded-[18px] p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2"
                 style={{
                   background: claro ? j.claro.f : `color-mix(in srgb, ${cor} 14%, ${painel})`,
                   border: `1px solid color-mix(in srgb, ${cor} 22%, transparent)`,

@@ -29,3 +29,14 @@ test('o gabarito criptografado cobre todas as missões e não aparece em texto c
   // explicações são textos longos e únicos: nenhuma pode estar no código
   for (const [tag, x] of Object.entries(g.missoes)) if (x.e.length > 30) assert.ok(!fontes.includes(x.e), `explicação de ${tag} em texto claro`);
 });
+
+test('Quem sou eu?: todo conceito tem resposta no gabarito e as dicas não entregam a resposta', async () => {
+  const { CONCEITOS_QUEM } = await import('./quemSouEu');
+  const g = gabaritoAberto();
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  for (const c of CONCEITOS_QUEM) {
+    const x = g.missoes[c.tag_id];
+    assert.ok(x?.r && x.e.length > 30, `sem gabarito: ${c.tag_id}`);
+    if (x.r.length > 3) for (const d of c.dicas) assert.ok(!new RegExp(`\\b${norm(x.r)}\\b`).test(norm(d)), `${c.tag_id}: a dica "${d}" entrega a resposta`);
+  }
+});

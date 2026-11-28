@@ -4,7 +4,7 @@ import { Btn, StepTitle } from '../common/ui';
 import { DESV_CASOS } from '../../data/desvCasos';
 import { analiseCsv, assuntosOrdenados, MOTIVOS, perguntasDificeis, pct, precisamAtencao, resumo, type Analise } from '../../utils/analiseTurma';
 
-const MODULO: Record<string, string> = { ctf: 'CTF', cruz: 'Cruzada', rali: 'Rali NFC', desv: 'Desvendando' };
+const MODULO: Record<string, string> = { ctf: 'CTF', cruz: 'Cruzada', rali: 'Rali NFC', desv: 'Desvendando', quem: 'Quem sou eu?' };
 
 /** Cor da barra pela taxa de acerto: até 49% pede revisão, 50–74% atenção, 75%+ ok. */
 const corTaxa = (t: number) => (t < 50 ? 'bg-rose-500' : t < 75 ? 'bg-amber-500' : 'bg-emerald-500');

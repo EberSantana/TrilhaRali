@@ -10,6 +10,6 @@ test('lê a lista colada: matrícula;nome, matrícula<TAB>nome (SUAP) ou só o n
 
 test('CSV das notas abre no Excel (BOM e ponto e vírgula)', () => {
   const c = notasCsv('2º B', [{ m: '1', n: 'Ana; Souza', ctf: 10, cruz: 0, rali: 5, desv: 60, total: 75 }]);
-  assert.ok(c.startsWith('﻿Turma;2º B\nMatrícula;Aluno;CTF;Cruzada;Rali NFC;Desvendando;Total\n'));
-  assert.ok(c.includes('1;"Ana; Souza";10;0;5;60;75'));
+  assert.ok(c.startsWith('﻿Turma;2º B\nMatrícula;Aluno;CTF;Cruzada;Rali NFC;Desvendando;Quem sou eu?;Total\n'));
+  assert.ok(c.includes('1;"Ana; Souza";10;0;5;60;0;75'));
 });

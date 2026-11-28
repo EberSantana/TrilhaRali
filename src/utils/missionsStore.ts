@@ -55,6 +55,9 @@ function recalcula() {
   listeners.forEach((l) => l());
 }
 
+/** Resposta de uma missão pela etiqueta (Quem sou eu?), só com o gabarito aberto. */
+export const gabaritoMissao = (tag: string) => gabarito?.missoes[tag];
+
 /** Gabarito do Desvendando (só com o gabarito aberto pela chave do banco). */
 export const gabaritoDesv = () => gabarito?.desv ?? null;
 
