@@ -1,6 +1,6 @@
 import { resumoPainel, minutosParado, PARADO_MIN } from '../../utils/painelAoVivo';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, KeyRound, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users, Target } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, Database, Download, Flag, GraduationCap, HelpCircle, KeyRound, Link2, Loader2, Lock, MonitorPlay, Plus, Power, Puzzle, Radio, RefreshCw, Terminal, Trash2, Unlock, Users, Target } from 'lucide-react';
 import { useMissions } from '../../utils/missionsStore';
 import { RoomProjector } from './RoomProjector';
 import { BackendSetup } from './BackendSetup';
@@ -23,6 +23,8 @@ import { Btn, QrImage, StepTitle } from '../common/ui';
 import { CruzBancoPanel } from './CruzBancoPanel';
 import { SelecaoCruz, rotuloSelecao, selecaoParaEnvio, totalSelecionado, useCruzAssuntos, type Selecao } from '../cruz/SelecaoCruz';
 import { Fogo, Selo } from '../common/Icones';
+import { SelecaoQuem, SELECAO_QUEM_PADRAO, conceitosDaSelecao, montarRodadasQuem, type SelecaoQuemValor } from '../quem/SelecaoQuem';
+import { gabaritoMissao } from '../../utils/missionsStore';
 
 const POLL_MS = 10_000;
 
@@ -49,6 +51,14 @@ const COPY: Record<RoomTipo, { nome: string; tagline: string; plural: string; si
     plural: 'alunos',
     singular: 'aluno',
     unidade: 'palavras',
+    entrada: 'com o token da sala e o próprio nome',
+  },
+  quem: {
+    nome: 'Quem sou eu?',
+    tagline: 'Conceitos das disciplinas em dicas: o aluno começa com uma e cada dica a mais tira 20% do XP. Fácil, média ou difícil, com XP fixo ou corrida.',
+    plural: 'alunos',
+    singular: 'aluno',
+    unidade: 'rodadas',
     entrada: 'com o token da sala e o próprio nome',
   },
 };
@@ -105,6 +115,10 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const [novaDicas, setNovaDicas] = useState(30);
   const [novaReveals, setNovaReveals] = useState(5);
   const cruzSala = tipo === 'cruz';
+  const quemSala = tipo === 'quem';
+  const [selQuem, setSelQuem] = useState<SelecaoQuemValor>(SELECAO_QUEM_PADRAO);
+  const quemDisponiveis = conceitosDaSelecao(selQuem).length;
+  const quemSemGabarito = quemSala && !gabaritoMissao('quem_bd_01');
   const [usarTimer, setUsarTimer] = useState(false);
   const [minutos, setMinutos] = useState(60);
   const catalog = useMissions();
@@ -222,7 +236,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       setShowSetup(true);
       return;
     }
-    if (total === 0 && !cruzSala) {
+    if (total === 0 && !cruzSala && !quemSala) {
       setError('Selecione ao menos uma pergunta.');
       return;
     }
@@ -240,6 +254,24 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           throw new Error('O servidor está numa versão antiga e não tem a Cruzada Online. Atualize o script do Apps Script (versão 23) e publique uma nova versão.');
         }
         const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeCruz, api: apiUrl, criada: Date.now() };
+        persist([st, ...allRooms]);
+        setActiveToken(st.token);
+        setNome('');
+        return;
+      }
+      if (quemSala) {
+        if (!quemDisponiveis) throw new Error('Marque ao menos uma disciplina e uma dificuldade.');
+        const missions = montarRodadasQuem(selQuem, gabaritoMissao);
+        const nomeQuem = nome.trim() || selQuem.disciplinas.join(', ').slice(0, 80);
+        const r = await ctfCall<{ token: string; adminKey: string; tipo?: string }>(
+          'createRoom',
+          { nome: nomeQuem, modo, tipo: 'quem', missions, ...(turmaId ? { turma: turmaId } : {}), ...(usarTimer ? { minutos } : {}) },
+          apiUrl,
+        );
+        if (r.tipo !== 'quem') {
+          throw new Error('O servidor está numa versão antiga e não tem o Quem sou eu?. Atualize o script do Apps Script (versão 37) e publique uma nova versão.');
+        }
+        const st: CtfStoredRoom = { tipo, token: r.token, adminKey: r.adminKey, nome: nomeQuem, api: apiUrl, criada: Date.now() };
         persist([st, ...allRooms]);
         setActiveToken(st.token);
         setNome('');
@@ -540,8 +572,8 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
   const porAcertos = nfc || livre || salaCruz;
   const unidade = salaCruz ? 'palavras' : livre ? 'desafios' : txt.unidade;
   const inviteLink = activeRoom ? buildStudentLink(activeRoom.token, activeRoom.api, tipo) : '';
-  const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo === 'cruz' ? 'cruzada' : tipo}` : '';
-  const Icon = nfc ? Radio : cruzSala ? Puzzle : Flag;
+  const siteLink = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/${tipo === 'cruz' ? 'cruzada' : tipo === 'quem' ? 'quem-sou-eu' : tipo}` : '';
+  const Icon = nfc ? Radio : cruzSala ? Puzzle : quemSala ? HelpCircle : Flag;
   const accentText = nfc ? 'text-emerald-300' : 'text-orange-300';
   const input = `w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 ${nfc ? 'focus:ring-emerald-500' : 'focus:ring-orange-500'}`;
   const accentCheck = nfc ? 'accent-emerald-600' : 'accent-orange-500';
@@ -563,7 +595,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
           {tools && <div className="flex flex-wrap items-center gap-2">{tools}</div>}
         </div>
         <ol className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs" aria-label="Roteiro da aula">
-          {[cruzSala ? 'Assunto' : 'Perguntas', 'Turma', 'Ao vivo', 'Resultados', 'Debriefing'].map((l, i) => {
+          {[cruzSala ? 'Assunto' : quemSala ? 'Conceitos' : 'Perguntas', 'Turma', 'Ao vivo', 'Resultados', 'Debriefing'].map((l, i) => {
             const disabled = i > 0 && !activeRoom;
             return (
               <li key={l}>
@@ -588,13 +620,13 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 1 · Perguntas e nova sala */}
         <form id="passo-1" onSubmit={handleCreate} className="min-w-0 scroll-mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 h-fit">
-          <StepTitle n={1} title={cruzSala ? 'Assunto e nova sala' : 'Perguntas e nova sala'} hint={cruzSala ? 'Escolha o assunto e gere o token.' : 'Escolha o conteúdo e gere o token.'} tone={tone} />
+          <StepTitle n={1} title={cruzSala ? 'Assunto e nova sala' : quemSala ? 'Conceitos e nova sala' : 'Perguntas e nova sala'} hint={cruzSala ? 'Escolha o assunto e gere o token.' : 'Escolha o conteúdo e gere o token.'} tone={tone} />
           <label className="block space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Nome da sala</span>
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Turma 2026.1 · Banco de Dados" className={input} />
           </label>
           <SeletorTurma erro={erroTurmas} turmas={turmas} value={turmaId} onChange={setTurmaId} className={input} />
-          {!cruzSala && <SeletorPapeis value={papeis} onChange={setPapeis} quem={nfc ? 'equipe' : 'dupla'} />}
+          {!cruzSala && !quemSala && <SeletorPapeis value={papeis} onChange={setPapeis} quem={nfc ? 'equipe' : 'dupla'} />}
 
           <div className="space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pontuação</span>
@@ -608,16 +640,20 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
                   onClick={() => setModo(m)}
                   className={`px-2 py-2 rounded-lg text-xs font-bold transition ${modo === m ? (nfc ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400 hover:text-white'}`}
                 >
-                  {m === 'ctf_dynamic' ? <><Fogo /> CTF Dinâmico</> : 'XP fixo'}
+                  {m === 'ctf_dynamic' ? <><Fogo /> {quemSala ? 'Corrida' : 'CTF Dinâmico'}</> : 'XP fixo'}
                 </button>
               ))}
             </div>
             <p className="text-[11px] text-slate-500">
-              {modo === 'ctf_dynamic' ? 'Quanto mais participantes resolvem a mesma missão, menos ela vale (mínimo 40%). Quem resolve primeiro ganha o selo de primeira captura.' : 'Cada missão vale sempre o XP original.'}
+              {quemSala
+                ? modo === 'ctf_dynamic'
+                  ? 'Corrida: quem descobre o conceito primeiro ganha o XP cheio; cada aluno seguinte ganha 10% a menos (mínimo 40%). As dicas descontam por cima.'
+                  : 'Cada conceito vale o XP do nível (fácil 10, média 20, difícil 30), menos 20% por dica a mais.'
+                : modo === 'ctf_dynamic' ? 'Quanto mais participantes resolvem a mesma missão, menos ela vale (mínimo 40%). Quem resolve primeiro ganha o selo de primeira captura.' : 'Cada missão vale sempre o XP original.'}
             </p>
           </div>
 
-          {!nfc && !cruzSala && (
+          {!nfc && !cruzSala && !quemSala && (
             <div className="space-y-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Como os alunos avançam</span>
               <div className="grid grid-cols-2 gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1" role="radiogroup" aria-label="Como os alunos avançam">
@@ -658,7 +694,36 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
             )}
           </div>
 
-          {cruzSala ? (
+          {quemSala ? (
+            <>
+              <SelecaoQuem valor={selQuem} onChange={setSelQuem} input={input} />
+              {quemSemGabarito && (
+                <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2.5">
+                  <p className="text-[11px] text-amber-200">As respostas ficam no gabarito protegido. Digite a chave do banco para liberá-las neste aparelho.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      type="password"
+                      value={bankKeyInput}
+                      onChange={(e) => setBankKeyInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void connectBank();
+                        }
+                      }}
+                      placeholder="Chave do banco"
+                      aria-label="Chave do banco"
+                      autoComplete="off"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-900 px-2.5 py-2 text-sm text-slate-100"
+                    />
+                    <button type="button" onClick={() => void connectBank()} disabled={bankKeyBusy || !bankKeyInput.trim()} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-slate-950 disabled:opacity-50">
+                      {bankKeyBusy ? 'Conectando…' : 'Liberar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : cruzSala ? (
             <fieldset className="min-w-0 space-y-3 rounded-2xl border-2 border-emerald-500/50 bg-emerald-500/5 p-3">
               <legend className="flex items-center gap-2 px-2 text-sm font-black uppercase tracking-wider text-emerald-300">
                 <Puzzle className="w-4 h-4" /> Cruzadinha da sala
@@ -764,7 +829,7 @@ export const RoomsPanel: React.FC<RoomsPanelProps> = ({ tipo, onBack, tools }) =
 
           {error && <p className="text-xs text-rose-300 bg-rose-950/50 border border-rose-500/40 rounded-lg p-2.5">{error}</p>}
 
-          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy || (cruzSala && !erroAssuntos && totalSelecionado(mapaAssuntos, novaSelecao) < 6)} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
+          <Btn type="submit" size="lg" variant={nfc ? 'primary' : 'orange'} disabled={busy || (cruzSala && !erroAssuntos && totalSelecionado(mapaAssuntos, novaSelecao) < 6) || (quemSala && (!quemDisponiveis || quemSemGabarito))} className="w-full" icon={busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}>
             Criar sala e gerar token
           </Btn>
         </form>

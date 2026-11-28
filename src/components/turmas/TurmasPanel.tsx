@@ -281,6 +281,7 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <th className="py-2 pr-3 text-right">Cruzada</th>
                   <th className="py-2 pr-3 text-right">Rali NFC</th>
                   <th className="py-2 pr-3 text-right">Desvendando</th>
+                  <th className="py-2 pr-3 text-right">Quem sou eu?</th>
                   <th className="py-2 text-right">Total</th>
                 </tr>
               </thead>
@@ -293,6 +294,7 @@ export const TurmasPanel: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <td className="py-1.5 pr-3 text-right text-slate-300">{a.cruz}</td>
                     <td className="py-1.5 pr-3 text-right text-slate-300">{a.rali}</td>
                     <td className="py-1.5 pr-3 text-right text-slate-300">{a.desv}</td>
+                    <td className="py-1.5 pr-3 text-right text-slate-300">{a.quem ?? 0}</td>
                     <td className={`py-1.5 text-right font-black ${a.total ? 'text-amber-300' : 'text-rose-300'}`}>{a.total}</td>
                   </tr>
                 ))}

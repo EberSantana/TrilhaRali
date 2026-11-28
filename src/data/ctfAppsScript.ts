@@ -16,7 +16,7 @@ const SCRIPT_BASE = String.raw`// ==============================================
 var SHEET_HEADERS = {
   CtfSalas: ['token', 'nome', 'admin_key', 'status', 'modo', 'criada_em', 'total_fases', 'banco_liberado', 'timer', 'tipo', 'ordem', 'terminal_liberado', 'debriefing_liberado', 'encerrada_em', 'cruzadinha_dicas', 'cruzadinha_palavras', 'cruzadinha_gabarito', 'cruzadinha_grade', 'cruzadinha_disc', 'cruzadinha_assuntos', 'cruzadinha_reveals', 'turma', 'papeis'],
   CtfMissoes: ['token', 'fase', 'tag_id', 'categoria', 'pacote', 'pergunta', 'resposta', 'alternativas', 'xp', 'opcoes', 'explicacao'],
-  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz', 'avatar'],
+  CtfAlunos: ['token', 'nome', 'nome_key', 'fase_atual', 'xp', 'acertos', 'erros', 'fogos', 'entrou_em', 'ultimo_acerto', 'ultimo_erro', 'integrantes', 'chave', 'xp_cruz', 'avatar', 'quem_dicas'],
   CtfCapturas: ['token', 'tag_id', 'nome', 'posicao', 'xp', 'is_fogo', 'timestamp'],
   CtfCruzCapturas: ['token', 'nome_key', 'palavra', 'posicao', 'ajuda', 'xp', 'timestamp', 'grade', 'palavra_id'],
   CtfCruzDicas: ['token', 'grade', 'nome_key', 'tipo', 'palavra_id', 'indice', 'timestamp'],
@@ -37,7 +37,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1, Turmas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, desvApagar: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, desvApagar: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, quemDica: 1, quemPular: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 36, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 37, revisao: '__REVISAO__' });
 }
 
 // ===== BACKUP SEMANAL =====
@@ -120,6 +120,8 @@ function route(req) {
     case 'cruzAssuntos': return cruzAssuntos(req);
     case 'cruzCheck': return cruzCheck(req);
     case 'cruzHint': return cruzHint(req);
+    case 'quemDica': return quemDica(req);
+    case 'quemPular': return quemPular(req);
     case 'cruzTreinoNovo': return cruzTreinoNovo(req);
     case 'cruzTreinoEstado': return cruzTreinoEstado(req);
     case 'cruzTreinoCheck': return cruzTreinoCheck(req);
@@ -388,6 +390,7 @@ function buildState(room, nomeKey) {
       xp_atual: pontos(base, anteriores + 1, room.modo),
       capturas_anteriores: anteriores
     };
+    if (isQuem(room)) quemMissao(missao, m, me);
   }
   return {
     sala: roomInfo(room),
@@ -411,9 +414,14 @@ function isCruz(room) {
   return room.tipo !== 'rali' && (room.tipo === 'cruz' || String(room.ordem) === 'cruzadinha');
 }
 
-// Tipo mostrado fora do servidor: rali, cruz ou ctf
+// Quem sou eu?: sala propria (tipo 'quem'), fase a fase como o CTF, com dicas progressivas
+function isQuem(room) {
+  return room.tipo === 'quem';
+}
+
+// Tipo mostrado fora do servidor: rali, cruz, quem ou ctf
 function tipoOut(room) {
-  return room.tipo === 'rali' ? 'rali' : isCruz(room) ? 'cruz' : 'ctf';
+  return room.tipo === 'rali' ? 'rali' : isCruz(room) ? 'cruz' : isQuem(room) ? 'quem' : 'ctf';
 }
 
 // Sala de Cruzadinha: em vez de perguntas, o professor escolhe a disciplina; o servidor monta a grade na hora
@@ -448,6 +456,7 @@ function createCruzRoom(req) {
 
 function createRoom(req) {
   if (req.tipo !== 'rali' && (req.tipo === 'cruz' || req.ordem === 'cruzadinha')) return createCruzRoom(req);
+  if (req.tipo === 'quem') return createQuemRoom(req);
   var missions = req.missions || [];
   if (!missions.length) fail('Selecione ao menos uma missao.');
   if (missions.length > 200) fail('Maximo de 200 fases por sala.');
@@ -602,23 +611,29 @@ function submit(req) {
   }).length;
   var posicao = anteriores + 1;
   var xp = pontos(Number(m.xp), posicao, room.modo);
+  var quem = isQuem(room);
+  var dicasUsadas = quem ? quemUsadas(me, m) : 0;
+  if (quem) xp = quemXp(xp, dicasUsadas);
   var isFogo = room.modo === 'ctf_dynamic' && posicao === 1;
 
   appendObj('CtfCapturas', {
     token: room.token, tag_id: m.tag_id, nome: me.nome, posicao: posicao, xp: xp,
     is_fogo: isFogo ? '🔥' : '', timestamp: new Date().toISOString()
   });
-  updateRow('CtfAlunos', me._row, {
+  var upd = {
     fase_atual: fase + 1,
     xp: Number(me.xp) + xp,
     acertos: Number(me.acertos) + 1,
     fogos: Number(me.fogos) + (isFogo ? 1 : 0),
     ultimo_acerto: agora
-  });
+  };
+  if (quem) upd.quem_dicas = 0;
+  updateRow('CtfAlunos', me._row, upd);
 
   var st = buildState(room, key);
   st.correto = true;
   st.premio = { xp: xp, posicao: posicao, isFogo: isFogo, modo: room.modo };
+  if (quem) { st.premio.dicas = dicasUsadas; st.revelada = quemRevela(m); }
   return st;
 }
 
@@ -831,6 +846,114 @@ function setTerminal(req) {
   updateRow('CtfSalas', room._row, { terminal_liberado: liberado });
   room.terminal_liberado = liberado;
   return { sala: roomInfo(room) };
+}
+
+// ---------- Quem sou eu? ----------
+// Sala tipo 'quem': cada fase e um conceito com 5 dicas (da mais vaga a mais clara), guardadas como lista em
+// CtfMissoes.pergunta. O aluno ve uma dica por vez; cada dica extra tira 20% do XP (piso de 20%).
+// O servidor guarda quantas dicas o aluno abriu na fase atual (CtfAlunos.quem_dicas) e confere a resposta.
+
+var QUEM_MAX_DICAS = 8;
+
+function quemDicas(m) {
+  var l = parseList(m.pergunta);
+  return l.length ? l.map(function (d) { return String(d); }) : [String(m.pergunta || '')];
+}
+
+// Quantas dicas o aluno ja ve nesta fase (a primeira vem sempre aberta)
+function quemUsadas(me, m) {
+  var total = quemDicas(m).length;
+  return Math.max(1, Math.min(total, 1 + (Number(me.quem_dicas) || 0)));
+}
+
+function quemXp(xp, usadas) {
+  var fator = Math.max(0.2, 1 - (Math.max(1, usadas) - 1) * 0.2);
+  return Math.max(1, Math.round(xp * fator));
+}
+
+function quemMissao(missao, m, me) {
+  var dicas = quemDicas(m);
+  var usadas = quemUsadas(me, m);
+  missao.pergunta = '';
+  missao.dicas = dicas.slice(0, usadas);
+  missao.dicas_total = dicas.length;
+  var cheio = missao.xp_atual;
+  missao.xp_atual = quemXp(cheio, usadas);
+  missao.xp_proxima = usadas < dicas.length ? quemXp(cheio, usadas + 1) : null;
+}
+
+function quemRevela(m) {
+  return { resposta: String(m.resposta), explicacao: String(m.explicacao || '') };
+}
+
+function createQuemRoom(req) {
+  var missions = req.missions || [];
+  if (!missions.length) fail('Escolha ao menos um conceito para o Quem sou eu?.');
+  if (missions.length > 60) fail('Máximo de 60 rodadas por sala.');
+  var nome = String(req.nome || 'Quem sou eu?').substring(0, 80);
+  var modo = req.modo === 'ctf_dynamic' ? 'ctf_dynamic' : 'fixed';
+  var linhas = missions.map(function (m, i) {
+    var dicas = (Array.isArray(m.dicas) ? m.dicas : []).map(function (d) { return String(d).substring(0, 300); }).filter(function (d) { return d; }).slice(0, QUEM_MAX_DICAS);
+    if (dicas.length < 2) fail('Cada conceito precisa de ao menos 2 dicas (' + String(m.tag_id) + ').');
+    if (!String(m.resposta || '').trim()) fail('Conceito sem resposta: ' + String(m.tag_id) + '. Abra o gabarito com a chave do banco.');
+    var xp = Math.max(1, Math.min(100, Math.floor(Number(m.xp)) || 10));
+    return [null, i + 1, String(m.tag_id), String(m.categoria || ''), String(m.pacote || ''), JSON.stringify(dicas),
+      String(m.resposta), JSON.stringify(m.alternativas || []), xp, '[]', String(m.explicacao || '').substring(0, 800)];
+  });
+  var existing = readRows('CtfSalas').map(function (r) { return String(r.token); });
+  var token;
+  do { token = genToken(); } while (existing.indexOf(token) >= 0);
+  var adminKey = randomFrom(TOKEN_CHARS + 'abcdefghijkmnpqrstuvwxyz', 24);
+  appendObj('CtfSalas', {
+    token: token, nome: nome, admin_key: adminKey, status: 'aberta',
+    modo: modo, criada_em: new Date().toISOString(), total_fases: linhas.length,
+    banco_liberado: false,
+    timer: req.minutos ? JSON.stringify(timerApply(null, 'config', req.minutos, Date.now())) : '',
+    tipo: 'quem', ordem: 'sequencial', turma: turmaIdValido(req.turma)
+  });
+  logEvento({ token: token, nome: nome, tipo: 'quem' }, 'criada', linhas.length + ' conceitos; modo ' + modo);
+  linhas.forEach(function (l) { l[0] = token; });
+  var sh = getSheet('CtfMissoes');
+  sh.getRange(sh.getLastRow() + 1, 1, linhas.length, SHEET_HEADERS.CtfMissoes.length).setValues(linhas);
+  memoLimpa('CtfMissoes');
+  return { token: token, adminKey: adminKey, total: linhas.length, tipo: 'quem', ordem: 'sequencial' };
+}
+
+// Contexto comum de dica e pular: sala aberta, cronometro rodando, aluno na fase atual
+function quemContexto(req) {
+  var room = requireRoom(req.token);
+  if (!isQuem(room)) fail('Esta sala não é do Quem sou eu?.');
+  if (room.status !== 'aberta') fail('A sala foi encerrada pelo professor.');
+  requireTimerOpen(parseTimer(room.timer), Date.now());
+  var key = norm(req.nome);
+  var me = playersOf(room.token).filter(function (a) { return a.nome_key === key; })[0];
+  if (!me) fail('Aluno não encontrado nesta sala. Entre novamente.');
+  var fase = Number(me.fase_atual);
+  if (fase > Number(room.total_fases)) fail('Você já concluiu todas as rodadas!');
+  var m = missionRow(room.token, fase);
+  if (!m) fail('Rodada não encontrada na sala.');
+  return { room: room, key: key, me: me, fase: fase, m: m };
+}
+
+// Abre a proxima dica da rodada atual
+function quemDica(req) {
+  var c = quemContexto(req);
+  var usadas = quemUsadas(c.me, c.m);
+  if (usadas >= quemDicas(c.m).length) fail('Todas as dicas já foram abertas.');
+  updateRow('CtfAlunos', c.me._row, { quem_dicas: usadas });
+  return buildState(c.room, c.key);
+}
+
+// Desiste da rodada (so depois de abrir todas as dicas): passa sem XP e conta como erro; mostra a resposta
+function quemPular(req) {
+  var c = quemContexto(req);
+  if (quemUsadas(c.me, c.m) < quemDicas(c.m).length) fail('Abra todas as dicas antes de pular.');
+  updateRow('CtfAlunos', c.me._row, { fase_atual: c.fase + 1, erros: Number(c.me.erros) + 1, quem_dicas: 0 });
+  appendObj('CtfErros', { token: c.room.token, tag_id: String(c.m.tag_id), nome_key: c.key, timestamp: Date.now() });
+  var st = buildState(c.room, c.key);
+  st.pulou = true;
+  st.revelada = quemRevela(c.m);
+  return st;
 }
 
 // ---------- Cruzadinha ----------
@@ -1621,7 +1744,7 @@ function turmaAnalise(req) {
 
   var alunos = {};
   t.alunos.forEach(function (a) {
-    alunos[norm(a.n)] = { n: a.n, total: 0, ctf: 0, cruz: 0, rali: 0, desv: 0, salas: {}, acertos: 0, erros: 0, ultimo: 0 };
+    alunos[norm(a.n)] = { n: a.n, total: 0, ctf: 0, cruz: 0, rali: 0, desv: 0, quem: 0, salas: {}, acertos: 0, erros: 0, ultimo: 0 };
   });
   var credita = function (nome, campo, pts, token, acertos, erros, quando) {
     var x = alunos[norm(nome)];
@@ -1640,7 +1763,7 @@ function turmaAnalise(req) {
     if (!sala) return;
     participantes[token] = (participantes[token] || 0) + 1;
     var tipo = tipoOut(sala);
-    var campo = tipo === 'cruz' ? 'cruz' : tipo === 'rali' ? 'rali' : 'ctf';
+    var campo = tipo === 'cruz' ? 'cruz' : tipo === 'rali' ? 'rali' : tipo === 'quem' ? 'quem' : 'ctf';
     var membros = parseList(r.integrantes);
     if (tipo !== 'rali') membros = [String(r.nome)].concat(membros);
     var quando = Math.max(Number(r.entrou_em) || 0, Number(r.ultimo_acerto) || 0, Number(r.ultimo_erro) || 0);
@@ -1707,7 +1830,7 @@ function turmaAnalise(req) {
     })),
     alunos: t.alunos.map(function (a) {
       var x = alunos[norm(a.n)];
-      return { n: x.n, total: x.total, ctf: x.ctf, cruz: x.cruz, rali: x.rali, desv: x.desv, salas: Object.keys(x.salas).length, tokens: Object.keys(x.salas), acertos: x.acertos, erros: x.erros, ultimo: x.ultimo };
+      return { n: x.n, total: x.total, ctf: x.ctf, cruz: x.cruz, rali: x.rali, desv: x.desv, quem: x.quem, salas: Object.keys(x.salas).length, tokens: Object.keys(x.salas), acertos: x.acertos, erros: x.erros, ultimo: x.ultimo };
     }),
     perguntas: listaPerg,
     assuntos: Object.keys(assuntos).map(function (k) { return assuntos[k]; }),
@@ -1837,7 +1960,7 @@ function turmaNotas(req) {
   var tipoDe = {};
   salas.forEach(function (r) { tipoDe[String(r.token)] = tipoOut(r); });
   var notas = {};
-  t.alunos.forEach(function (a) { notas[norm(a.n)] = { m: a.m, n: a.n, ctf: 0, cruz: 0, rali: 0, desv: 0 }; });
+  t.alunos.forEach(function (a) { notas[norm(a.n)] = { m: a.m, n: a.n, ctf: 0, cruz: 0, rali: 0, desv: 0, quem: 0 }; });
   readRows('CtfAlunos').forEach(function (r) {
     var tipo = tipoDe[String(r.token)];
     if (!tipo) return;
@@ -1847,7 +1970,7 @@ function turmaNotas(req) {
       try { membros = JSON.parse(String(r.integrantes || '[]')); } catch (e) { membros = []; }
       membros.forEach(function (n) { var x = notas[norm(n)]; if (x) x.rali += xp; });
     } else {
-      var campo = tipo === 'cruz' ? 'cruz' : 'ctf';
+      var campo = tipo === 'cruz' ? 'cruz' : tipo === 'quem' ? 'quem' : 'ctf';
       var x = notas[String(r.nome_key)];
       if (x) x[campo] += xp;
       parseList(r.integrantes).forEach(function (n) { var y = notas[norm(n)]; if (y && y !== x) y[campo] += xp; });
@@ -1864,7 +1987,7 @@ function turmaNotas(req) {
   });
   var alunos = t.alunos.map(function (a) {
     var x = notas[norm(a.n)];
-    x.total = x.ctf + x.cruz + x.rali + x.desv;
+    x.total = x.ctf + x.cruz + x.rali + x.desv + x.quem;
     return x;
   });
   return { turma: { id: t.id, nome: t.nome }, salas: salas.length + desvSalas.length, alunos: alunos };
@@ -2049,7 +2172,7 @@ function debriefList(room) {
     .map(function (m) {
       return {
         fase: Number(m.fase), tag_id: String(m.tag_id), categoria: m.categoria, pacote: m.pacote,
-        pergunta: m.pergunta, resposta: String(m.resposta), alternativas: parseList(m.alternativas),
+        pergunta: isQuem(room) ? quemDicas(m).join(' / ') : m.pergunta, resposta: String(m.resposta), alternativas: parseList(m.alternativas),
         opcoes: parseList(m.opcoes), xp: Number(m.xp), explicacao: String(m.explicacao || ''),
         acertos: porTag[String(m.tag_id)] || 0
       };
@@ -2510,5 +2633,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 36;
+export const VERSAO_SCRIPT = 37;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);

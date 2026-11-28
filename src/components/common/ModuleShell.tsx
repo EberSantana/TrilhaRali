@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, HelpCircle, X } from 'lucide-react';
 import { useTheme } from '../../utils/theme';
 
-export type Accent = 'emerald' | 'orange' | 'cyan' | 'violet';
+export type Accent = 'emerald' | 'orange' | 'cyan' | 'violet' | 'rose';
 
 /** Cores de cada trilha: as mesmas da entrada do portal. */
 export const ACCENT: Record<Accent, { tile: string; texto: string; tabAtiva: string; foco: string; botao: string; numero: string }> = {
@@ -10,6 +10,7 @@ export const ACCENT: Record<Accent, { tile: string; texto: string; tabAtiva: str
   orange: { tile: 'bg-orange-500/10 border-orange-500/30 text-orange-300', texto: 'text-orange-300', tabAtiva: 'bg-orange-600 text-white', foco: 'focus-visible:ring-orange-500', botao: 'bg-orange-600 hover:bg-orange-500', numero: 'bg-orange-600' },
   cyan: { tile: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300', texto: 'text-cyan-300', tabAtiva: 'bg-cyan-600 text-white', foco: 'focus-visible:ring-cyan-500', botao: 'bg-cyan-600 hover:bg-cyan-500', numero: 'bg-cyan-600' },
   violet: { tile: 'bg-violet-500/10 border-violet-500/30 text-violet-300', texto: 'text-violet-300', tabAtiva: 'bg-violet-600 text-white', foco: 'focus-visible:ring-violet-500', botao: 'bg-violet-600 hover:bg-violet-500', numero: 'bg-violet-600' },
+  rose: { tile: 'bg-rose-500/10 border-rose-500/30 text-rose-300', texto: 'text-rose-300', tabAtiva: 'bg-rose-600 text-white', foco: 'focus-visible:ring-rose-500', botao: 'bg-rose-600 hover:bg-rose-500', numero: 'bg-rose-600' },
 };
 
 /** Botão "voltar" no mesmo desenho em todas as telas (aluno e professor). */

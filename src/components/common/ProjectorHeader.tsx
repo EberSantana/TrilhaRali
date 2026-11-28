@@ -2,13 +2,14 @@ import React from 'react';
 
 /** Identidade de cada módulo: um nome e uma cor fixos (verde = Rali NFC, laranja = CTF, ciano = Cruzada, violeta = Desvendando).
  *  Verde e vermelho também significam acerto e erro, por isso o verde da marca só aparece no Rali NFC e no hub. */
-export type ModuleId = 'nfc' | 'ctf' | 'cruz' | 'desv';
+export type ModuleId = 'nfc' | 'ctf' | 'cruz' | 'desv' | 'quem';
 
 export const MODULE: Record<ModuleId, { label: string; chip: string; tone: string }> = {
   nfc: { label: 'Rali NFC', chip: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40', tone: 'text-emerald-400' },
   ctf: { label: 'CTF Online', chip: 'bg-orange-500/15 text-orange-300 border-orange-500/40', tone: 'text-orange-400' },
   cruz: { label: 'Cruzada Online', chip: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40', tone: 'text-cyan-400' },
   desv: { label: 'Desvendando', chip: 'bg-violet-500/15 text-violet-300 border-violet-500/40', tone: 'text-violet-400' },
+  quem: { label: 'Quem sou eu?', chip: 'bg-rose-500/15 text-rose-300 border-rose-500/40', tone: 'text-rose-400' },
 };
 
 /** Botão de ícone padrão das barras de ação (telão, painel e aluno). */

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BookOpenCheck, Copy, Flag, Loader2, MonitorPlay, Power, Puzzle, Radio, RefreshCw, Search, Settings2, Trophy, Users, Check, X } from 'lucide-react';
+import { AlertTriangle, BookOpenCheck, Copy, Flag, HelpCircle, Loader2, MonitorPlay, Power, Puzzle, Radio, RefreshCw, Search, Settings2, Trophy, Users, Check, X } from 'lucide-react';
 import { BackPill } from '../common/ModuleShell';
 import { AvisoServidor } from '../common/AvisoServidor';
 import { Btn, QrImage } from '../common/ui';
@@ -28,6 +28,7 @@ const META: Record<Tipo, { nome: string; icone: React.ReactNode; cor: string; pa
   ctf: { nome: 'CTF Online', icone: <Flag className="h-4 w-4" />, cor: 'text-orange-300 border-orange-500/40 bg-orange-500/10', painel: 'prof-ctf' },
   cruz: { nome: 'Cruzada', icone: <Puzzle className="h-4 w-4" />, cor: 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10', painel: 'prof-cruz' },
   desv: { nome: 'Desvendando', icone: <Search className="h-4 w-4" />, cor: 'text-purple-300 border-purple-500/40 bg-purple-500/10', painel: 'prof-desv' },
+  quem: { nome: 'Quem sou eu?', icone: <HelpCircle className="h-4 w-4" />, cor: 'text-rose-300 border-rose-500/40 bg-rose-500/10', painel: 'prof-quem' },
 };
 
 const msgErro = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -104,7 +105,7 @@ export const AulaAoVivo: React.FC<{ onBack: () => void; onAbrirPainel: (modulo: 
           <p className="font-bold text-white">Nenhuma sala aberta agora.</p>
           <p className="mt-1 text-sm text-slate-400">Crie a sala da aula e ela aparece aqui.</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {(['ctf', 'rali', 'cruz', 'desv'] as Tipo[]).map((t) => (
+            {(['ctf', 'rali', 'cruz', 'desv', 'quem'] as Tipo[]).map((t) => (
               <Btn key={t} size="sm" icon={META[t].icone} onClick={() => onAbrirPainel(META[t].painel)}>
                 Criar sala de {META[t].nome}
               </Btn>

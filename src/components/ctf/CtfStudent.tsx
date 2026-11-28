@@ -10,7 +10,7 @@ import { BuscaNome } from '../turmas/BuscaNome';
 import { AvatarCapacete, SeletorAvatar, listaAvatares, useAvatar, useAvataresDupla } from '../turmas/Avatares';
 import { StudentDebrief } from '../rooms/StudentDebrief';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, Flag, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
+import { CheckCircle2, Download, Flag, HelpCircle, KeyRound, Loader2, Lock, LogOut, Puzzle, Send, Trophy, XCircle, Flame, TriangleAlert, Check, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Bandeira, CapturaFlag, Captura } from '../common/Bandeira';
 import type { CruzEstado, CtfState } from '../../types/ctf';
@@ -37,6 +37,7 @@ import { LinuxTerminal } from './LinuxTerminal';
 import { LabInformatica } from './LabInformatica';
 import { AtelieWeb } from './AtelieWeb';
 import { Cruzadinha } from './Cruzadinha';
+import { QuemRodada } from '../quem/QuemRodada';
 import { StatusBanner } from '../common/StatusBanner';
 import { applyServerTheme, useTheme } from '../../utils/theme';
 import { FinalPodium, useCelebrate } from '../common/FinalPodium';
@@ -52,13 +53,23 @@ const ACENTO = {
     icone: 'bg-cyan-500/15 border-cyan-500/40', texto: 'text-cyan-400', token: 'text-cyan-300',
     foco: 'focus:ring-cyan-500', botao: 'bg-cyan-600 hover:bg-cyan-500', spin: 'text-cyan-400',
   },
+  quem: {
+    icone: 'bg-rose-500/15 border-rose-500/40', texto: 'text-rose-400', token: 'text-rose-300',
+    foco: 'focus:ring-rose-500', botao: 'bg-rose-600 hover:bg-rose-500', spin: 'text-rose-400',
+  },
 } as const;
+
+type Modulo = keyof typeof ACENTO;
+const NOME_MODULO: Record<Modulo, string> = { ctf: 'CTF Online', cruz: 'Cruzada Online', quem: 'Quem sou eu?' };
+/** Ambiente a que a sala pertence: cada token só abre no seu ambiente. */
+const moduloDaSala = (sala: { ordem?: string; tipo?: string }): Modulo => (sala.ordem === 'cruzadinha' ? 'cruz' : sala.tipo === 'quem' ? 'quem' : 'ctf');
+const avisoAmbiente = (daSala: Modulo) => `Este token é de uma sala do ${NOME_MODULO[daSala]}. Abra o ${NOME_MODULO[daSala]} na tela inicial.`;
 
 /**
  * Sala de aula do aluno. `modulo` diz em qual ambiente ele entrou: o CTF Online só abre salas de CTF e a
  * Cruzada Online só abre salas de Cruzada (cada token pertence a um ambiente).
  */
-export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ctf' }) => {
+export const CtfStudent: React.FC<{ modulo?: Modulo }> = ({ modulo = 'ctf' }) => {
   const ac = ACENTO[modulo];
   const link = useRef(parseCtfHash());
   const [session, setSession] = useState(getStudentSession);
@@ -117,22 +128,20 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
   }, [session, refresh]);
 
   // Sessão salva de outro ambiente (ex.: token de CTF aberto na Cruzada): volta para a entrada com o aviso.
-  const ordemSala = state?.sala.ordem;
   // XP desta sala vai para as Conquistas do HUB
   useEffect(() => {
     if (!state?.aluno) return;
-    registrarXpJogo(state.sala.token ?? token, { tipo: state.sala.ordem === 'cruzadinha' ? 'cruz' : 'ctf', sala: state.sala.nome, xp: state.aluno.xp, acertos: state.aluno.acertos });
+    registrarXpJogo(state.sala.token ?? token, { tipo: moduloDaSala(state.sala), sala: state.sala.nome, xp: state.aluno.xp, acertos: state.aluno.acertos });
   }, [state?.aluno?.xp, state?.aluno?.acertos]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ambienteErrado = Boolean(ordemSala) && (modulo === 'cruz') !== (ordemSala === 'cruzadinha');
+  const salaModulo = state ? moduloDaSala(state.sala) : null;
+  const ambienteErrado = Boolean(salaModulo) && salaModulo !== modulo;
   useEffect(() => {
     if (!ambienteErrado) return;
     clearStudentSession();
     setSession(null);
     setState(null);
-    setError(modulo === 'cruz'
-      ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
-      : 'Este token é de uma Cruzada Online. Abra a Cruzada Online na tela inicial.');
-  }, [ambienteErrado, modulo]);
+    if (salaModulo) setError(avisoAmbiente(salaModulo));
+  }, [ambienteErrado, salaModulo]);
 
   // Cronômetro da sala: conta no aparelho a partir do fim informado pelo servidor
   const timer = state?.sala.timer ?? null;
@@ -152,11 +161,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
       const dupla = cabine.split(',').map((x) => x.trim()).filter(Boolean);
       const quem = papeisSala ? dupla[0] ?? '' : nome;
       const s = await ctfCall<CtfState>('join', { token: token.trim(), nome: quem, chave: getChave(token, quem), ...(papeisSala ? (dupla.length && avatares.slice(0, dupla.length).some(Boolean) ? { avatar: avatares.slice(0, dupla.length).join(',') } : {}) : avatar ? { avatar } : {}), ...(retomando && !papeisSala ? { retomar: true } : {}), ...(papeisSala ? { integrantes: dupla.slice(1) } : {}) });
-      if ((modulo === 'cruz') !== (s.sala.ordem === 'cruzadinha')) {
-        throw new Error(modulo === 'cruz'
-          ? 'Este token é de uma sala do CTF Online. Abra o CTF Online na tela inicial.'
-          : 'Este token é de uma Cruzada Online. Abra a Cruzada Online na tela inicial.');
-      }
+      if (moduloDaSala(s.sala) !== modulo) throw new Error(avisoAmbiente(moduloDaSala(s.sala)));
       const next = { token: s.sala.token, nome: s.aluno.nome };
       saveChave(token, quem, (s as { chave?: string }).chave);
       saveStudentSession(next);
@@ -253,9 +258,9 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
         <form onSubmit={handleJoin} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
           <div className="text-center space-y-1">
             <div className={`mx-auto w-14 h-14 rounded-2xl border flex items-center justify-center ${ac.icone}`}>
-              {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
+              {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : modulo === 'quem' ? <HelpCircle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
             </div>
-            <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada Online' : 'Entrar no CTF Online'}</h2>
+            <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada Online' : modulo === 'quem' ? 'Entrar no Quem sou eu?' : 'Entrar no CTF Online'}</h2>
             <p className="text-sm text-slate-400">Digite o token da sala e escolha o seu nome na lista da turma.</p>
           </div>
 
@@ -326,7 +331,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             disabled={busy || token.trim().length < 4 || (papeisSala ? cabine.split(',').filter((x) => x.trim().length >= 2).length < 2 : nome.trim().length < 2)}
             className={`w-full py-3.5 rounded-xl font-black text-base ${ac.botao} disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center gap-2 transition active:scale-[0.98]`}
           >
-            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : modulo === 'cruz' ? <Puzzle className="w-5 h-5" /> : <Flag className="w-5 h-5" />}
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : modulo === 'cruz' ? <Puzzle className="w-5 h-5" /> : modulo === 'quem' ? <HelpCircle className="w-5 h-5" /> : <Flag className="w-5 h-5" />}
             ENTRAR NA SALA
           </button>
           <p className="text-[11px] text-center text-slate-500">
@@ -380,7 +385,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
 
   const barra = (
     <StudentBar
-      module={sala.ordem === 'cruzadinha' ? 'cruz' : 'ctf'}
+      module={moduloDaSala(sala)}
       context={sala.nome}
       name={aluno.nome}
       avatar={aluno.avatar}
@@ -448,6 +453,47 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             variant={theme === 'claro' ? 'bars' : 'podium'}
           />
           <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Quem sou eu?: rodadas de dicas, uma por vez; o ranking conta o XP de cada conceito descoberto.
+  if (sala.tipo === 'quem') {
+    return (
+      <div className="space-y-5">
+        {barra}
+        {avisos}
+        {finished && (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8">
+            <FinalPodium rows={ranking} totalFases={sala.total} unit="fases" entity="alunos" me={aluno.nome} />
+            <p className="mt-4 text-center text-sm text-slate-400">
+              Você: <strong className="text-white">{aluno.posicao}º lugar</strong> • {aluno.xp} XP
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 space-y-4">
+            <QuemRodada state={state} session={session} locked={locked} onState={setState} />
+            <StudentDebrief token={sala.token} liberado={Boolean(sala.debriefing)} quem="alunos" accent="orange" />
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-3 h-fit">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" /> Top 5
+              </h3>
+              <span className="text-[11px] font-mono text-slate-500">{state.total_alunos} {state.total_alunos === 1 ? 'aluno' : 'alunos'}</span>
+            </div>
+            <Top5Board
+              rows={ranking}
+              totalFases={sala.total}
+              me={aluno.nome}
+              mine={{ nome: aluno.nome, xp: aluno.xp, fase: aluno.fase, fogos: aluno.fogos, posicao: aluno.posicao }}
+              unit="fases"
+              variant={theme === 'claro' ? 'bars' : 'podium'}
+            />
+            <p className="text-[11px] text-slate-500">Atualiza sozinho a cada poucos segundos.</p>
+          </div>
         </div>
       </div>
     );

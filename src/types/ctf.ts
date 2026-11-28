@@ -3,7 +3,7 @@ import type { TimerInfo } from '../utils/timer';
 import type { Theme } from '../utils/theme';
 
 /** ctf = CTF Online (individual, fase a fase) · rali = Rali NFC (equipes, missões por etiqueta) */
-export type RoomTipo = 'ctf' | 'rali' | 'cruz';
+export type RoomTipo = 'ctf' | 'rali' | 'cruz' | 'quem';
 
 /** livre = painel de desafios · sequencial = fase a fase */
 /** livre = painel de desafios; sequencial = fase a fase; cruzadinha = sala só com a Cruzadinha (script v19+) */
@@ -67,6 +67,10 @@ export interface CtfMission {
   xp_atual: number;
   capturas_anteriores: number;
   opcoes?: string[]; // Múltipla escolha: alternativas (o gabarito nunca vem junto)
+  /** Quem sou eu? (script v37+): dicas já abertas nesta rodada, total de dicas e XP se abrir a próxima */
+  dicas?: string[];
+  dicas_total?: number;
+  xp_proxima?: number | null;
 }
 
 export interface CtfRankingRow {
@@ -93,7 +97,10 @@ export interface CtfState {
   /** CTF livre: todos os desafios da sala (sem pergunta nem gabarito) */
   missoes?: RaliMissionRef[];
   correto?: boolean;
-  premio?: CtfAward & { tag_id?: string };
+  premio?: CtfAward & { tag_id?: string; dicas?: number };
+  /** Quem sou eu?: resposta mostrada depois de acertar ou pular a rodada */
+  revelada?: { resposta: string; explicacao: string };
+  pulou?: boolean;
 }
 
 export interface CtfTeacherStudent {
@@ -128,6 +135,8 @@ export interface CtfMissionPayload {
   xp: number;
   opcoes?: string[];
   explicacao?: string;
+  /** Quem sou eu?: as dicas do conceito, da mais vaga à mais clara */
+  dicas?: string[];
 }
 
 export interface CtfStoredRoom {

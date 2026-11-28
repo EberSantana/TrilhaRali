@@ -6,7 +6,7 @@
 import { lerPerfilHub } from './perfilHub';
 import { urlDoHub } from './turmasHub';
 
-export type TipoJogo = 'ctf' | 'cruz' | 'desv' | 'rali';
+export type TipoJogo = 'ctf' | 'cruz' | 'desv' | 'rali' | 'quem';
 export interface SalaXp {
   tipo: TipoJogo;
   sala: string;
