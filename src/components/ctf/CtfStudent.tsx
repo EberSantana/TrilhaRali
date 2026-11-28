@@ -255,7 +255,7 @@ export const CtfStudent: React.FC<{ modulo?: 'ctf' | 'cruz' }> = ({ modulo = 'ct
             <div className={`mx-auto w-14 h-14 rounded-2xl border flex items-center justify-center ${ac.icone}`}>
               {modulo === 'cruz' ? <Puzzle className={`w-7 h-7 ${ac.texto}`} /> : <Flag className={`w-7 h-7 ${ac.texto}`} />}
             </div>
-            <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada' : 'Entrar no CTF'}</h2>
+            <h2 className="text-2xl font-black text-white">{modulo === 'cruz' ? 'Entrar na Cruzada Online' : 'Entrar no CTF Online'}</h2>
             <p className="text-sm text-slate-400">Digite o token da sala e escolha o seu nome na lista da turma.</p>
           </div>
 

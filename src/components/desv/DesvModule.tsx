@@ -368,7 +368,7 @@ const EntradaDupla: React.FC<{ gid: string; erroInicial: string; onEntrou: (s: S
           <div className="mx-auto w-14 h-14 rounded-2xl border bg-violet-500/10 border-violet-500/30 flex items-center justify-center">
             <Users className="w-7 h-7 text-violet-300" />
           </div>
-          <h2 className="text-2xl font-black text-white">{individual ? 'Entrar na sala' : 'Entrar com a dupla'}</h2>
+          <h2 className="text-2xl font-black text-white">Entrar no Desvendando</h2>
           <p className="text-sm text-slate-400">Os casos são liberados pelo professor da sua turma.</p>
         </div>
         <AvisoPerfilHub perfil={perfilHub} onNaoSou={() => setIntegrantes('')} />
