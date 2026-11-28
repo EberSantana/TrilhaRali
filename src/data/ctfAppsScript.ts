@@ -37,7 +37,7 @@ var SHEET_HEADERS = {
 var TEXT_SHEETS = { CtfMissoes: 1, Banco: 1, NfcPublicadas: 1, CruzRanking: 1, DesvRanking: 1, DesvGabarito: 1, DesvSalas: 1, DesvDuplas: 1, Turmas: 1 };
 var TOKEN_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 var TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, desvApagar: 1, join: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
+var WRITE_ACTIONS = { createRoom: 1, deleteRoom: 1, desvApagar: 1, submit: 1, raliSubmit: 1, setStatus: 1, setBanco: 1, setTerminal: 1, setCruzadinha: 1, cruzBancoImport: 1, cruzState: 1, cruzCheck: 1, cruzHint: 1, cruzTreinoRanking: 1, desvAcusar: 1, createDesvRoom: 1, turmaSalvar: 1, turmaExcluir: 1, liberarNome: 1, desvEntrar: 1, desvProf: 1, setDebriefing: 1, setTimer: 1, raliTimer: 1, setTema: 1, bancoSave: 1, bancoDelete: 1, bancoImport: 1, nfcPublish: 1 };
 var HEADERS_OK = {};
 var ERROR_COOLDOWN_MS = 3000;
 
@@ -52,7 +52,7 @@ function fail(msg) {
 }
 
 function doGet(e) {
-  return out({ ok: true, servico: 'Trilha Rali', versao: 35, revisao: '__REVISAO__' });
+  return out({ ok: true, servico: 'Trilha Rali', versao: 36, revisao: '__REVISAO__' });
 }
 
 // ===== BACKUP SEMANAL =====
@@ -493,7 +493,24 @@ function createRoom(req) {
   return { token: token, adminKey: adminKey, total: missions.length, tipo: tipo, ordem: ordem };
 }
 
+// A entrada segura o bloqueio so enquanto confere e grava o aluno; montar o estado da sala (leitura pesada) fica de fora.
+// Assim muitas duplas entrando juntas se enfileiram por poucas centenas de ms, e nao por ~2 s cada.
 function join(req) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  var r;
+  try {
+    memoLimpa('CtfAlunos');
+    r = joinGravar(req);
+  } finally {
+    lock.releaseLock();
+  }
+  var st = r.room.tipo === 'rali' || isLivre(r.room) ? raliBuildState(r.room, r.key) : buildState(r.room, r.key);
+  st.chave = r.chave;
+  return st;
+}
+
+function joinGravar(req) {
   var room = requireRoom(req.token);
   var nome = cleanName(req.nome);
   var comEquipe = room.tipo === 'rali' || (room.tipo === 'ctf' && !!room.papeis);
@@ -538,9 +555,7 @@ function join(req) {
       avatar: avatar
     });
   }
-  var st = room.tipo === 'rali' || isLivre(room) ? raliBuildState(room, key) : buildState(room, key);
-  st.chave = chave;
-  return st;
+  return { room: room, key: key, chave: chave };
 }
 
 function stateFor(req) {
@@ -2495,5 +2510,5 @@ function revisaoDe(texto: string): string {
 
 /** Revisão que o site espera do servidor. O doGet do script publicado devolve a mesma revisão. */
 export const REVISAO_SCRIPT = revisaoDe(SCRIPT_BASE);
-export const VERSAO_SCRIPT = 35;
+export const VERSAO_SCRIPT = 36;
 export const CTF_APPS_SCRIPT = SCRIPT_BASE.replace('__REVISAO__', REVISAO_SCRIPT);
