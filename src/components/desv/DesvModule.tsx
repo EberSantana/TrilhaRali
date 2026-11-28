@@ -707,14 +707,14 @@ const CodigoSuspeitos: React.FC<{ caso: DesvCasoCodigo }> = ({ caso }) => (
     {caso.base && (
       <div className="mt-3">
         <p className="text-xs font-semibold text-slate-400">{caso.baseRotulo || 'Página onde o trecho entrou'}</p>
-        <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-sky-200"><code>{caso.base}</code></pre>
+        <pre className="mt-1 whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-sky-200"><code>{caso.base}</code></pre>
       </div>
     )}
     <div className="mt-3 grid gap-2 sm:grid-cols-2">
       {caso.suspeitos.map((s) => (
         <div key={s.id} className="rounded-lg border border-slate-800 bg-slate-950/70 p-3 min-w-0">
           <p className="text-xs font-black text-violet-300">{s.nome}</p>
-          <pre className="mt-1 overflow-x-auto text-xs leading-relaxed text-slate-200"><code>{s.codigo}</code></pre>
+          <pre className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-200"><code>{s.codigo}</code></pre>
         </div>
       ))}
     </div>
