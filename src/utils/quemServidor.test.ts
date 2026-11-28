@@ -153,14 +153,14 @@ test('modo corrida: o primeiro a acertar ganha o XP cheio, os seguintes perdem 1
   assert.equal(s.call('submit', { token: 'QSE123', nome: 'Bia', resposta: 'select' }).premio!.xp, 7, '9 XP da 2ª posição × 80%');
 });
 
-test('o banco público tem 54 conceitos com 5 dicas, 3 por nível em cada disciplina', () => {
-  assert.equal(CONCEITOS_QUEM.length, 54);
+test('o banco público tem 360 conceitos com 5 dicas, 20 por nível em cada disciplina', () => {
+  assert.equal(CONCEITOS_QUEM.length, 360);
   const conta = new Map<string, number>();
   for (const c of CONCEITOS_QUEM) {
     assert.equal(c.dicas.length, 5, c.tag_id);
     assert.equal(c.xp, { facil: 10, media: 20, dificil: 30 }[c.nivel], c.tag_id);
     conta.set(`${c.disciplina}|${c.nivel}`, (conta.get(`${c.disciplina}|${c.nivel}`) ?? 0) + 1);
   }
-  for (const n of conta.values()) assert.equal(n, 3);
-  assert.equal(new Set(CONCEITOS_QUEM.map((c) => c.tag_id)).size, 54);
+  for (const n of conta.values()) assert.equal(n, 20);
+  assert.equal(new Set(CONCEITOS_QUEM.map((c) => c.tag_id)).size, 360);
 });
