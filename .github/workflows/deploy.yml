@@ -32,7 +32,15 @@ jobs:
         run: npm run lint
 
       - name: Testes
-        run: npm test
+        env:
+          GABARITO_CHAVE: ${{ secrets.GABARITO_CHAVE }}
+        run: |
+          if [ -n "$GABARITO_CHAVE" ]; then
+            npm test
+          else
+            echo "::warning::GABARITO_CHAVE não configurada no GitHub: 15 arquivos de teste que dependem do gabarito foram pulados."
+            npm run test:sem-chave
+          fi
 
       - name: Build project
         run: npm run build
