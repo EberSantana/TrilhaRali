@@ -269,6 +269,13 @@ flowchart LR
 
 ---
 
+## Identidade visual
+
+- **Produto:** Trilha Rali (logotipo "TR HUB"), fonte Source Sans 3; Orbitron só em títulos de marca.
+- **Uma cor por módulo** (definida em `src/components/common/ProjectorHeader.tsx`, `MODULE`): Rali NFC verde · CTF Online laranja · Cruzada Online ciano · Desvendando violeta. Use sempre `StudentBar` (aluno) e `ProjectorHeader` (telão) para mostrar o módulo.
+- **Cores com significado fixo:** verde = acerto, vermelho/rosa = erro, âmbar = pontos e avisos. Piloto vermelho ▲, copiloto verde ●, engenheiro azul ■.
+- **Temas:** escuro (padrão) e claro (`data-theme="claro"` em `src/index.css`).
+
 ## Instalação e execução local
 
 Requisitos: **Node.js 20 ou superior** e npm.
