@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import type { CtfState } from '../../types/ctf';
 import { ctfCall } from '../../utils/ctfApi';
 import { playSound } from '../../utils/audio';
+import { CONCEITOS_QUEM } from '../../data/quemSouEu';
 
 interface Props {
   state: CtfState;
@@ -12,11 +13,18 @@ interface Props {
   onState: (s: CtfState) => void;
 }
 
+/** As dicas já estão no código do site: a próxima abre na hora e o servidor só registra em segundo plano. */
+const DICAS_POR_TAG = new Map(CONCEITOS_QUEM.map((c) => [c.tag_id, c.dicas]));
+
+/** Mesma conta do servidor (quemXp): cada dica além da primeira tira 20%, até sobrar 20%. */
+export const xpComDicas = (cheio: number, usadas: number) => Math.max(1, Math.round(cheio * Math.max(0.2, 1 - (Math.max(1, usadas) - 1) * 0.2)));
+
 type Aviso = { tom: 'certo' | 'errado' | 'pulou'; titulo: string; resposta?: string; explicacao?: string };
 
 /**
  * Rodada do Quem sou eu?: o conceito fala de si mesmo em dicas. O aluno começa com uma dica e pode abrir as
- * próximas (cada uma tira 20% do XP). O servidor guarda as dicas abertas e confere a resposta.
+ * próximas (cada uma tira 20% do XP). A dica aparece na hora; o servidor registra numa fila em segundo plano
+ * e, antes de conferir a resposta ou pular, a fila termina, para o XP contar todas as dicas abertas.
  */
 export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState }) => {
   const { missao, aluno, sala } = state;
@@ -30,6 +38,10 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
     if (aviso && aviso.tom !== 'errado') avisoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [aviso]);
   const fase = missao?.fase;
+  /** dicas abertas na tela antes de o servidor confirmar */
+  const [local, setLocal] = useState<{ fase: number; abertas: number } | null>(null);
+  const fila = useRef<Promise<void>>(Promise.resolve());
+  const pendentes = useRef(0);
   useEffect(() => {
     setErro('');
   }, [fase]);
@@ -38,6 +50,7 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
     setBusy(acao === 'submit' ? 'enviar' : acao === 'quemDica' ? 'dica' : 'pular');
     setErro('');
     try {
+      await fila.current;
       const s = await ctfCall<CtfState>(acao, { token: session.token, nome: session.nome, ...extra });
       onState(s);
       return s;
@@ -78,7 +91,36 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
 
   const dica = async () => {
     setAviso(null);
-    await chamar('quemDica');
+    if (!missao) return;
+    const todasDoBanco = DICAS_POR_TAG.get(missao.tag_id);
+    const servidor = missao.dicas ?? [];
+    const abertas = local && local.fase === missao.fase ? local.abertas : servidor.length;
+    const mesmas = !!todasDoBanco && todasDoBanco.length === (missao.dicas_total ?? 0) && servidor.every((d, i) => todasDoBanco[i] === d);
+    if (!mesmas) {
+      await chamar('quemDica');
+      return;
+    }
+    if (abertas >= todasDoBanco!.length) return;
+    setLocal({ fase: missao.fase, abertas: abertas + 1 });
+    setErro('');
+    pendentes.current += 1;
+    let ultimo = null as CtfState | null;
+    let falhou = '';
+    fila.current = fila.current.then(async () => {
+      try {
+        ultimo = await ctfCall<CtfState>('quemDica', { token: session.token, nome: session.nome });
+      } catch (e) {
+        falhou = e instanceof Error ? e.message : String(e);
+      }
+      pendentes.current -= 1;
+      if (falhou) setErro(`A dica não foi registrada no servidor (${falhou}). Toque em "Mais uma dica" de novo.`);
+      if (pendentes.current === 0) {
+        if (ultimo) onState(ultimo);
+        setLocal(null);
+      } else if (falhou) {
+        setLocal((l) => (l ? { ...l, abertas: l.abertas - 1 } : l));
+      }
+    });
   };
 
   const pular = async () => {
@@ -123,9 +165,15 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
     );
   }
 
-  const dicas = missao.dicas ?? [];
-  const total = missao.dicas_total ?? dicas.length;
+  const doServidor = missao.dicas ?? [];
+  const total = missao.dicas_total ?? doServidor.length;
+  const otimista = local && local.fase === missao.fase && local.abertas > doServidor.length ? local.abertas : 0;
+  const dicas = otimista ? (DICAS_POR_TAG.get(missao.tag_id) ?? doServidor).slice(0, otimista) : doServidor;
   const todas = dicas.length >= total;
+  // XP cheio da rodada (já com o bônus de posição), deduzido do que o servidor mandou para as dicas dele
+  const cheio = Math.round(missao.xp_atual / Math.max(0.2, 1 - (Math.max(1, doServidor.length) - 1) * 0.2));
+  const xpAtual = otimista ? xpComDicas(cheio, dicas.length) : missao.xp_atual;
+  const xpProxima = otimista ? (dicas.length < total ? xpComDicas(cheio, dicas.length + 1) : null) : missao.xp_proxima;
 
   return (
     <div className="space-y-4">
@@ -138,8 +186,8 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
             <span className="text-slate-400">{missao.pacote}</span>
           </div>
           <span className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-black">
-            vale {missao.xp_atual} XP
-            {missao.xp_atual !== missao.xp_base && <span className="ml-1.5 text-[11px] text-amber-300/60 line-through">{missao.xp_base}</span>}
+            vale {xpAtual} XP
+            {xpAtual !== missao.xp_base && <span className="ml-1.5 text-[11px] text-amber-300/60 line-through">{missao.xp_base}</span>}
           </span>
         </div>
 
@@ -209,7 +257,7 @@ export const QuemRodada: React.FC<Props> = ({ state, session, locked, onState })
                 {busy === 'dica' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lightbulb className="w-5 h-5" />}
                 <span className="text-left leading-tight">
                   Mais uma dica
-                  {typeof missao.xp_proxima === 'number' && <span className="block text-[11px] font-semibold text-amber-300/80">a rodada passa a valer {missao.xp_proxima} XP</span>}
+                  {typeof xpProxima === 'number' && <span className="block text-[11px] font-semibold text-amber-300/80">a rodada passa a valer {xpProxima} XP</span>}
                 </span>
               </button>
             )}
